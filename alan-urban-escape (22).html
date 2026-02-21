@@ -102,7 +102,7 @@ const player = {
   attacking:false, attackTimer:0, attackCooldown:0,
   invulnerable:0,
   jumpForce:-10.5, gravity:0.45, maxFallSpeed:12,
-  walkSpeed:3, runSpeed:5.2, scale:1.0
+  walkSpeed:4.5, runSpeed:7.5, scale:1.0
 };
 
 spriteImg.onload = () => { FW=spriteImg.width/COLS; FH=spriteImg.height/ROWS; player.scale=player.h/FH; spriteLoaded=true; };
@@ -600,63 +600,48 @@ function drawSky() {
 }
 
 function drawBackBuildings() {
-  // Far skyline silhouette (parallax 0.06) — hazy blue
+  // Far skyline silhouette (parallax 0.06) — very hazy, flat color only
   const o0=-camera.x*.06;
-  const skyline=[[0,220,80,70],[80,210,50,80],[140,225,60,65],[210,205,40,85],
-    [260,228,70,62],[340,218,30,72],[340,188,12,102],[380,222,60,68],[450,212,50,78],
-    [510,230,90,60],[610,220,40,70],[610,188,10,102],[660,225,70,65],[740,215,55,75],
-    [800,228,80,62],[890,218,45,72],[890,185,10,105],[950,225,60,65]];
+  const skyline=[[0,240,80,50],[80,232,50,58],[140,244,60,46],[210,228,40,62],
+    [260,246,70,44],[340,236,30,54],[340,218,12,72],[380,242,60,48],[450,234,50,56],
+    [510,248,90,42],[610,240,40,50],[610,218,10,72],[660,244,70,46],[740,236,55,54],
+    [800,246,80,44],[890,238,45,52],[890,216,10,74],[950,244,60,46]];
+  ctx.fillStyle='rgba(160,180,210,0.3)';
   for(const[bx,by,bw,bh]of skyline){
     const dx=((bx+o0)%1020);const ddx=dx<0?dx+1020:dx;
-    ctx.fillStyle='#92a8c8';ctx.fillRect(ddx,by,bw,bh);
-    // Subtle window dots
-    ctx.fillStyle='rgba(120,145,180,0.4)';
-    for(let wy=by+10;wy<by+bh-8;wy+=12){for(let wx=ddx+6;wx<ddx+bw-6;wx+=10){ctx.fillRect(wx,wy,3,4);}}
+    ctx.fillRect(ddx,by,bw,bh);
   }
 
-  // Mid buildings (parallax 0.15) — warmer, with roofs and windows
+  // Mid buildings (parallax 0.15) — muted, minimal detail
   const o1=-camera.x*.15;
-  const midB=[[0,260,100,120],[110,250,85,130],[210,265,110,115],[340,255,75,125],
-    [430,268,90,112],[540,248,70,132],[620,262,95,118],[730,252,80,128],
-    [820,266,105,114],[940,256,65,124]];
+  const midB=[[0,280,100,100],[110,272,85,108],[210,284,110,96],[340,276,75,104],
+    [430,286,90,94],[540,270,70,110],[620,282,95,98],[730,274,80,106],
+    [820,284,105,96],[940,278,65,102]];
+  ctx.fillStyle='rgba(190,178,158,0.35)';
   for(const[bx,by,bw,bh]of midB){
     const dx=((bx+o1)%1040);const ddx=dx<0?dx+1040:dx;
-    // Wall with slight color variation per building
-    const tint=Math.sin(bx*.13)*.05;
-    ctx.fillStyle=`rgb(${195+tint*60|0},${180+tint*40|0},${150+tint*30|0})`;
     ctx.fillRect(ddx,by,bw,bh);
-    // Terracotta roof with tile pattern
-    ctx.fillStyle='#b85830';ctx.fillRect(ddx-2,by-5,bw+4,8);
-    ctx.fillStyle='#c86838';for(let rx=ddx-2;rx<ddx+bw+2;rx+=6){ctx.fillRect(rx,by-4,4,3);ctx.fillRect(rx+3,by,4,3);}
-    // Windows — dark with faint glass reflection
-    for(let wy=by+12;wy<by+bh-14;wy+=18){for(let wx=ddx+8;wx<ddx+bw-8;wx+=16){
-      ctx.fillStyle='#5a4030';ctx.fillRect(wx,wy,8,11);
-      ctx.fillStyle='rgba(140,180,220,0.2)';ctx.fillRect(wx+1,wy+1,6,9);
-      ctx.fillStyle='#5a4030';ctx.fillRect(wx+3,wy,2,11);
-    }}
+    // Simple roof line
+    ctx.fillStyle='rgba(170,100,60,0.25)';ctx.fillRect(ddx-2,by-3,bw+4,5);
+    ctx.fillStyle='rgba(190,178,158,0.35)';
   }
 
-  // Near buildings layer (parallax 0.25) — closest bg, most detail
+  // Near buildings layer (parallax 0.25) — slightly more visible but still subdued
   const o2=-camera.x*.25;
-  const nearB=[[20,300,70,100],[100,290,60,110],[180,305,80,95],[280,295,55,105],
-    [350,308,75,92],[440,292,65,108],[520,302,85,98],[620,288,60,112],
-    [700,300,75,100],[790,294,70,106],[880,306,60,94],[960,298,55,102]];
+  const nearB=[[20,320,70,80],[100,312,60,88],[180,324,80,76],[280,316,55,84],
+    [350,326,75,74],[440,314,65,86],[520,322,85,78],[620,310,60,90],
+    [700,320,75,80],[790,314,70,86],[880,324,60,76],[960,318,55,82]];
   for(const[bx,by,bw,bh]of nearB){
     const dx=((bx+o2)%1060);const ddx=dx<0?dx+1060:dx;
-    const hue=Math.sin(bx*.2);
-    ctx.fillStyle=hue>0?'#e8dcc4':'#ddd4c0';
+    ctx.fillStyle='rgba(215,205,188,0.4)';
     ctx.fillRect(ddx,by,bw,bh);
-    // Roof
-    ctx.fillStyle='#c06030';ctx.fillRect(ddx-3,by-4,bw+6,7);
-    ctx.fillStyle='#d07040';for(let rx=ddx-2;rx<ddx+bw+4;rx+=7){ctx.fillRect(rx,by-3,5,3);}
-    // Windows
-    for(let wy=by+10;wy<by+bh-16;wy+=22){for(let wx=ddx+6;wx<ddx+bw-6;wx+=18){
-      ctx.fillStyle='#4a3018';ctx.fillRect(wx,wy,10,14);
-      ctx.fillStyle='rgba(90,150,210,0.2)';ctx.fillRect(wx+1,wy+1,8,12);
-      ctx.fillStyle='#4a3018';ctx.fillRect(wx+4,wy,2,14);ctx.fillRect(wx,wy+6,10,2);
+    // Simple roof
+    ctx.fillStyle='rgba(180,100,55,0.3)';ctx.fillRect(ddx-2,by-3,bw+4,5);
+    // Sparse faint windows
+    ctx.fillStyle='rgba(80,60,40,0.12)';
+    for(let wy=by+14;wy<by+bh-20;wy+=28){for(let wx=ddx+10;wx<ddx+bw-10;wx+=24){
+      ctx.fillRect(wx,wy,6,8);
     }}
-    // Occasional awning
-    if(hue>0.3){ctx.fillStyle='#c84040';ctx.beginPath();ctx.moveTo(ddx+bw/2-14,by+bh-18);ctx.lineTo(ddx+bw/2+14,by+bh-18);ctx.lineTo(ddx+bw/2+18,by+bh-10);ctx.lineTo(ddx+bw/2-18,by+bh-10);ctx.fill();}
   }
 }
 
@@ -830,26 +815,17 @@ function drawDecoration(d){
         ctx.fillStyle='#6a4828';ctx.fillRect(doorX+2,wallBottom-38,16,36);
         ctx.fillStyle='#4a2810';ctx.fillRect(doorX+9,wallBottom-22,3,5);
       }
-      // Windows with shutters and flower boxes
-      for(let wy=y+20;wy<wallBottom-50;wy+=45){for(let wx=x+14;wx<x+d.w-14;wx+=32){
+      // Windows — sparse, simple
+      for(let wy=y+22;wy<wallBottom-55;wy+=60){for(let wx=x+16;wx<x+d.w-16;wx+=48){
         // Window frame
-        ctx.fillStyle='#3a2010';ctx.fillRect(wx-2,wy-2,18,26);
-        // Glass with sky reflection
-        ctx.fillStyle='rgba(90,150,210,0.25)';ctx.fillRect(wx,wy,14,22);
-        ctx.fillStyle='rgba(180,220,255,0.1)';ctx.fillRect(wx+1,wy+1,6,10);
+        ctx.fillStyle='#3a2010';ctx.fillRect(wx-1,wy-1,16,22);
+        // Glass
+        ctx.fillStyle='rgba(90,150,210,0.2)';ctx.fillRect(wx,wy,14,20);
         // Mullions
-        ctx.fillStyle='#3a2010';ctx.fillRect(wx+6,wy,2,22);ctx.fillRect(wx,wy+10,14,2);
-        // Shutters — wooden, slightly open
-        const hasShutters=Math.sin(wx*.5+wy*.3)>0;
-        if(hasShutters){
-          ctx.fillStyle='#2a6830';ctx.fillRect(wx-6,wy-1,5,23);ctx.fillRect(wx+15,wy-1,5,23);
-          ctx.fillStyle='#3a7838';ctx.fillRect(wx-5,wy,3,21);ctx.fillRect(wx+16,wy,3,21);
-        }
-        // Flower box below some windows
-        if(Math.sin(wx*.7+wy*.4)>.4){
-          ctx.fillStyle='#8a6040';ctx.fillRect(wx-1,wy+23,16,4);
-          ctx.fillStyle='#d050a0';for(let fx=wx;fx<wx+14;fx+=4){ctx.fillRect(fx,wy+20,3,4);}
-          ctx.fillStyle='#40a030';ctx.fillRect(wx,wy+22,14,2);
+        ctx.fillStyle='#3a2010';ctx.fillRect(wx+6,wy,2,20);ctx.fillRect(wx,wy+9,14,2);
+        // Shutters on some windows (deterministic based on grid position)
+        if(((wx/48|0)+(wy/60|0))%3===0){
+          ctx.fillStyle='#2a6830';ctx.fillRect(wx-5,wy,4,20);ctx.fillRect(wx+15,wy,4,20);
         }
       }}
       // Blue ceramic accent strip at base
