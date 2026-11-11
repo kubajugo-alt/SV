@@ -8,7 +8,8 @@
   /            the kiosk page (interface/)
   /tts?text=   speech for `text` as WAV, synthesised locally
   /stt         POST a recording (WAV) -> {"text": "..."}; local speech recognition
-  /chat        POST {"text": "...", "person": "kuba"} -> {"reply": "..."}
+  /home        the flat's current state as JSON, for the panel (needs --ha-url)
+  /chat        POST {"text": "...", "person": "kuba"} -> {"reply": "...", "actions": [...]}
                conversation with the local language model, with memory (brain.py)
 
 Engines (both run entirely on this machine):
@@ -178,6 +179,8 @@ def synthesise(text: str) -> bytes:
 class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         url = urlparse(self.path)
+        if url.path == "/home":
+            return self.do_home()
         if url.path != "/tts":
             return super().do_GET()
         text = parse_qs(url.query).get("text", [""])[0].strip()
@@ -204,6 +207,16 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
+
+    def do_home(self):
+        home = brain.home if brain else None
+        if home is None:
+            return self.send_error(503, "Home Assistant is not connected")
+        try:
+            self.send_json(home.snapshot())
+        except OSError as err:
+            print(f"Home state failed: {err!r}", file=sys.stderr)
+            self.send_error(502, "Home Assistant did not answer")
 
     def do_stt(self):
         if ears is None:
@@ -236,11 +249,11 @@ class Handler(SimpleHTTPRequestHandler):
         except (ValueError, KeyError, TypeError):
             return self.send_error(400, "Expected JSON with text (1-2000 chars) and an optional person name")
         try:
-            reply = brain.reply(person, text)
+            answer = brain.respond(person, text)
         except Exception as err:  # model not running, timed out, …
             print(f"Chat failed: {err!r}", file=sys.stderr)
             return self.send_error(502, "The language model did not answer")
-        self.send_json({"reply": reply})
+        self.send_json(answer)
 
     def log_message(self, fmt, *args):
         if "/tts" in str(args[0]) or "/chat" in str(args[0]) or "/stt" in str(args[0]) or str(args[1])[0] in "45":

@@ -9,8 +9,9 @@ import urllib.request
 import wave
 from http.server import ThreadingHTTPServer
 
-from tests.support import ROOT  # noqa: F401  (puts the repo on sys.path)
+from tests.support import ROOT, start_mock_ha
 
+import home
 import serve
 
 
@@ -42,10 +43,12 @@ class FakeEars:
 class FakeBrain:
     name = "fake"
 
-    def reply(self, person, text):
+    home = None
+
+    def respond(self, person, text):
         if text == "boom":
             raise OSError("model down")
-        return f"{person}: {text}"
+        return {"reply": f"{person}: {text}", "actions": []}
 
 
 class Server(unittest.TestCase):
@@ -98,11 +101,29 @@ class Server(unittest.TestCase):
     def test_chat(self):
         serve.brain = FakeBrain()
         status, body = self.request("/chat", json.dumps({"text": "cześć", "person": "Hubert"}).encode())
-        self.assertEqual((status, json.loads(body)), (200, {"reply": "hubert: cześć"}))
+        self.assertEqual((status, json.loads(body)), (200, {"reply": "hubert: cześć", "actions": []}))
         for bad in (b"{}", b'{"text": ""}', b"nonsense", b'{"text": "x", "person": "../etc"}'):
             self.assertEqual(self.request("/chat", bad)[0], 400, bad)
         self.assertEqual(self.request("/chat", b'{"text": "boom"}')[0], 502)
         self.assertEqual(self.request("/nothing", b"{}")[0], 404)
+
+    def test_home_state_for_the_panel(self):
+        self.assertEqual(self.request("/home")[0], 503)
+        ha, server, url = start_mock_ha()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        serve.brain = FakeBrain()
+        serve.brain.home = home.Home(url, "token", f"{ROOT}/home.json")
+        serve.brain.home.call("set_light", {"room": "salon", "on": True, "brightness": 30})
+        status, body = self.request("/home")
+        snap = json.loads(body)
+        self.assertEqual(status, 200)
+        self.assertEqual(snap["rooms"]["salon"], {"temp": 21.5, "hum": 44.0, "light": {"on": True, "pct": 30}, "heating": 21.0})
+        self.assertEqual(snap["rooms"]["lazienka"], {"temp": 23.0, "hum": 58.0})
+        self.assertEqual(snap["presence"], {"Kuba": True, "Hubert": True})
+        server.shutdown()
+        server.server_close()
+        self.assertEqual(self.request("/home")[0], 502)
 
     def test_sentences_are_grouped_for_the_voice(self):
         parts = serve.Chatterbox.split("Dzień dobry. Jestem ALAN. " + "To jest dłuższe zdanie testowe. " * 12)

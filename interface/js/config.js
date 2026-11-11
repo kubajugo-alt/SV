@@ -15,6 +15,8 @@ export default {
   // Hold Space and speak (serve.py /stt). '' turns the microphone off.
   // Kiosk: add Chromium --use-fake-ui-for-media-stream to skip the permission prompt.
   stt: 'stt',
+  // Live state of the flat for the panel (serve.py /home, needs --ha-url). '' = feed only.
+  home: 'home',
   person: 'kuba', // who is at the keyboard or microphone; each person has their own memory
 
   ha: {

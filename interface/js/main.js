@@ -3,6 +3,7 @@ import { isDark } from './store.js';
 import { configureVoice } from './speech.js';
 import { startChat } from './chat.js';
 import { startMic } from './mic.js';
+import { startHome } from './home.js';
 import { startAvatar } from './avatar.js';
 import { startUI, boot } from './ui.js';
 import { startDemo } from './feeds/demo.js';
@@ -25,5 +26,6 @@ if (config.boot) await boot(config);
 
 startUI(config);
 startMic(config, startChat(config));
+startHome(config);
 startAvatar(document.getElementById('entity'), () => isDark(config));
 (config.feed === 'ha' ? startHA : startDemo)(config);

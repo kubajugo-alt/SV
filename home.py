@@ -10,7 +10,6 @@ so he reports it instead of pretending.
 
 import json
 import unicodedata
-import urllib.error
 import urllib.request
 
 MIN_TEMP, MAX_TEMP = 5.0, 28.0
@@ -65,12 +64,6 @@ class Home:
         with urllib.request.urlopen(req, timeout=10) as response:
             return json.load(response)
 
-    def state(self, entity):
-        try:
-            return self.request(f"/api/states/{entity}")
-        except urllib.error.HTTPError:
-            return None  # entity does not exist (yet)
-
     def service(self, domain, service, **data):
         self.request(f"/api/services/{domain}/{service}", data)
 
@@ -120,30 +113,52 @@ class Home:
             self.service("climate", "set_temperature", entity_id=self.map["heating"][r], temperature=degrees)
         return f"Wykonano: ogrzewanie ustawione na {degrees:g}°C w: {', '.join(ROOM_NAMES[r] for r in rooms)}."
 
-    def get_home_state(self):
+    def snapshot(self):
+        """The flat as data, for the screen: what get_home_state says in words."""
+        states = {s["entity_id"]: s for s in self.request("/api/states")}  # one request for everything
+
         def value(entity):
-            s = self.state(entity)
+            s = states.get(entity)
             return None if s is None or s["state"] in ("unknown", "unavailable") else s["state"]
 
-        lines = []
-        for room, where in ROOM_NAMES.items():
-            facts = []
-            if (t := value(self.map["temperature"].get(room, ""))) is not None:
-                facts.append(f"{t}°C")
-            if (h := value(self.map["humidity"].get(room, ""))) is not None:
-                facts.append(f"wilgotność {h}%")
-            if room in self.map["lights"] and (s := self.state(self.map["lights"][room])):
+        def number(entity):
+            try:
+                return float(value(entity))
+            except (TypeError, ValueError):
+                return None
+
+        rooms = {}
+        for room in ROOM_NAMES:
+            info = {"temp": number(self.map["temperature"].get(room)), "hum": number(self.map["humidity"].get(room))}
+            if s := states.get(self.map["lights"].get(room)):
                 level = s.get("attributes", {}).get("brightness")  # Home Assistant reports 0-255
-                pct = f" ({round(level / 255 * 100)}%)" if level else ""
-                facts.append(f"światło włączone{pct}" if s["state"] == "on" else "światło wyłączone")
-            if room in self.map["heating"] and (s := self.state(self.map["heating"][room])):
-                if (target := s.get("attributes", {}).get("temperature")) is not None:
-                    facts.append(f"ogrzewanie ustawione na {target}°C")
+                info["light"] = {"on": s["state"] == "on", "pct": round(level / 255 * 100) if level else None}
+            if s := states.get(self.map["heating"].get(room)):
+                info["heating"] = s.get("attributes", {}).get("temperature")
+            rooms[room] = info
+        return {
+            "rooms": rooms,
+            "presence": {who: value(entity) == "home" for who, entity in self.map["people"].items()},
+            "other": {label: v for label, entity in self.map["other"].items() if (v := value(entity)) is not None},
+        }
+
+    def get_home_state(self):
+        snap = self.snapshot()
+        lines = []
+        for room, info in snap["rooms"].items():
+            facts = []
+            if info["temp"] is not None:
+                facts.append(f"{info['temp']:g}°C")
+            if info["hum"] is not None:
+                facts.append(f"wilgotność {info['hum']:g}%")
+            if light := info.get("light"):
+                pct = f" ({light['pct']}%)" if light["pct"] else ""
+                facts.append(f"światło włączone{pct}" if light["on"] else "światło wyłączone")
+            if info.get("heating") is not None:
+                facts.append(f"ogrzewanie ustawione na {info['heating']:g}°C")
             if facts:
-                lines.append(f"W {where}: {', '.join(facts)}.")
-        home = [who for who, entity in self.map["people"].items() if value(entity) == "home"]
+                lines.append(f"W {ROOM_NAMES[room]}: {', '.join(facts)}.")
+        home = [who for who, there in snap["presence"].items() if there]
         lines.append(f"W domu: {', '.join(home) if home else 'nikogo'}.")
-        for label, entity in self.map["other"].items():
-            if (v := value(entity)) is not None:
-                lines.append(f"{label}: {v}.")
+        lines += [f"{label}: {v}." for label, v in snap["other"].items()]
         return " ".join(lines)

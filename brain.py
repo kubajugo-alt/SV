@@ -120,9 +120,10 @@ class Brain:
         return (self.chat(messages, max_tokens, temperature).get("content") or "").strip()
 
     def converse(self, messages):
-        """Let the model use its tools, then return what it finally says."""
+        """Let the model use its tools -> (what it finally says, what it did)."""
+        actions = []
         if not self.home:
-            return self.complete(messages, max_tokens=220, temperature=0.6)
+            return self.complete(messages, max_tokens=220, temperature=0.6), actions
         from home import TOOLS
 
         messages = list(messages)
@@ -130,14 +131,17 @@ class Brain:
             message = self.chat(messages, max_tokens=300, temperature=0.4, tools=TOOLS)
             calls = message.get("tool_calls") or []
             if not calls:
-                return (message.get("content") or "").strip()
+                return (message.get("content") or "").strip(), actions
             messages.append({"role": "assistant", "content": message.get("content") or "", "tool_calls": calls})
             for call in calls:
                 result = self.home.call(call["function"]["name"], call["function"].get("arguments"))
                 print(f"Tool: {call['function']['name']}({call['function'].get('arguments')}) -> {result}", flush=True)
                 messages.append({"role": "tool", "tool_call_id": call.get("id", ""), "content": result})
+                if call["function"]["name"] != "get_home_state":   # reading is not a change
+                    done = result.startswith("Wykonano")
+                    actions.append({"ok": done, "text": result.split(": ", 1)[-1].rstrip(".")})
         # Still calling tools after several rounds: make it answer with what it has.
-        return self.complete(messages, max_tokens=220, temperature=0.4)
+        return self.complete(messages, max_tokens=220, temperature=0.4), actions
 
     def system(self, person, notes):
         now = datetime.datetime.now()
@@ -155,6 +159,10 @@ class Brain:
         return "\n".join(parts)
 
     def reply(self, person, text):
+        return self.respond(person, text)["reply"]
+
+    def respond(self, person, text):
+        """-> {"reply": what he says, "actions": [{"ok": bool, "text": what he changed or could not}]}"""
         notes, _ = self.memory.notes(person)
         system = self.system(person, notes)
         history = [{"role": role, "content": content} for _, role, content, _ in self.memory.recent(person)]
@@ -165,13 +173,14 @@ class Brain:
             messages = history + [{"role": "user", "content": f"{system}\n\n── WIADOMOŚĆ OD {person.upper()} ──\n{text}"}]
         else:
             messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
-        answer = self.clean(self.converse(messages))
+        said, actions = self.converse(messages)
+        answer = self.clean(said)
         if not answer:
             raise RuntimeError("the model returned an empty answer")
         self.memory.add(person, "user", text)       # stored only once the model has answered
         self.memory.add(person, "assistant", answer)
         threading.Thread(target=self.fold, args=(person,), daemon=True).start()
-        return answer
+        return {"reply": answer, "actions": actions}
 
     @staticmethod
     def clean(text):

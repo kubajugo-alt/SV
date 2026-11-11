@@ -56,10 +56,26 @@ html, body {
 #clock { font-variant-numeric: tabular-nums; }
 
 /* --- spoken text + state line ------------------------------------------ */
-#speech { grid-row: 3; min-height: calc(var(--u) * 16); padding-bottom: calc(var(--u) * 2); }
+#speech { grid-row: 3; min-height: calc(var(--u) * 11.5); padding-bottom: calc(var(--u) * 2); }
 #status { color: var(--fg-dim); margin-bottom: .3em; }
 #text { font-size: 1.7em; line-height: 1.05; max-width: 46ch; overflow-wrap: break-word; }
 .cursor { animation: blink 1s steps(1) infinite; }
+
+/* --- what ALAN changed -------------------------------------------------- */
+/* A short log beside the face, clear of the transcript. */
+#actions {
+  position: fixed; top: 16%; right: calc(var(--u) * 4.5); width: 27%;
+  list-style: none;
+}
+#actions li { padding-left: 3.6em; text-indent: -3.6em; margin-bottom: .3em; }
+body[data-alan="alert"] #actions { display: none; }
+#actions .failed { color: var(--fg-dim); }
+.cell.changed { animation: changed 6s ease-out forwards; }
+@keyframes changed {
+  0%, 60% { background: var(--fg); color: var(--bg); text-shadow: none; }
+  100% { background: transparent; }
+}
+.cell.changed b { color: inherit; }
 
 /* --- typing to ALAN ---------------------------------------------------- */
 #ask { display: flex; gap: .6em; margin-top: .5em; color: var(--fg-dim); }
@@ -80,7 +96,8 @@ html, body {
   border-top: .08em solid var(--fg-dim);
   padding-top: .6em;
 }
-.group { display: flex; flex-wrap: wrap; gap: .1em 2.2em; }
+.group { display: flex; flex-wrap: wrap; gap: .1em 2.2em; align-content: flex-start; }
+#rooms { flex-direction: column; flex-wrap: nowrap; }
 .cell { white-space: nowrap; }
 .cell b { font-weight: normal; color: var(--fg-dim); margin-right: .5em; }
 .cell.warn { animation: blink 1s steps(1) infinite; }

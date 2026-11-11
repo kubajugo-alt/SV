@@ -127,6 +127,15 @@ Which entities these touch is listed in `home.json` (placeholder ids for now).
 There is deliberately no tool for doors, locks, cameras or alarms. A tool that
 fails answers with the reason, and ALAN is told to report it, not to pretend.
 
+What he did is shown on the screen:
+
+- **Action log** beside the face — one line per change, `[ OK ]` or `[ !! ]`
+  with the reason when something was refused. It clears at the next exchange.
+- **Live panel** — with `--ha-url` the panel reads the flat from the server
+  (`/home`) at start, every 30 s and right after he acts, and shows each
+  room's light and heating target. A value that just changed is highlighted
+  for a few seconds.
+
 To try it before Home Assistant exists:
 
 ```sh
@@ -144,7 +153,6 @@ Limits of this first version:
   on Ollama has it, but that combination is untested here: the loop was
   verified with a scripted model, and a small test model picked the right
   tools but wrote them out as text instead of calling them.
-- The screen does not show what he changed; the panel still comes from the feed.
 - Push-to-talk only: no wake word, and no room satellites — the microphone is
   the one on the machine showing the page.
 - The notes are one text per person, read in full every time. Search over old
@@ -178,6 +186,7 @@ index.html
 css/crt.css          palette, type, scanlines, alert + dark modes
 js/main.js           config merge, boot, wiring
 js/store.js          page state + mode priority
+js/home.js           live state of the flat for the panel
 js/chat.js           conversation prompt shared by keyboard and microphone
 js/mic.js            push-to-talk recording and speech recognition
 js/speech.js         voice playback, live level for the mouth, silent fallback

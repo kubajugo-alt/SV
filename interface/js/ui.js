@@ -13,12 +13,29 @@ const LINK = { demo: 'DEMO', connecting: 'ŁĄCZENIE…', online: 'ONLINE', offl
 
 const num = (v, digits = 0) => (Number.isFinite(v) ? v.toFixed(digits).replace('.', ',') : '--');
 
+// A cell whose value just changed glows for a few seconds, so a change made by
+// ALAN (or anyone) is easy to spot in the panel.
+const FLASH_MS = 6000;
+const lastValue = new Map();   // label -> value
+const changedAt = new Map();   // label -> performance.now()
+let flashTimer = 0;
+let quietUntil = 0;           // no glow while the panel fills in after start-up
+
 function cell(label, value, warn = false) {
   const el = document.createElement('span');
   el.className = warn ? 'cell warn' : 'cell';
   const b = document.createElement('b');
   b.textContent = label;
   el.append(b, value);
+
+  const now = performance.now();
+  if (now > quietUntil && lastValue.has(label) && lastValue.get(label) !== value) changedAt.set(label, now);
+  lastValue.set(label, value);
+  const age = now - (changedAt.get(label) ?? -Infinity);
+  if (age < FLASH_MS) {
+    el.classList.add('changed');
+    el.style.animationDelay = `${-age}ms`;   // the panel is rebuilt on every render; keep the glow's clock
+  }
   return el;
 }
 
@@ -67,11 +84,21 @@ function render(s, config) {
     type(s.text, Math.max(1500, s.speakingUntil - performance.now()));
   }
 
+  $('actions').replaceChildren(...s.actions.map((a) => {
+    const li = document.createElement('li');
+    li.className = a.ok ? 'ok' : 'failed';
+    li.textContent = `${a.ok ? '[ OK ]' : '[ !! ]'} ${a.text}`;
+    return li;
+  }));
+
   $('rooms').replaceChildren(...Object.keys(ROOM)
     .filter((r) => s.rooms[r])
     .map((r) => {
-      const { temp, hum } = s.rooms[r];
-      return cell(ROOM[r], `${num(temp, 1)}°` + (Number.isFinite(hum) ? ` ${num(hum)}%` : ''));
+      const { temp, hum, light, heating } = s.rooms[r];
+      let value = `${num(temp, 1)}°` + (Number.isFinite(hum) ? ` ${num(hum)}%` : '');
+      if (light) value += light.on ? ` · ŚWIATŁO ${light.pct ? `${light.pct}%` : 'WŁ.'}` : ' · ŚWIATŁO WYŁ.';
+      if (Number.isFinite(heating)) value += ` · GRZANIE ${num(heating, 1)}°`;
+      return cell(ROOM[r], value);
     }));
 
   const home = Object.keys(s.presence).filter((p) => s.presence[p]).join(' + ') || 'NIKOGO';
@@ -81,6 +108,12 @@ function render(s, config) {
   if (s.battery != null) vitals.push(cell('BATERIA', `${num(s.battery)}%`, s.battery < 20));
   vitals.push(cell('ŁĄCZE', LINK[s.link], s.link === 'offline'));
   $('vitals').replaceChildren(...vitals);
+
+  // One more render when the newest glow runs out, to drop the class.
+  clearTimeout(flashTimer);
+  const newest = Math.max(-Infinity, ...changedAt.values());
+  const left = FLASH_MS - (performance.now() - newest);
+  if (left > 0) flashTimer = setTimeout(() => render(store.get(), config), left + 50);
 }
 
 function clock() {
@@ -90,6 +123,7 @@ function clock() {
 }
 
 export function startUI(config) {
+  quietUntil = performance.now() + 4000;
   store.subscribe((s) => render(s, config));
   clock();
   setInterval(clock, 1000);

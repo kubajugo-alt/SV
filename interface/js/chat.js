@@ -23,6 +23,8 @@ export function startChat(config) {
     dispatchEvent(new Event('alan:chat'));
     store.set({ alan: 'thinking' });
     let reply;
+    let actions = [];
+    store.set({ actions: [] });       // the previous exchange's log goes away
     try {
       const res = await fetch(config.chat, {
         method: 'POST',
@@ -30,13 +32,14 @@ export function startChat(config) {
         body: JSON.stringify({ text, person: config.person }),
       });
       if (!res.ok) throw new Error(`${res.status}`);
-      reply = (await res.json()).reply;
+      ({ reply, actions = [] } = await res.json());
     } catch (err) {
       console.warn('ALAN chat failed:', err.message);
       reply = 'Nie mam teraz połączenia z modelem językowym.';
     }
     waiting = false;
-    store.set({ alan: 'idle' });   // say() shows "thinking" itself while the voice is prepared
+    store.set({ alan: 'idle', actions });   // say() shows "thinking" itself while the voice is prepared
+    if (actions.length) dispatchEvent(new Event('alan:acted'));
     say({ text: reply });
   }
 

@@ -16,9 +16,9 @@ uniform float uAlert;
 uniform float uBlink; // 0 open .. 1 shut
 uniform vec2 uGaze;   // eye offset, in screen heights
 
-const float EYE_Y = 0.25;    // face coords: origin at screen centre, y up, 1.0 = screen height
+const float EYE_Y = 0.28;    // face coords: origin at screen centre, y up, 1.0 = screen height
 const float EYE_X = 0.17;
-const float MOUTH_Y = 0.03;
+const float MOUTH_Y = 0.06;
 const float MOUTH_W = 0.25;  // half width
 
 float sdRound(vec2 p, vec2 b) {

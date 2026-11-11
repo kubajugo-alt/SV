@@ -113,6 +113,17 @@ class Tools(unittest.TestCase):
         self.assertEqual({t["function"]["name"] for t in model.seen[0]["tools"]},
                          {"set_light", "set_temperature", "get_home_state"})
 
+    def test_actions_are_reported_for_the_screen(self):
+        model = ScriptedModel({"tool_calls": [tool_call("set_light", room="salon", on=True, brightness=30),
+                                              tool_call("set_temperature", room="salon", degrees=40),
+                                              tool_call("get_home_state")]},
+                              {"content": "Światło włączone, ale czterdziestu stopni nie ustawię."})
+        result = make(self.tmp, model, home=self.home).respond("kuba", "Światło i 40 stopni")
+        self.assertEqual(result["actions"], [
+            {"ok": True, "text": "światło włączone w: salonie, jasność 30%"},
+            {"ok": False, "text": "temperatura musi być między 5 a 28 stopni. Niczego nie zmieniono"},
+        ])  # reading the state is not listed as a change
+
     def test_refused_action_is_reported_to_the_model(self):
         model = ScriptedModel({"tool_calls": [tool_call("set_temperature", room="salon", degrees=40)]},
                               {"content": "Czterdziestu stopni nie ustawię."})
