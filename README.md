@@ -4,6 +4,29 @@ Software for the ALAN home system described in *Infrastructure Plan v22*:
 a fully local assistant on a Mac mini M4 (Ollama natively, Home Assistant OS in
 a UTM VM), speaking Polish, with no cloud dependency.
 
+## Install on the Mac mini
+
+```sh
+git clone https://github.com/kubajugo-alt/SV.git && cd SV
+./install.sh               # needs Homebrew; first run downloads about 12 GB
+scripts/start.sh           # then open http://127.0.0.1:8888/
+```
+
+`install.sh` installs Python 3.11 and Ollama, pulls the conversation model,
+creates `.venv` with the voice and hearing packages, and loads both models
+once to check them. It is safe to run again.
+
+- `./install.sh --autostart` also starts the server and the full-screen page
+  (`scripts/kiosk.sh`, Chromium or Chrome) at every login; `--no-autostart`
+  removes that. Logs go to `~/Library/Logs/alan-server.log`.
+- macOS asks once for microphone access for the browser; allow it.
+- First question to ask him: "Jak masz na imię i z kim rozmawiasz?". If he
+  does not answer as ALAN talking to Kuba, start with
+  `scripts/start.sh --llm-inline-system`.
+
+The script has been linted and its model-loading step run on Linux, but it has
+not been run on a Mac yet.
+
 ## What gets built here vs. configured elsewhere
 
 Most of the plan is hardware and configuration of existing software (Home
