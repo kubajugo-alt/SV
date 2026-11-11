@@ -1,7 +1,7 @@
-// Puts ALAN's face on the tube. face.js draws the portrait in greyscale; this
+// Puts ALAN's face on the tube. face.js draws the outline face in greyscale; this
 // animates its pose from the current state and renders it through one fragment
-// shader that makes it look like digitised video on an amber monitor:
-// chunky pixels, ordered dither, bloom, edge aberration, barrel distortion.
+// shader that makes the line drawing glow like a vector display: bloom,
+// edge aberration, barrel distortion.
 
 import { store, signal, mode } from './store.js';
 import { createFace, W, H } from './face.js';
@@ -17,11 +17,6 @@ uniform float uTime;
 uniform float uGain;
 uniform float uAlert;
 
-const vec2 GRID = vec2(160., 187.);   // digitiser resolution across the portrait
-
-float bayer2(vec2 a) { a = floor(a); return fract(a.x / 2. + a.y * a.y * .75); }
-float bayer4(vec2 a) { return bayer2(.5 * a) * .25 + bayer2(a); }
-
 float raw(vec2 f) {
   vec2 inside = step(vec2(0.), f) * step(f, vec2(1.));
   return texture2D(uTex, f).r * inside.x * inside.y;
@@ -29,15 +24,12 @@ float raw(vec2 f) {
 
 float face(vec2 uv) {
   vec2 f = (uv - uRect.xy) / uRect.zw;
-  vec2 cell = floor(f * GRID);
-  float v = raw((cell + .5) / GRID);
-  v = floor(v * 5. + bayer4(cell)) / 5.;                 // six brightness levels, dithered
-  float halo = 0.;                                        // phosphor bloom
-  for (int k = 0; k < 6; k++) {
-    float a = float(k) * 1.0472;
-    halo += raw(f + vec2(cos(a), sin(a)) * 0.022);
+  float halo = 0.;                                        // phosphor bloom around every line
+  for (int k = 0; k < 8; k++) {
+    float a = float(k) * 0.7854;
+    halo += raw(f + vec2(cos(a), sin(a)) * 0.012) + raw(f + vec2(cos(a), sin(a)) * 0.03) * 0.5;
   }
-  return (v + halo * 0.035) * smoothstep(0., 0.14, f.y);   // shoulders fade out at the bottom
+  return (raw(f) + halo * 0.05) * smoothstep(0., 0.14, f.y);   // shoulders fade out at the bottom
 }
 
 void main() {
@@ -45,7 +37,7 @@ void main() {
   vec2 c = uv - 0.5;
   uv += c * dot(c, c) * 0.10;                             // barrel distortion
 
-  float ab = 0.0008 + 0.004 * length(c);                  // chromatic aberration grows to the edges
+  float ab = 0.0003 + 0.002 * length(c);                  // chromatic aberration grows to the edges
   vec3 i = vec3(face(uv - vec2(ab, 0.)), face(uv), face(uv + vec2(ab, 0.)));
   i *= 1. + 0.10 * smoothstep(0.06, 0., abs(uv.y - fract(uTime * 0.07)));  // slow hum bar
 
