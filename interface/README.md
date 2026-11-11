@@ -1,8 +1,14 @@
 # ALAN kiosk interface
 
 The page Chromium shows in kiosk mode on TV Input 2 (spec §02, §33): an amber
-CRT terminal with an audio-reactive oscilloscope "entity", a typed-in transcript
-of what ALAN says, and an instrument panel of flat status.
+CRT terminal with ALAN's face, a typed-in transcript of what he says, and an
+instrument panel of flat status.
+
+The face is two phosphor eyes and an oscilloscope-trace mouth. This departs
+from §33, which specified an abstract entity "not a head": the eyes blink,
+glance around when idle, widen when listening, narrow and drift aside when
+thinking, and go round and red on an alert; the mouth rests in a faint smile
+and becomes the live speech waveform when ALAN talks.
 
 Static files, no build step, no dependencies, no internet access needed
 (the font is vendored). Tier 1 of §33: one fragment shader on the GPU.
@@ -51,7 +57,7 @@ css/crt.css          palette, type, scanlines, alert + dark modes
 js/main.js           config merge, boot, wiring
 js/store.js          page state + mode priority
 js/speech.js         envelope playback -> live level
-js/avatar.js         WebGL trace shader
+js/avatar.js         WebGL face shader (eyes + trace mouth)
 js/ui.js             panel, typed text, alert, boot sequence
 js/feeds/demo.js     simulator
 js/feeds/ha.js       Home Assistant WebSocket client
