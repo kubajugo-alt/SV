@@ -73,6 +73,43 @@ and voice cannot drift. While the audio is being prepared the face shows
 - `tts: ''` in the config keeps the TV silent (e.g. if satellites do the talking).
 - `"radio": true` on a line gives the bandwidth-limited "90s hardware" voice of §33.
 
+## Conversation and memory
+
+`serve.py` also answers `POST /chat`, which gives ALAN a mind: a local language
+model with the personality from §09 of the plan (`prompts/system.pl.txt`) and
+memory (`brain.py`). Nothing leaves the machine.
+
+```sh
+ollama pull mistral-nemo          # the plan's conversation model
+python3 serve.py                  # talks to Ollama at http://127.0.0.1:11434
+```
+
+On the page, press Enter, type, press Enter. ALAN listens while you type, thinks
+while the model answers, and speaks the reply.
+
+How he remembers:
+
+- **Recent turns** — the last exchanges go to the model word for word.
+- **Notes** — when more than 24 turns are waiting, the model rewrites a compact
+  record of that person (facts, preferences, dated plans, things he was asked to
+  remember, unfinished threads) and the oldest turns are folded into it. A turn
+  is always either in the window or in the notes.
+- **Per person** — Kuba and Hubert have separate threads and notes. Who is
+  typing comes from `person` in the config; recognising a speaker by voice is
+  not built.
+- **Across restarts** — everything is in `data/alan.db` (SQLite, git-ignored).
+  Delete the file to wipe his memory.
+
+Limits of this first version:
+
+- He cannot control or read anything in the flat yet, and is told to say so
+  instead of pretending.
+- Typed input only; the microphone (Whisper, §04) is the next step.
+- The notes are one text per person, read in full every time. Search over old
+  conversations (the plan's ChromaDB) is not built.
+- `--llm-url` / `--llm-model` point at any OpenAI-compatible server; `--llm-url ''`
+  turns conversation off, and `chat: ''` in the config hides the prompt.
+
 ## Connecting Home Assistant
 
 Copy `js/config.local.example.js` to `js/config.local.js` (git-ignored), set the
@@ -99,6 +136,7 @@ index.html
 css/crt.css          palette, type, scanlines, alert + dark modes
 js/main.js           config merge, boot, wiring
 js/store.js          page state + mode priority
+js/chat.js           typed conversation prompt
 js/speech.js         voice playback, live level for the mouth, silent fallback
 js/avatar.js         WebGL face shader (eyes + trace mouth)
 js/ui.js             panel, typed text, alert, boot sequence

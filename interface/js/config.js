@@ -10,6 +10,10 @@ export default {
   // given through the TV and moves the mouth to that audio. '' keeps it silent.
   tts: 'tts?text=', // relative, so it also works behind a path prefix
 
+  // Typed conversation with the local model (serve.py /chat). '' hides the prompt.
+  chat: 'chat',
+  person: 'kuba', // who is at the keyboard; each person has their own memory
+
   ha: {
     url: 'ws://homeassistant.local:8123/api/websocket',
     token: '', // long-lived access token of a dedicated, non-admin kiosk user

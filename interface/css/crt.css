@@ -56,10 +56,20 @@ html, body {
 #clock { font-variant-numeric: tabular-nums; }
 
 /* --- spoken text + state line ------------------------------------------ */
-#speech { grid-row: 3; min-height: calc(var(--u) * 13); padding-bottom: calc(var(--u) * 2); }
+#speech { grid-row: 3; min-height: calc(var(--u) * 16); padding-bottom: calc(var(--u) * 2); }
 #status { color: var(--fg-dim); margin-bottom: .3em; }
 #text { font-size: 1.7em; line-height: 1.05; max-width: 46ch; overflow-wrap: break-word; }
 .cursor { animation: blink 1s steps(1) infinite; }
+
+/* --- typing to ALAN ---------------------------------------------------- */
+#ask { display: flex; gap: .6em; margin-top: .5em; color: var(--fg-dim); }
+#ask[hidden] { display: none; }
+#ask-input {
+  flex: 1; min-width: 0;
+  background: none; border: 0; outline: 0;
+  color: var(--fg); font: inherit; text-transform: none; text-shadow: inherit;
+  caret-color: var(--fg); caret-shape: block; cursor: none;
+}
 
 /* --- instrument panel -------------------------------------------------- */
 .panel {

@@ -52,7 +52,11 @@ export function startDemo() {
     }
   })();
 
+  // Once someone talks to ALAN for real, the scripted loop stays out of the way.
+  addEventListener('alan:chat', () => { manual = true; clearInterval(listenTimer); });
+
   addEventListener('keydown', (e) => {
+    if (e.target instanceof HTMLInputElement) return; // typing to ALAN, not a hotkey
     const s = store.get();
     const actions = {
       1: () => store.set({ alan: 'idle' }),

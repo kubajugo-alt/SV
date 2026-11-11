@@ -7,6 +7,8 @@
 
   /            the kiosk page (interface/)
   /tts?text=   speech for `text` as WAV, synthesised locally
+  /chat        POST {"text": "...", "person": "kuba"} -> {"reply": "..."}
+               conversation with the local language model, with memory (brain.py)
 
 Engines (both run entirely on this machine):
   chatterbox   default. Natural voice, heavier. `pip install chatterbox-tts`
@@ -20,6 +22,7 @@ import argparse
 import contextlib
 import functools
 import io
+import json
 import os
 import re
 import sys
@@ -28,10 +31,12 @@ import wave
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "interface")
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.join(HERE, "interface")
 MAX_CHARS = 1000
 
 engine = None
+brain = None
 lock = threading.Lock()  # neither engine is safe to call from two threads at once
 
 
@@ -151,13 +156,38 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(audio)
 
+    def do_POST(self):
+        if urlparse(self.path).path != "/chat":
+            return self.send_error(404)
+        if brain is None:
+            return self.send_error(503, "No language model configured")
+        try:
+            body = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length", 0)), 16384)))
+            text = str(body["text"]).strip()
+            person = str(body.get("person", "kuba")).lower()
+            if not text or len(text) > 2000 or not re.fullmatch(r"[a-ząćęłńóśźż]{1,24}", person):
+                raise ValueError
+        except (ValueError, KeyError, TypeError):
+            return self.send_error(400, "Expected JSON with text (1-2000 chars) and an optional person name")
+        try:
+            reply = brain.reply(person, text)
+        except Exception as err:  # model not running, timed out, …
+            print(f"Chat failed: {err!r}", file=sys.stderr)
+            return self.send_error(502, "The language model did not answer")
+        payload = json.dumps({"reply": reply}, ensure_ascii=False).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
     def log_message(self, fmt, *args):
-        if "/tts" in str(args[0]) or str(args[1])[0] in "45":
+        if "/tts" in str(args[0]) or "/chat" in str(args[0]) or str(args[1])[0] in "45":
             super().log_message(fmt, *args)
 
 
 def main():
-    global engine
+    global engine, brain
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--engine", choices=["chatterbox", "piper", "none"], default=os.environ.get("ALAN_ENGINE", "chatterbox"))
     ap.add_argument("--voice", default=os.environ.get("ALAN_VOICE"),
@@ -168,6 +198,10 @@ def main():
     ap.add_argument("--cfg-weight", type=float, default=0.5, help="chatterbox pacing/adherence, 0-1 (default %(default)s)")
     ap.add_argument("--pitch", type=float, default=0.0, help="piper only: semitones to shift the voice, negative is deeper")
     ap.add_argument("--warm", action="append", default=[], metavar="TEXT", help="line to synthesise at startup so it is instant later (repeatable)")
+    ap.add_argument("--llm-url", default=os.environ.get("ALAN_LLM_URL", "http://127.0.0.1:11434"),
+                    help="OpenAI-compatible server for conversation; Ollama's default address. '' disables /chat")
+    ap.add_argument("--llm-model", default=os.environ.get("ALAN_LLM_MODEL", "mistral-nemo"))
+    ap.add_argument("--data", default=os.path.join(HERE, "data"), help="folder for ALAN's memory (default %(default)s)")
     ap.add_argument("--host", default="127.0.0.1", help="use 0.0.0.0 to serve other devices on Network B")
     ap.add_argument("--port", type=int, default=8888)
     args = ap.parse_args()
@@ -180,6 +214,12 @@ def main():
     except Exception as err:
         print(f"Could not load the {args.engine} voice ({err!r}). ALAN will be silent.", file=sys.stderr)
     print(f"Voice: {engine.name if engine else 'none'}", flush=True)
+    if args.llm_url:
+        from brain import Brain
+
+        brain = Brain(args.llm_url, args.llm_model, os.path.join(HERE, "prompts", "system.pl.txt"),
+                      os.path.join(args.data, "alan.db"))
+        print(f"Mind: {brain.name}", flush=True)
     for line in args.warm:
         synthesise(line)
 
