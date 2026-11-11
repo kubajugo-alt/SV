@@ -30,7 +30,8 @@ Poniżej są dotychczasowe notatki i nowy fragment rozmowy. Napisz zaktualizowan
 
 Zasady:
 - Zachowaj wszystko, co nadal jest prawdziwe i przydatne; popraw to, co się zmieniło.
-- Zapisuj fakty, preferencje, plany z datami, prośby o zapamiętanie i niedokończone wątki.
+- Zapisuj fakty, preferencje, plany, prośby o zapamiętanie i niedokończone wątki.
+- Terminy zapisuj dokładnie tak, jak padły w rozmowie, razem z datą rozmowy z nawiasu; nie przeliczaj ich na inne daty.
 - Pomijaj grzeczności i rzeczy jednorazowe bez znaczenia na przyszłość.
 - Krótkie zdania po polsku, każde w osobnej linii, najwyżej 40 linii. Bez komentarza.
 
@@ -102,10 +103,13 @@ class Brain:
 
     def system(self, person, notes):
         now = datetime.datetime.now()
+        # Small models get date arithmetic wrong; give them the calendar to read from.
+        ahead = ", ".join(f"{DAYS[d.weekday()]} {d:%d.%m}" for d in (now + datetime.timedelta(days=i) for i in range(1, 15)))
         parts = [
             self.prompt,
             "── TERAZ ──",
             f"Jest {DAYS[now.weekday()]}, {now:%d.%m.%Y}, godzina {now:%H:%M}. Rozmawiasz z: {person.capitalize()}.",
+            f"Najbliższe dni: {ahead}. Daty bierz z tej listy, nie licz ich samodzielnie.",
             # Until Home Assistant is connected he must not pretend to act or to read sensors.
             "Sterowanie urządzeniami, czujniki, kamery i kalendarz nie są jeszcze podłączone. "
             "Nie twierdź, że coś włączyłeś, zmieniłeś lub odczytałeś — powiedz krótko, że jeszcze tego nie potrafisz.",
