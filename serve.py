@@ -116,8 +116,8 @@ class Chatterbox:
     def speak(self, part):
         """One piece of text -> audio, without the model's habit of carrying on."""
         # Speech runs at 25 tokens a second and Polish at under 2 tokens a
-        # character; allow well over that, plus a second, and no more.
-        self.budget = int(25 + 3.2 * len(part))
+        # character; allow well over that, plus half a second, and no more.
+        self.budget = int(12 + 3 * len(part))
         try:
             audio = self.model.generate(part, language_id=self.language, **self.options).squeeze(0).cpu()
         finally:
@@ -133,7 +133,8 @@ class Chatterbox:
         if len(usable) == 0:
             return audio
         energy = usable.reshape(-1, frame).pow(2).mean(dim=1).sqrt()
-        voiced = (energy > max(0.01, 0.08 * float(energy.max()))).tolist()
+        # Low threshold: a final "ch" or "s" is far quieter than the vowels.
+        voiced = (energy > max(0.004, 0.03 * float(energy.max()))).tolist()
         longest_gap = round((0.16 if one_phrase else 0.8) / 0.02)
         spoken, quiet, end = 0, 0, len(voiced)
         for i, on in enumerate(voiced):
@@ -141,12 +142,12 @@ class Chatterbox:
                 spoken, quiet = spoken + 1, 0
             else:
                 quiet += 1
-                if spoken >= 8 and quiet >= longest_gap:   # 8 frames = 0.16 s of real speech first
+                if spoken >= 5 and quiet >= longest_gap:   # 5 frames = 0.1 s of real speech first
                     end = i - quiet + 1
                     break
         else:
             end = len(voiced) - quiet                       # only trailing silence to drop
-        keep = min(len(audio), (end + 4) * frame)           # leave 80 ms so the last sound is not clipped
+        keep = min(len(audio), (end + 8) * frame)           # leave 160 ms so the last sound is not clipped
         out = audio[:keep].clone()
         fade = min(len(out), int(rate * 0.03))
         out[-fade:] *= self.torch.linspace(1, 0, fade)
