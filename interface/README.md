@@ -50,6 +50,8 @@ Whenever ALAN is given a line, the page fetches the audio, plays it through the
 TV, and moves the mouth from the level of the sound actually playing — so face
 and voice cannot drift. Outside kiosk mode, click the page once to unlock audio.
 
+- `--pitch` deepens or raises the voice in semitones. The default is `-4`
+  (deeper than recorded); `--pitch 0` leaves the voice as it is, `-6` is deeper still.
 - No voice loaded, or audio blocked: the face mouths the line silently.
 - `tts: ''` in the config keeps the TV silent (e.g. if satellites do the talking).
 - `"radio": true` on a line gives the bandwidth-limited "90s hardware" voice of §33.
