@@ -1,20 +1,28 @@
 #!/usr/bin/env python3
 """Serve ALAN's kiosk page and his voice from one origin.
 
-    python3 serve.py --voice ~/alan/voices/pl_PL-darkman-medium.onnx [--pitch -2]
+    python3 serve.py                      # Chatterbox, its built-in voice, Polish
+    python3 serve.py --engine piper --voice ~/alan/voices/pl_PL-darkman-medium.onnx
+    python3 serve.py --engine none        # page only, silent
 
   /            the kiosk page (interface/)
-  /tts?text=   speech for `text` as WAV, synthesised locally with Piper
+  /tts?text=   speech for `text` as WAV, synthesised locally
 
-Without --voice (or without `pip install piper-tts`) the page still works;
-/tts answers 503 and the face falls back to silent mouth movement.
-Standard library only, apart from the optional piper-tts.
+Engines (both run entirely on this machine):
+  chatterbox   default. Natural voice, heavier. `pip install chatterbox-tts`
+  piper        light and fast, more robotic. `pip install piper-tts` plus a voice file
+
+If the chosen engine cannot be loaded the page still works; /tts answers 503
+and the face mouths its lines silently.
 """
 
 import argparse
+import contextlib
 import functools
 import io
 import os
+import re
+import sys
 import threading
 import wave
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -23,27 +31,102 @@ from urllib.parse import parse_qs, urlparse
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "interface")
 MAX_CHARS = 1000
 
-voice = None
-SynthesisConfig = None
-pitch = 0.0  # semitones; negative is deeper
-lock = threading.Lock()  # Piper is not safe to call from two threads at once
+engine = None
+lock = threading.Lock()  # neither engine is safe to call from two threads at once
 
 
-@functools.lru_cache(maxsize=128)  # repeated lines (greetings, confirmations) are instant
-def synthesise(text: str) -> bytes:
-    # Deepen the voice the way a slowed tape does: speak faster, then play the
-    # samples back slower by the same factor. Pitch and resonance both drop,
-    # which reads as a bigger chest, and the pace stays about the same.
-    factor = 2 ** (-pitch / 12)
-    with lock:
-        chunks = list(voice.synthesize(text, SynthesisConfig(length_scale=1 / factor)))
+def pcm_to_wav(pcm: bytes, rate: int) -> bytes:
     buf = io.BytesIO()
     with wave.open(buf, "wb") as wav:
         wav.setnchannels(1)
         wav.setsampwidth(2)
-        wav.setframerate(round(chunks[0].sample_rate / factor))
-        wav.writeframes(b"".join(c.audio_int16_bytes for c in chunks))
+        wav.setframerate(rate)
+        wav.writeframes(pcm)
     return buf.getvalue()
+
+
+class Chatterbox:
+    """Resemble AI's multilingual model. Uses its built-in voice unless a
+    reference recording is given, in which case it speaks with that timbre."""
+
+    def __init__(self, language, reference, device, exaggeration, cfg_weight):
+        import torch
+        from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+
+        if device == "auto":
+            device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+        self.torch = torch
+        self.language = language
+        self.options = {"exaggeration": exaggeration, "cfg_weight": cfg_weight}
+        if reference:
+            self.options["audio_prompt_path"] = os.path.expanduser(reference)
+        with self._weights_on_cpu(device):
+            self.model = ChatterboxMultilingualTTS.from_pretrained(device=torch.device(device))
+        self.name = f"chatterbox ({device}, {language}, {'voice from ' + reference if reference else 'built-in voice'})"
+
+    @contextlib.contextmanager
+    def _weights_on_cpu(self, device):
+        # The library loads GPU-saved weights without a device hint, which
+        # fails on machines without CUDA. Map them to CPU while loading.
+        if device == "cuda":
+            yield
+            return
+        original = self.torch.load
+        self.torch.load = lambda *a, **k: original(*a, **{**k, "map_location": "cpu"})
+        try:
+            yield
+        finally:
+            self.torch.load = original
+
+    @staticmethod
+    def split(text, limit=240):
+        """Whole sentences, grouped into pieces of up to `limit` characters.
+        The model cuts off on long input and rambles on very short input, so
+        short sentences travel with their neighbours."""
+        parts = []
+        for sentence in re.split(r"(?<=[.!?…])\s+", text):
+            if parts and len(parts[-1]) + len(sentence) < limit:
+                parts[-1] += " " + sentence
+            elif sentence:
+                parts.append(sentence)
+        return parts
+
+    def wav(self, text: str) -> bytes:
+        text = re.sub(r"\bALAN\b", "Alan", text)  # all-caps reads as an acronym
+        parts = self.split(text)
+        chunks = [self.model.generate(s, language_id=self.language, **self.options).squeeze(0) for s in parts]
+        pause = self.torch.zeros(int(self.model.sr * 0.18))
+        joined = []
+        for chunk in chunks:
+            joined += [chunk.cpu(), pause]
+        audio = self.torch.cat(joined[:-1]).clamp(-1, 1)
+        return pcm_to_wav((audio * 32767).short().numpy().tobytes(), self.model.sr)
+
+
+class Piper:
+    """Small, fast VITS voices. `pitch` shifts the voice in semitones the way a
+    slowed tape does: speak faster, then play back slower by the same factor."""
+
+    def __init__(self, voice, pitch):
+        from piper import PiperVoice, SynthesisConfig
+
+        if not voice:
+            raise ValueError("--engine piper needs --voice path/to/voice.onnx")
+        self.voice = PiperVoice.load(os.path.expanduser(voice))
+        self.factor = 2 ** (-pitch / 12)
+        self.config = SynthesisConfig(length_scale=1 / self.factor)
+        self.name = f"piper ({voice}, pitch {pitch:+g})"
+
+    def wav(self, text: str) -> bytes:
+        chunks = list(self.voice.synthesize(text, self.config))
+        pcm = b"".join(c.audio_int16_bytes for c in chunks)
+        return pcm_to_wav(pcm, round(chunks[0].sample_rate / self.factor))
+
+
+@functools.lru_cache(maxsize=256)  # repeated lines (greetings, confirmations) are instant
+def synthesise(text: str) -> bytes:
+    with lock:
+        return engine.wav(text)
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -52,11 +135,15 @@ class Handler(SimpleHTTPRequestHandler):
         if url.path != "/tts":
             return super().do_GET()
         text = parse_qs(url.query).get("text", [""])[0].strip()
-        if voice is None:
+        if engine is None:
             return self.send_error(503, "No voice loaded")
         if not text or len(text) > MAX_CHARS:
             return self.send_error(400, f"text must be 1-{MAX_CHARS} characters")
-        audio = synthesise(text)
+        try:
+            audio = synthesise(text)
+        except Exception as err:  # a failed line must not take the page down
+            print(f"TTS failed: {err!r}", file=sys.stderr)
+            return self.send_error(500, "Synthesis failed")
         self.send_response(200)
         self.send_header("Content-Type", "audio/wav")
         self.send_header("Content-Length", str(len(audio)))
@@ -70,25 +157,34 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
-    global voice, SynthesisConfig, pitch
+    global engine
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--voice", default=os.environ.get("ALAN_VOICE"), help="path to a Piper .onnx voice (or $ALAN_VOICE)")
-    ap.add_argument("--pitch", type=float, default=pitch, help="semitones to shift the voice; negative is deeper (default %(default)s, 0 = as recorded)")
+    ap.add_argument("--engine", choices=["chatterbox", "piper", "none"], default=os.environ.get("ALAN_ENGINE", "chatterbox"))
+    ap.add_argument("--voice", default=os.environ.get("ALAN_VOICE"),
+                    help="chatterbox: optional reference recording to take the timbre from; piper: the .onnx voice (required)")
+    ap.add_argument("--language", default="pl", help="chatterbox language code (default %(default)s)")
+    ap.add_argument("--device", default="auto", help="chatterbox: auto, cuda, mps or cpu")
+    ap.add_argument("--exaggeration", type=float, default=0.5, help="chatterbox expressiveness, 0.25-2 (default %(default)s)")
+    ap.add_argument("--cfg-weight", type=float, default=0.5, help="chatterbox pacing/adherence, 0-1 (default %(default)s)")
+    ap.add_argument("--pitch", type=float, default=0.0, help="piper only: semitones to shift the voice, negative is deeper")
+    ap.add_argument("--warm", action="append", default=[], metavar="TEXT", help="line to synthesise at startup so it is instant later (repeatable)")
     ap.add_argument("--host", default="127.0.0.1", help="use 0.0.0.0 to serve other devices on Network B")
     ap.add_argument("--port", type=int, default=8888)
     args = ap.parse_args()
-    pitch = args.pitch
 
-    if args.voice:
-        from piper import PiperVoice, SynthesisConfig  # imported late so the page works without it
-
-        voice = PiperVoice.load(os.path.expanduser(args.voice))
-        print(f"Voice: {args.voice} (pitch {pitch:+g} semitones)")
-    else:
-        print("No --voice given: ALAN will be silent.")
+    try:
+        if args.engine == "chatterbox":
+            engine = Chatterbox(args.language, args.voice, args.device, args.exaggeration, args.cfg_weight)
+        elif args.engine == "piper":
+            engine = Piper(args.voice, args.pitch)
+    except Exception as err:
+        print(f"Could not load the {args.engine} voice ({err!r}). ALAN will be silent.", file=sys.stderr)
+    print(f"Voice: {engine.name if engine else 'none'}", flush=True)
+    for line in args.warm:
+        synthesise(line)
 
     handler = functools.partial(Handler, directory=ROOT)
-    print(f"ALAN on http://{args.host}:{args.port}/")
+    print(f"ALAN on http://{args.host}:{args.port}/", flush=True)
     ThreadingHTTPServer((args.host, args.port), handler).serve_forever()
 
 

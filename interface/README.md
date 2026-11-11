@@ -16,8 +16,8 @@ Static files, no build step, no dependencies, no internet access needed
 ## Run
 
 ```sh
-python3 serve.py                    # from the repo root; silent
-python3 serve.py --voice ~/alan/voices/pl_PL-darkman-medium.onnx   # with a voice
+python3 serve.py                    # from the repo root; see Voice below
+python3 serve.py --engine none      # page only, silent
 # http://localhost:8888/            demo feed
 # http://localhost:8888/?boot=0     skip the boot sequence
 ```
@@ -35,32 +35,43 @@ chromium --kiosk --autoplay-policy=no-user-gesture-required http://localhost:888
 
 ## Voice
 
-`serve.py` serves the page and a local text-to-speech endpoint, `/tts?text=…`,
-backed by [Piper](https://github.com/OHF-Voice/piper1-gpl). Everything runs on
-the machine; no audio or text leaves it.
+`serve.py` serves the page and a local text-to-speech endpoint, `/tts?text=…`.
+Everything runs on the machine; no audio or text leaves it.
+
+The default engine is [Chatterbox Multilingual](https://github.com/resemble-ai/chatterbox)
+with its built-in voice, speaking Polish:
 
 ```sh
-pip install piper-tts
-# a Polish voice: the .onnx and its .onnx.json, side by side
-#   https://huggingface.co/rhasspy/piper-voices/tree/main/pl/pl_PL
-#   mirror: https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-pl_PL-darkman-medium.tar.bz2
-python3 serve.py --voice path/to/pl_PL-darkman-medium.onnx
+pip install chatterbox-tts        # Python 3.11 recommended; on 3.13 also: pip install "setuptools<81"
+python3 serve.py                  # first start downloads about 3 GB of model weights
 ```
 
 Whenever ALAN is given a line, the page fetches the audio, plays it through the
 TV, and moves the mouth from the level of the sound actually playing — so face
-and voice cannot drift. Outside kiosk mode, click the page once to unlock audio.
+and voice cannot drift. While the audio is being prepared the face shows
+"thinking". Outside kiosk mode, click the page once to unlock audio.
 
-- Voices tried: `pl_PL-darkman-medium` (male, about 109 Hz, the deepest) and
-  `pl_PL-mc_speech-medium` (male, about 114 Hz). Both are 22 kHz and clearly
-  better than the older 16 kHz `pl-mls_6892-low`.
-- `--pitch` shifts the voice in semitones (default `0`, as recorded). Small
-  negative values such as `-2` deepen it; large ones sound artificially slowed.
-- No voice loaded, or audio blocked: the face mouths the line silently.
+- **Speed.** On a 4-core CPU with no GPU a line takes 15–35 s to prepare, far
+  from the plan's 2–4 s. It uses Apple's GPU (`mps`) automatically on the Mac
+  mini; how fast that is still has to be measured there. Lines already spoken
+  are cached and play instantly; `--warm "Dzień dobry."` prepares fixed lines
+  (greetings, courier message) at startup.
+- **Memory.** The model is about 3 GB on disk; its RAM use next to Ollama on
+  the 16 GB Mac mini is unmeasured.
+- **Another voice.** `--voice recording.wav` makes Chatterbox speak with the
+  timbre of that recording (10–20 s of clean speech). `--exaggeration` and
+  `--cfg-weight` adjust how lively and how measured he sounds.
+- **Very short lines** ("Gotowe.") can come out padded with extra sound; a
+  known weakness of the model.
+- **Piper** remains as the light, fast, more robotic fallback:
+  `pip install piper-tts`, then
+  `python3 serve.py --engine piper --voice path/to/pl_PL-darkman-medium.onnx`
+  (voices: https://huggingface.co/rhasspy/piper-voices/tree/main/pl/pl_PL).
+  `--pitch -2` deepens a Piper voice.
+- `python3 serve.py --engine none`, or an engine that fails to load, leaves the
+  page working and the face mouthing silently.
 - `tts: ''` in the config keeps the TV silent (e.g. if satellites do the talking).
 - `"radio": true` on a line gives the bandwidth-limited "90s hardware" voice of §33.
-- Piper is the engine available today and §34's fallback. Swapping in Voxtral or
-  Kokoro later only means changing what answers `/tts`.
 
 ## Connecting Home Assistant
 

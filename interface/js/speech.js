@@ -36,7 +36,7 @@ function stop() {
 }
 
 function begin(text, duration) {
-  store.set({ text, speakingUntil: performance.now() + duration, utterance: store.get().utterance + 1 });
+  store.set({ text, preparing: false, speakingUntil: performance.now() + duration, utterance: store.get().utterance + 1 });
 }
 
 function finish() {
@@ -130,6 +130,7 @@ export async function say({ text = '', audio, envelope, rate = 50, radio = false
   const url = audio || (ttsUrl && text ? ttsUrl + encodeURIComponent(text) : '');
   if (url) {
     try {
+      store.set({ preparing: true });    // a heavy voice engine can take seconds
       const buffer = await fetchAudio(url);
       if (id !== current) return 0;      // a newer utterance arrived while this one loaded
       stop();

@@ -7,6 +7,7 @@ const state = {
   text: '',          // what ALAN is saying / last said
   utterance: 0,      // bumped by every say(), so repeated lines still retype
   speakingUntil: 0,  // performance.now() deadline of the local speech envelope
+  preparing: false,  // a line's audio is being synthesised — shown as thinking
   rooms: {},         // room -> { temp, hum }
   presence: {},      // person -> bool
   co2: null,
@@ -37,9 +38,10 @@ export function isDark(config, s = state) {
   return config.darkModes.includes(s.flat) && !Object.keys(s.alerts).length;
 }
 
-/** What the screen should show right now: alert > local speech > feed state. */
+/** What the screen should show right now: alert > local speech > preparing a line > feed state. */
 export function mode(s = state, now = performance.now()) {
   if (Object.keys(s.alerts).length) return 'alert';
   if (now < s.speakingUntil) return 'speaking';
+  if (s.preparing) return 'thinking';
   return s.alan === 'speaking' ? 'idle' : s.alan;
 }

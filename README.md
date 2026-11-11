@@ -13,7 +13,7 @@ code the plan calls for is small:
 | Piece | Spec | Status |
 | --- | --- | --- |
 | Kiosk avatar page — TV Input 2 | §02, §33 | **`interface/`** — working against a demo feed and the HA WebSocket API |
-| ALAN's voice | §04, §34 | **`serve.py`** — local Piper TTS endpoint; the page plays it and lip-syncs. Voxtral / Kokoro to be auditioned on the Mac |
+| ALAN's voice | §04, §34 | **`serve.py`** — local TTS endpoint, Chatterbox Multilingual by default (Piper as light fallback); the page plays it and lip-syncs. Speed on the Mac mini still to be measured |
 | Ambient / studio monitor page — kitchen Pi | §23 | next: reuses the store, feed and CRT styles |
 | HA side of the avatar feed (state helpers, `alan_avatar` event with TTS envelope) | §33, §34 | to do with the HA install — contract in `interface/README.md` |
 | System prompt and personality | §09, §20 | to version here once HA + Ollama are up |
@@ -28,8 +28,10 @@ code the plan calls for is small:
   speaking via HA; who speaks when both are in the same room is undecided.
 - **`flat_state` values** are referenced but never enumerated. The page assumes
   `normal`, `away`, `guest`, `work`, `night`, `studio`.
-- **TTS engine.** §04 says Piper; §34 revises it to Voxtral + Kokoro. The
-  interface is engine-agnostic.
+- **TTS engine.** §34's Voxtral TTS does not fit: its model card lists nine
+  languages without Polish, a CC BY-NC licence (not Apache), and a 16 GB GPU.
+  Kokoro has no Polish either. Chatterbox Multilingual (MIT, Polish) is used
+  instead; whether it meets the 2–4 s target on the Mac mini is unmeasured.
 - **Section numbering.** §31's sub-items are numbered 10–13, duplicating
   earlier section numbers.
 
