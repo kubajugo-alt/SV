@@ -74,8 +74,9 @@ html, body {
 .cell.warn { animation: blink 1s steps(1) infinite; }
 
 /* --- alert: whole screen is the message -------------------------------- */
-#alert { grid-row: 2; align-self: center; text-align: center; }
-#alert-kind { font-size: 7em; line-height: 1; animation: pulse 1s ease-in-out infinite; }
+/* Sits under the face, in the space the transcript and panel give up. */
+#alert { grid-row: 3; align-self: end; text-align: center; padding-bottom: calc(var(--u) * 3); }
+#alert-kind { font-size: 6em; line-height: 1; animation: pulse 1s ease-in-out infinite; }
 #alert-where { font-size: 2.6em; }
 body[data-alan="alert"] #speech,
 body[data-alan="alert"] .panel { display: none; }

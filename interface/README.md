@@ -4,14 +4,19 @@ The page Chromium shows in kiosk mode on TV Input 2 (spec §02, §33): an amber
 CRT terminal with ALAN's face, a typed-in transcript of what he says, and an
 instrument panel of flat status.
 
-The face is two phosphor eyes and an oscilloscope-trace mouth. This departs
-from §33, which specified an abstract entity "not a head": the eyes blink,
-glance around when idle, widen when listening, narrow and drift aside when
-thinking, and go round and red on an alert; the mouth rests in a faint smile
-and becomes the live speech waveform when ALAN talks.
+The face is a drawn portrait — a man in his mid-thirties with short dark hair
+and a light beard — rendered as digitised video on an amber monitor (chunky
+pixels, dithered brightness levels, bloom). This departs from §33, which
+specified an abstract entity "not a head". He blinks and glances around when
+idle, raises his brows and tilts his head when listening, looks up and aside
+when thinking, moves his mouth with the speech envelope, and looks alarmed
+(in red) on an alert.
+
+The portrait is drawn in code (`js/face.js`), not from an image file, so the
+look is tuned by editing shapes and tones there.
 
 Static files, no build step, no dependencies, no internet access needed
-(the font is vendored). Tier 1 of §33: one fragment shader on the GPU.
+(the font is vendored). One small 2D canvas and one fragment shader per frame.
 
 ## Run
 
@@ -57,7 +62,8 @@ css/crt.css          palette, type, scanlines, alert + dark modes
 js/main.js           config merge, boot, wiring
 js/store.js          page state + mode priority
 js/speech.js         envelope playback -> live level
-js/avatar.js         WebGL face shader (eyes + trace mouth)
+js/face.js           the portrait: head, hair, beard, eyes, brows, mouth
+js/avatar.js         pose animation per state + CRT shader
 js/ui.js             panel, typed text, alert, boot sequence
 js/feeds/demo.js     simulator
 js/feeds/ha.js       Home Assistant WebSocket client
