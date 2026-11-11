@@ -8,7 +8,7 @@ export default {
 
   // Local text-to-speech endpoint (serve.py). The page voices every line it is
   // given through the TV and moves the mouth to that audio. '' keeps it silent.
-  tts: '/tts?text=',
+  tts: 'tts?text=', // relative, so it also works behind a path prefix
 
   ha: {
     url: 'ws://homeassistant.local:8123/api/websocket',
