@@ -43,6 +43,7 @@ the machine; no audio or text leaves it.
 pip install piper-tts
 # a Polish voice: the .onnx and its .onnx.json, side by side
 #   https://huggingface.co/rhasspy/piper-voices/tree/main/pl/pl_PL
+#   mirror: https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-pl_PL-darkman-medium.tar.bz2
 python3 serve.py --voice path/to/pl_PL-darkman-medium.onnx
 ```
 
@@ -50,8 +51,11 @@ Whenever ALAN is given a line, the page fetches the audio, plays it through the
 TV, and moves the mouth from the level of the sound actually playing — so face
 and voice cannot drift. Outside kiosk mode, click the page once to unlock audio.
 
-- `--pitch` deepens or raises the voice in semitones. The default is `-4`
-  (deeper than recorded); `--pitch 0` leaves the voice as it is, `-6` is deeper still.
+- Voices tried: `pl_PL-darkman-medium` (male, about 109 Hz, the deepest) and
+  `pl_PL-mc_speech-medium` (male, about 114 Hz). Both are 22 kHz and clearly
+  better than the older 16 kHz `pl-mls_6892-low`.
+- `--pitch` shifts the voice in semitones (default `0`, as recorded). Small
+  negative values such as `-2` deepen it; large ones sound artificially slowed.
 - No voice loaded, or audio blocked: the face mouths the line silently.
 - `tts: ''` in the config keeps the TV silent (e.g. if satellites do the talking).
 - `"radio": true` on a line gives the bandwidth-limited "90s hardware" voice of §33.

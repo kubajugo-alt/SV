@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Serve ALAN's kiosk page and his voice from one origin.
 
-    python3 serve.py --voice ~/alan/voices/pl_PL-darkman-medium.onnx [--pitch -4]
+    python3 serve.py --voice ~/alan/voices/pl_PL-darkman-medium.onnx [--pitch -2]
 
   /            the kiosk page (interface/)
   /tts?text=   speech for `text` as WAV, synthesised locally with Piper
@@ -25,7 +25,7 @@ MAX_CHARS = 1000
 
 voice = None
 SynthesisConfig = None
-pitch = -4.0  # semitones; negative is deeper
+pitch = 0.0  # semitones; negative is deeper
 lock = threading.Lock()  # Piper is not safe to call from two threads at once
 
 
