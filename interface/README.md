@@ -61,8 +61,11 @@ and voice cannot drift. While the audio is being prepared the face shows
 - **Another voice.** `--voice recording.wav` makes Chatterbox speak with the
   timbre of that recording (10–20 s of clean speech). `--exaggeration` and
   `--cfg-weight` adjust how lively and how measured he sounds.
-- **Very short lines** ("Gotowe.") can come out padded with extra sound; a
-  known weakness of the model.
+- **Short lines.** The model tends to carry on after the words (silence,
+  noises, the phrase again), so `serve.py` limits how much it may produce for
+  a given text and cuts the audio at the first long silence after the words.
+  "Gotowe." went from 2–3 s to under a second. Pronunciation of some short
+  phrases on their own is still shaky ("Już włączam." was heard back wrong).
 - **Piper** remains as the light, fast, more robotic fallback:
   `pip install piper-tts`, then
   `python3 serve.py --engine piper --voice path/to/pl_PL-darkman-medium.onnx`
