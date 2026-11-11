@@ -27,6 +27,19 @@ once to check them. It is safe to run again.
 The script has been linted and its model-loading step run on Linux, but it has
 not been run on a Mac yet.
 
+## Tests
+
+```sh
+pip install numpy
+python3 -m unittest discover -s tests -t .
+```
+
+They cover the home tools against the mock Home Assistant, memory and the tool
+loop with a scripted model, and the server's endpoints with stand-in engines —
+no models are downloaded. GitHub Actions runs them on every pull request,
+together with syntax checks of the page's JavaScript and the shell scripts. The
+page itself (face, audio, microphone) is not covered by automated tests yet.
+
 ## What gets built here vs. configured elsewhere
 
 Most of the plan is hardware and configuration of existing software (Home
