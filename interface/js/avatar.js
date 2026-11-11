@@ -1,64 +1,94 @@
-// Puts ALAN's face on the tube. face.js draws the outline face in greyscale; this
-// animates its pose from the current state and renders it through one fragment
-// shader that makes the line drawing glow like a vector display: bloom,
-// edge aberration, barrel distortion.
+// ALAN's face: one full-screen fragment shader. Two phosphor eyes and an
+// oscilloscope-trace mouth, drawn as vector shapes whose form is a blend of
+// the four states, driven by the live audio level. All work is on the GPU; nothing here touches Ollama's CPU.
 
 import { store, signal, mode } from './store.js';
-import { createFace, W, H } from './face.js';
 
 const VERT = 'attribute vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }';
 
 const FRAG = `
 precision mediump float;
-uniform sampler2D uTex;
 uniform vec2 uRes;
-uniform vec4 uRect;   // face rectangle: x, y, w, h in screen uv (y up)
 uniform float uTime;
-uniform float uGain;
+uniform float uLevel;
+uniform vec4 uMix;    // idle, listening, thinking, speaking
 uniform float uAlert;
+uniform float uBlink; // 0 open .. 1 shut
+uniform vec2 uGaze;   // eye offset, in screen heights
 
-float raw(vec2 f) {
-  vec2 inside = step(vec2(0.), f) * step(f, vec2(1.));
-  return texture2D(uTex, f).r * inside.x * inside.y;
+const float EYE_Y = 0.25;    // face coords: origin at screen centre, y up, 1.0 = screen height
+const float EYE_X = 0.17;
+const float MOUTH_Y = 0.03;
+const float MOUTH_W = 0.25;  // half width
+
+float sdRound(vec2 p, vec2 b) {
+  float r = min(b.x, b.y);
+  vec2 q = abs(p) - b + r;
+  return length(max(q, 0.)) + min(max(q.x, q.y), 0.) - r;
 }
 
-float face(vec2 uv) {
-  vec2 f = (uv - uRect.xy) / uRect.zw;
-  float halo = 0.;                                        // phosphor bloom around every line
-  for (int k = 0; k < 8; k++) {
-    float a = float(k) * 0.7854;
-    halo += raw(f + vec2(cos(a), sin(a)) * 0.012) + raw(f + vec2(cos(a), sin(a)) * 0.03) * 0.5;
-  }
-  return (raw(f) + halo * 0.05) * smoothstep(0., 0.14, f.y);   // shoulders fade out at the bottom
+// Two solid phosphor pills. Height carries the expression: half-lidded when
+// idle, wide when listening, narrowed when thinking, round when alarmed.
+float eyes(vec2 p) {
+  float open = 0.050 * uMix.x + 0.078 * uMix.y + 0.034 * uMix.z + 0.062 * uMix.w;
+  open = mix(open, 0.068, uAlert);
+  float h = max(open * (1. - uBlink), 0.004);
+  float w = mix(0.034, 0.068, uAlert);
+  vec2 q = vec2(abs(p.x - uGaze.x) - EYE_X, p.y - EYE_Y - uGaze.y);
+  float d = sdRound(q, vec2(w, h));
+  return smoothstep(0.003, -0.003, d) * 0.9 + 0.004 / (max(d, 0.) + 0.02);
+}
+
+// The mouth is an oscilloscope trace: a faint smile at rest, the live speech
+// envelope when talking.
+float mouth(vec2 p, float t) {
+  float x = p.x / (2. * MOUTH_W) + 0.5;
+  float xc = clamp(x, 0., 1.);
+  float win = pow(sin(3.14159 * xc), 1.3);         // pinned at the corners
+  float u = 2. * xc - 1.;
+  float smile = 0.024 * u * u - 0.012;
+  float idle = smile + 0.004 * sin(xc * 6.283 + t * 0.5) * win;
+  float listen = (0.003 + 0.022 * uLevel) * sin(xc * 24. + t * 7.) * win;
+  float off = (xc - fract(t * 0.45)) * 6.;         // squared by hand: pow() of a negative base is undefined
+  float think = 0.03 * sin(xc * 18. - t * 10.) * exp(-off * off) * win;
+  float speak = smile * 0.4 + uLevel * win * (0.10 * sin(xc * 9. + t * 9.)
+                                            + 0.045 * sin(xc * 21. - t * 14.)
+                                            + 0.025 * sin(xc * 43. + t * 23.));
+  float y = idle * uMix.x + listen * uMix.y + think * uMix.z + speak * uMix.w;
+  float over = max(max(-x, x - 1.), 0.) * 2. * MOUTH_W;   // rounded ends past the corners
+  float d = length(vec2(over, p.y - MOUTH_Y - y));
+  return (0.0016 / (d + 0.0008) + 0.010 / (d * 6. + 0.05)) * (1. - uAlert); // no mouth under the alert text
+}
+
+float face(vec2 uv, float t) {
+  vec2 p = (uv - 0.5) * vec2(uRes.x / uRes.y, 1.);
+  return eyes(p) + mouth(p, t);
 }
 
 void main() {
   vec2 uv = gl_FragCoord.xy / uRes;
   vec2 c = uv - 0.5;
-  uv += c * dot(c, c) * 0.10;                             // barrel distortion
+  uv += c * dot(c, c) * 0.10;                 // barrel distortion
 
-  float ab = 0.0003 + 0.002 * length(c);                  // chromatic aberration grows to the edges
-  vec3 i = vec3(face(uv - vec2(ab, 0.)), face(uv), face(uv + vec2(ab, 0.)));
-  i *= 1. + 0.10 * smoothstep(0.06, 0., abs(uv.y - fract(uTime * 0.07)));  // slow hum bar
+  float breathe = 0.5 + 0.5 * sin(uTime * 0.7);
+  float gain = (0.34 + 0.18 * breathe) * uMix.x + 1.0 * uMix.y + 0.65 * uMix.z
+             + (0.75 + 0.4 * uLevel) * uMix.w;
+  gain = mix(gain, 0.8, uAlert);
+
+  float ab = 0.004 * length(c) * 2.;          // chromatic aberration grows to the edges
+  vec3 i = vec3(face(uv - vec2(ab, 0.), uTime), face(uv, uTime), face(uv + vec2(ab, 0.), uTime));
 
   vec3 tint = mix(vec3(1.0, 0.69, 0.10), vec3(1.0, 0.25, 0.18), uAlert);
-  vec3 col = i * tint * uGain + pow(i.g * uGain, 3.) * 0.10;  // highlights run white-hot
+  vec3 col = i * tint * gain + pow(i.g * gain, 3.) * 0.08;   // white-hot core
   col = min(col, 1.);
   gl_FragColor = vec4(col, max(col.r, max(col.g, col.b)));
 }`;
 
-// Resting pose per state. Brows in px, everything else unitless.
-const POSE = {
-  idle:      { lid: 0.80, smile: 0.45, browL: 0, browR: 0, furrow: 0, tilt: 0,     gain: 0.72 },
-  listening: { lid: 1.00, smile: 0.25, browL: 6, browR: 6, furrow: 0, tilt: 0.035, gain: 1.00 },
-  thinking:  { lid: 0.70, smile: -0.1, browL: -2, browR: 9, furrow: 0.2, tilt: -0.03, gain: 0.85 },
-  speaking:  { lid: 0.90, smile: 0.35, browL: 2, browR: 2, furrow: 0, tilt: 0,     gain: 1.00 },
-  alert:     { lid: 1.15, smile: -0.7, browL: 0, browR: 0, furrow: 1, tilt: 0,     gain: 1.00 },
-};
+const ORDER = ['idle', 'listening', 'thinking', 'speaking'];
 
 export function startAvatar(canvas, isDark) {
   const gl = canvas.getContext('webgl', { premultipliedAlpha: true, antialias: false, powerPreference: 'low-power' });
-  if (!gl) return; // text UI still works without the face
+  if (!gl) return; // text UI still works without the trace
 
   const prog = gl.createProgram();
   for (const [type, src] of [[gl.VERTEX_SHADER, VERT], [gl.FRAGMENT_SHADER, FRAG]]) {
@@ -75,29 +105,25 @@ export function startAvatar(canvas, isDark) {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.enableVertexAttribArray(0);
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-  const u = Object.fromEntries(['uRes', 'uRect', 'uTime', 'uGain', 'uAlert'].map((n) => [n, gl.getUniformLocation(prog, n)]));
-
-  const face = createFace();
-  gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-  for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR],
-    [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+  const u = Object.fromEntries(['uRes', 'uTime', 'uLevel', 'uMix', 'uAlert', 'uBlink', 'uGaze'].map((n) => [n, gl.getUniformLocation(prog, n)]));
 
   const resize = () => {
-    canvas.width = canvas.clientWidth;
+    canvas.width = canvas.clientWidth;   // 1:1 CSS pixels is plenty for a glow
     canvas.height = canvas.clientHeight;
     gl.viewport(0, 0, canvas.width, canvas.height);
   };
   addEventListener('resize', resize);
   resize();
 
-  const pose = { ...POSE.idle, open: 0, gazeX: 0, gazeY: 0, bob: 0 };
+  const mix = [1, 0, 0, 0];
   let alert = 0;
+  let lvl = 0;
+  let running = false;
+  const gaze = [0, 0];
   let look = [0, 0];
   let nextLook = 0;
   let nextBlink = 2000;
   const BLINK_MS = 170;
-  let running = false;
 
   const frame = (now) => {
     if (isDark()) {             // studio mode: one black frame, then stop the loop
@@ -107,52 +133,34 @@ export function startAvatar(canvas, isDark) {
       return;
     }
     const m = mode(store.get(), now);
-    const target = POSE[m] || POSE.idle;
-    for (const k in target) pose[k] += (target[k] - pose[k]) * 0.1;
+    ORDER.forEach((name, i) => { mix[i] += ((m === name ? 1 : 0) - mix[i]) * 0.08; });
     alert += ((m === 'alert' ? 1 : 0) - alert) * 0.1;
+    lvl += (signal.level - lvl) * 0.35;
     if (m === 'listening') signal.level *= 0.94; // room level decays unless refreshed
 
-    // Mouth follows the speech envelope; brows and head move a little with it.
-    const lvl = m === 'speaking' ? signal.level : m === 'alert' ? 0.3 : 0;
-    pose.open += (Math.min(1, lvl * 1.15) - pose.open) * 0.45;
-    const talk = m === 'speaking' ? pose.open : 0;
-    const breathe = Math.sin(now / 1900);
+    gl.uniform2f(u.uRes, canvas.width, canvas.height);
+    gl.uniform1f(u.uTime, now / 1000);
+    gl.uniform1f(u.uLevel, lvl);
+    gl.uniform4fv(u.uMix, mix);
+    gl.uniform1f(u.uAlert, alert);
 
     // Blink every few seconds; stare during an alert.
     if (now > nextBlink + BLINK_MS) nextBlink = now + 2500 + Math.random() * 4500;
     const b = (now - nextBlink) / BLINK_MS;
-    const blink = m !== 'alert' && b > 0 && b < 1 ? 1 - Math.abs(2 * b - 1) : 0;
+    gl.uniform1f(u.uBlink, m !== 'alert' && b > 0 && b < 1 ? 1 - Math.abs(2 * b - 1) : 0);
 
-    // Idle: occasional glances. Thinking: eyes drift up and aside.
+    // Idle: occasional small glances. Thinking: eyes drift up and aside.
     if (m === 'thinking') {
-      look = [-0.7 + 0.25 * Math.sin(now / 600), -0.8];
+      look = [-0.03 + 0.015 * Math.sin(now / 600), 0.02];
     } else if (m !== 'idle') {
       look = [0, 0];
     } else if (now > nextLook) {
-      look = Math.random() < 0.5 ? [0, 0] : [(Math.random() - 0.5) * 1.4, (Math.random() - 0.5) * 0.6];
+      look = Math.random() < 0.5 ? [0, 0] : [(Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.02];
       nextLook = now + 2000 + Math.random() * 5000;
     }
-    pose.gazeX += (look[0] - pose.gazeX) * 0.14;
-    pose.gazeY += (look[1] - pose.gazeY) * 0.14;
-
-    face.draw({
-      ...pose,
-      lid: pose.lid * (1 - blink),
-      browL: pose.browL + talk * 4,
-      browR: pose.browR + talk * 4,
-      tilt: pose.tilt + 0.012 * Math.sin(now / 2700) + talk * 0.02 * Math.sin(now / 400),
-      bob: breathe * 1.5 + talk * 2,
-    });
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, face.canvas);
-
-    // Portrait fills the band between the title bar and the transcript.
-    const h = 0.58;
-    const w = h * (W / H) * (canvas.height / canvas.width);
-    gl.uniform4f(u.uRect, 0.5 - w / 2, 0.375, w, h);
-    gl.uniform2f(u.uRes, canvas.width, canvas.height);
-    gl.uniform1f(u.uTime, now / 1000);
-    gl.uniform1f(u.uGain, pose.gain * (m === 'idle' ? 0.94 + 0.06 * breathe : 1));
-    gl.uniform1f(u.uAlert, alert);
+    gaze[0] += (look[0] - gaze[0]) * 0.12;
+    gaze[1] += (look[1] - gaze[1]) * 0.12;
+    gl.uniform2fv(u.uGaze, gaze);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     requestAnimationFrame(frame);
   };
