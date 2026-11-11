@@ -71,6 +71,19 @@ class Chatterbox:
             self.options["audio_prompt_path"] = os.path.expanduser(reference)
         with self._weights_on_cpu(device):
             self.model = ChatterboxMultilingualTTS.from_pretrained(device=torch.device(device))
+
+        # The library always lets the model produce up to 1000 speech tokens
+        # (40 s). Short lines then ramble: after the words come silence, noises
+        # or the phrase again. Pass our own limit, sized to the text, instead.
+        self.budget = None
+        inference = self.model.t3.inference
+
+        def limited(*args, **kwargs):
+            if self.budget:
+                kwargs["max_new_tokens"] = self.budget
+            return inference(*args, **kwargs)
+
+        self.model.t3.inference = limited
         self.name = f"chatterbox ({device}, {language}, {'voice from ' + reference if reference else 'built-in voice'})"
 
     @contextlib.contextmanager
@@ -100,10 +113,49 @@ class Chatterbox:
                 parts.append(sentence)
         return parts
 
+    def speak(self, part):
+        """One piece of text -> audio, without the model's habit of carrying on."""
+        # Speech runs at 25 tokens a second and Polish at under 2 tokens a
+        # character; allow well over that, plus a second, and no more.
+        self.budget = int(25 + 3.2 * len(part))
+        try:
+            audio = self.model.generate(part, language_id=self.language, **self.options).squeeze(0).cpu()
+        finally:
+            self.budget = None
+        return self.trim(audio, self.model.sr, one_phrase=not re.search(r"[,;:.!?…—–-]\s", part))
+
+    def trim(self, audio, rate, one_phrase):
+        """Cut what comes after the words. The end is the first long silence
+        once speech has started: 0.8 s anywhere, or just 0.16 s when the text
+        is a single phrase with no pause of its own to protect."""
+        frame = int(rate * 0.02)
+        usable = audio[: len(audio) // frame * frame]
+        if len(usable) == 0:
+            return audio
+        energy = usable.reshape(-1, frame).pow(2).mean(dim=1).sqrt()
+        voiced = (energy > max(0.01, 0.08 * float(energy.max()))).tolist()
+        longest_gap = round((0.16 if one_phrase else 0.8) / 0.02)
+        spoken, quiet, end = 0, 0, len(voiced)
+        for i, on in enumerate(voiced):
+            if on:
+                spoken, quiet = spoken + 1, 0
+            else:
+                quiet += 1
+                if spoken >= 8 and quiet >= longest_gap:   # 8 frames = 0.16 s of real speech first
+                    end = i - quiet + 1
+                    break
+        else:
+            end = len(voiced) - quiet                       # only trailing silence to drop
+        keep = min(len(audio), (end + 4) * frame)           # leave 80 ms so the last sound is not clipped
+        out = audio[:keep].clone()
+        fade = min(len(out), int(rate * 0.03))
+        out[-fade:] *= self.torch.linspace(1, 0, fade)
+        return out
+
     def wav(self, text: str) -> bytes:
         text = re.sub(r"\bALAN\b", "Alan", text)  # all-caps reads as an acronym
         parts = self.split(text)
-        chunks = [self.model.generate(s, language_id=self.language, **self.options).squeeze(0) for s in parts]
+        chunks = [self.speak(s) for s in parts]
         pause = self.torch.zeros(int(self.model.sr * 0.18))
         joined = []
         for chunk in chunks:
