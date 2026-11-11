@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALAN</title>
+<link rel="stylesheet" href="css/crt.css">
+</head>
+<body data-alan="idle" data-flat="normal">
+
+<canvas id="entity" aria-hidden="true"></canvas>
+
+<main id="screen">
+  <header class="bar">
+    <span>ALAN <span class="dim">· AUTONOMOUS LOCAL AI NODE</span></span>
+    <span id="mode"></span>
+    <span id="clock"></span>
+  </header>
+
+  <section id="alert" hidden>
+    <div id="alert-kind"></div>
+    <div id="alert-where"></div>
+  </section>
+
+  <section id="speech">
+    <div id="status"></div>
+    <p id="text"><span id="typed"></span><span class="cursor">█</span></p>
+  </section>
+
+  <footer class="panel">
+    <div class="group" id="rooms"></div>
+    <div class="group" id="vitals"></div>
+  </footer>
+</main>
+
+<pre id="boot" hidden></pre>
+<div class="tube" aria-hidden="true"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
