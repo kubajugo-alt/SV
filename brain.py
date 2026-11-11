@@ -83,13 +83,14 @@ class Memory:
 
 
 class Brain:
-    def __init__(self, llm_url, model, prompt_path, db_path):
+    def __init__(self, llm_url, model, prompt_path, db_path, inline_system=False):
         self.url = llm_url.rstrip("/") + "/v1/chat/completions"
         self.model = model
         with open(prompt_path, encoding="utf-8") as f:
             self.prompt = f.read().strip()
         self.memory = Memory(db_path)
         self.folding = threading.Lock()  # one notes rewrite at a time
+        self.inline_system = inline_system
         self.name = f"{model} at {llm_url}"
 
     def complete(self, messages, max_tokens, temperature):
@@ -115,9 +116,15 @@ class Brain:
 
     def reply(self, person, text):
         notes, _ = self.memory.notes(person)
-        messages = [{"role": "system", "content": self.system(person, notes)}]
-        messages += [{"role": role, "content": content} for _, role, content, _ in self.memory.recent(person)]
-        messages.append({"role": "user", "content": text})
+        system = self.system(person, notes)
+        history = [{"role": role, "content": content} for _, role, content, _ in self.memory.recent(person)]
+        if self.inline_system:
+            # Some runtimes drop the system role for Mistral models. Put the
+            # instructions in front of the newest message, where Mistral's own
+            # template places them.
+            messages = history + [{"role": "user", "content": f"{system}\n\n── WIADOMOŚĆ OD {person.upper()} ──\n{text}"}]
+        else:
+            messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
         answer = self.clean(self.complete(messages, max_tokens=220, temperature=0.6))
         self.memory.add(person, "user", text)       # stored only once the model has answered
         self.memory.add(person, "assistant", answer)

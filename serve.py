@@ -201,6 +201,8 @@ def main():
     ap.add_argument("--llm-url", default=os.environ.get("ALAN_LLM_URL", "http://127.0.0.1:11434"),
                     help="OpenAI-compatible server for conversation; Ollama's default address. '' disables /chat")
     ap.add_argument("--llm-model", default=os.environ.get("ALAN_LLM_MODEL", "mistral-nemo"))
+    ap.add_argument("--llm-inline-system", action="store_true",
+                    help="send ALAN's instructions inside the user message, for runtimes that ignore the system role (not needed with Ollama)")
     ap.add_argument("--data", default=os.path.join(HERE, "data"), help="folder for ALAN's memory (default %(default)s)")
     ap.add_argument("--host", default="127.0.0.1", help="use 0.0.0.0 to serve other devices on Network B")
     ap.add_argument("--port", type=int, default=8888)
@@ -218,7 +220,7 @@ def main():
         from brain import Brain
 
         brain = Brain(args.llm_url, args.llm_model, os.path.join(HERE, "prompts", "system.pl.txt"),
-                      os.path.join(args.data, "alan.db"))
+                      os.path.join(args.data, "alan.db"), args.llm_inline_system)
         print(f"Mind: {brain.name}", flush=True)
     for line in args.warm:
         synthesise(line)
