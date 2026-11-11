@@ -48,7 +48,7 @@ export function startDemo() {
       await wait(2200);
       if (manual) continue;
       store.set({ alan: 'idle' });
-      await wait(say({ text: LINES[i % LINES.length] }));
+      await wait(await say({ text: LINES[i % LINES.length] }));
     }
   })();
 

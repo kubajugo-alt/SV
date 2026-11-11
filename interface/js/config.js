@@ -6,6 +6,10 @@ export default {
   boot: true,   // play the boot sequence on load
   chime: true,  // needs Chromium --autoplay-policy=no-user-gesture-required
 
+  // Local text-to-speech endpoint (serve.py). The page voices every line it is
+  // given through the TV and moves the mouth to that audio. '' keeps it silent.
+  tts: '/tts?text=',
+
   ha: {
     url: 'ws://homeassistant.local:8123/api/websocket',
     token: '', // long-lived access token of a dedicated, non-admin kiosk user

@@ -70,7 +70,7 @@ export function startHA(config) {
         apply(msg.event.data.new_state);
       } else if (msg.type === 'event' && msg.event.event_type === config.event) {
         const d = msg.event.data || {};
-        if (d.text != null || d.envelope) say(d);
+        if (d.text != null || d.audio || d.envelope) say(d);
         else if (d.level != null) level(d.level);
       }
     };

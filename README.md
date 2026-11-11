@@ -13,6 +13,7 @@ code the plan calls for is small:
 | Piece | Spec | Status |
 | --- | --- | --- |
 | Kiosk avatar page — TV Input 2 | §02, §33 | **`interface/`** — working against a demo feed and the HA WebSocket API |
+| ALAN's voice | §04, §34 | **`serve.py`** — local Piper TTS endpoint; the page plays it and lip-syncs. Voxtral / Kokoro to be auditioned on the Mac |
 | Ambient / studio monitor page — kitchen Pi | §23 | next: reuses the store, feed and CRT styles |
 | HA side of the avatar feed (state helpers, `alan_avatar` event with TTS envelope) | §33, §34 | to do with the HA install — contract in `interface/README.md` |
 | System prompt and personality | §09, §20 | to version here once HA + Ollama are up |
@@ -22,10 +23,9 @@ code the plan calls for is small:
 
 ## Open questions from the spec
 
-- **TTS envelope source.** §33 wants the trace locked to the audio buffer the TTS
-  plays, but speech plays on the satellites, not the Mac. The page therefore
-  takes a precomputed envelope in an HA event; something on the HA side has to
-  compute it from the TTS output.
+- **Where ALAN speaks.** The kiosk now voices lines through the TV, with the
+  mouth locked to that audio (§33). The plan also has the room satellites
+  speaking via HA; who speaks when both are in the same room is undecided.
 - **`flat_state` values** are referenced but never enumerated. The page assumes
   `normal`, `away`, `guest`, `work`, `night`, `studio`.
 - **TTS engine.** §04 says Piper; §34 revises it to Voxtral + Kokoro. The
