@@ -112,10 +112,39 @@ How he remembers:
 - **Across restarts** — everything is in `data/alan.db` (SQLite, git-ignored).
   Delete the file to wipe his memory.
 
+### Hands: lights, heating, state of the flat
+
+With `--ha-url` (and the token in `ALAN_HA_TOKEN`) the model gets three tools,
+which `home.py` carries out through Home Assistant's REST API:
+
+| Tool | Does |
+| --- | --- |
+| `set_light` | a room's light on / off, optional brightness; `wszystkie` for all |
+| `set_temperature` | a room's heating target, limited to 5–28 °C |
+| `get_home_state` | temperatures, humidity, lights, heating, who is home, CO2, battery |
+
+Which entities these touch is listed in `home.json` (placeholder ids for now).
+There is deliberately no tool for doors, locks, cameras or alarms. A tool that
+fails answers with the reason, and ALAN is told to report it, not to pretend.
+
+To try it before Home Assistant exists:
+
+```sh
+python3 scripts/mock_ha.py &          # a made-up flat on port 8123; prints every change
+ALAN_HA_TOKEN=test scripts/start.sh --ha-url http://127.0.0.1:8123
+```
+
+Then: "Włącz światło w salonie", "Ile jest stopni w sypialni?". Pointing
+`--ha-url` at the real Home Assistant later is the only change needed, apart
+from the entity ids. Without `--ha-url` he says he cannot control anything yet.
+
 Limits of this first version:
 
-- He cannot control or read anything in the flat yet, and is told to say so
-  instead of pretending.
+- Tool use needs a model and runtime with tool calling. The plan's Mistral Nemo
+  on Ollama has it, but that combination is untested here: the loop was
+  verified with a scripted model, and a small test model picked the right
+  tools but wrote them out as text instead of calling them.
+- The screen does not show what he changed; the panel still comes from the feed.
 - Push-to-talk only: no wake word, and no room satellites — the microphone is
   the one on the machine showing the page.
 - The notes are one text per person, read in full every time. Search over old

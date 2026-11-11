@@ -266,6 +266,10 @@ def main():
     ap.add_argument("--llm-model", default=os.environ.get("ALAN_LLM_MODEL", "mistral-nemo"))
     ap.add_argument("--llm-inline-system", action="store_true",
                     help="send ALAN's instructions inside the user message, for runtimes that ignore the system role (not needed with Ollama)")
+    ap.add_argument("--ha-url", default=os.environ.get("ALAN_HA_URL", ""),
+                    help="Home Assistant address, e.g. http://homeassistant.local:8123; gives ALAN his tools (lights, heating, state)")
+    ap.add_argument("--ha-token", default=os.environ.get("ALAN_HA_TOKEN", ""),
+                    help="long-lived access token; prefer the ALAN_HA_TOKEN environment variable")
     ap.add_argument("--data", default=os.path.join(HERE, "data"), help="folder for ALAN's memory (default %(default)s)")
     ap.add_argument("--host", default="127.0.0.1", help="use 0.0.0.0 to serve other devices on Network B")
     ap.add_argument("--port", type=int, default=8888)
@@ -288,9 +292,15 @@ def main():
     if args.llm_url:
         from brain import Brain
 
+        home = None
+        if args.ha_url:
+            from home import Home
+
+            home = Home(args.ha_url, args.ha_token, os.path.join(HERE, "home.json"))
         brain = Brain(args.llm_url, args.llm_model, os.path.join(HERE, "prompts", "system.pl.txt"),
-                      os.path.join(args.data, "alan.db"), args.llm_inline_system)
+                      os.path.join(args.data, "alan.db"), args.llm_inline_system, home)
         print(f"Mind: {brain.name}", flush=True)
+        print(f"Hands: {home.name if home else 'none (no --ha-url)'}", flush=True)
     for line in args.warm:
         synthesise(line)
 

@@ -1,0 +1,35 @@
+{
+  "_comment": "Which Home Assistant entities ALAN's tools act on. Placeholder ids until the real install; rename to match.",
+  "lights": {
+    "salon": "light.salon",
+    "sypialnia": "light.sypialnia",
+    "przedpokoj": "light.przedpokoj"
+  },
+  "heating": {
+    "salon": "climate.salon",
+    "sypialnia": "climate.sypialnia",
+    "kuchnia": "climate.kuchnia"
+  },
+  "temperature": {
+    "salon": "sensor.salon_temperature",
+    "sypialnia": "sensor.sypialnia_temperature",
+    "kuchnia": "sensor.kuchnia_temperature",
+    "przedpokoj": "sensor.przedpokoj_temperature",
+    "lazienka": "sensor.lazienka_temperature"
+  },
+  "humidity": {
+    "salon": "sensor.salon_humidity",
+    "sypialnia": "sensor.sypialnia_humidity",
+    "kuchnia": "sensor.kuchnia_humidity",
+    "lazienka": "sensor.lazienka_humidity"
+  },
+  "people": {
+    "Kuba": "person.kuba",
+    "Hubert": "person.hubert"
+  },
+  "other": {
+    "CO2 w salonie (ppm)": "sensor.salon_co2",
+    "temperatura na zewnątrz (°C)": "sensor.outdoor_temperature",
+    "bateria EcoFlow (%)": "sensor.ecoflow_battery"
+  }
+}

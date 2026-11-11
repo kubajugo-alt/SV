@@ -23,6 +23,17 @@ import urllib.request
 WINDOW_MAX = 24   # fold into notes once this many turns are waiting
 WINDOW_KEEP = 10  # turns left verbatim after folding
 
+MAX_TOOL_ROUNDS = 3
+
+# He must never claim an action or a reading that did not actually happen.
+NOT_CONNECTED = ("Sterowanie urządzeniami, czujniki, kamery i kalendarz nie są jeszcze podłączone. "
+                 "Nie twierdź, że coś włączyłeś, zmieniłeś lub odczytałeś — powiedz krótko, że jeszcze tego nie potrafisz.")
+CONNECTED = ("Masz narzędzia: set_light (światło), set_temperature (ogrzewanie) i get_home_state (stan mieszkania). "
+             "Gdy ktoś prosi o światło lub ogrzewanie albo pyta o stan mieszkania, użyj narzędzia, zanim odpowiesz. "
+             "Mów, że coś zrobiłeś, tylko jeśli narzędzie odpowiedziało 'Wykonano'; gdy zwróci błąd, powiedz krótko, czego nie da się zrobić. "
+             "Temperatury i stan świateł podawaj wyłącznie z get_home_state, nigdy z pamięci. "
+             "Drzwi, zamki, kamery i kalendarz nie są podłączone.")
+
 DAYS = ["poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela"]
 
 CONSOLIDATE = """Prowadzisz notatki pamięci asystenta domowego ALAN o osobie: {person}.
@@ -84,7 +95,7 @@ class Memory:
 
 
 class Brain:
-    def __init__(self, llm_url, model, prompt_path, db_path, inline_system=False):
+    def __init__(self, llm_url, model, prompt_path, db_path, inline_system=False, home=None):
         self.url = llm_url.rstrip("/") + "/v1/chat/completions"
         self.model = model
         with open(prompt_path, encoding="utf-8") as f:
@@ -92,14 +103,41 @@ class Brain:
         self.memory = Memory(db_path)
         self.folding = threading.Lock()  # one notes rewrite at a time
         self.inline_system = inline_system
+        self.home = home  # home.Home, or None while the flat is not connected
         self.name = f"{model} at {llm_url}"
 
-    def complete(self, messages, max_tokens, temperature):
-        body = json.dumps({"model": self.model, "messages": messages, "stream": False,
-                           "max_tokens": max_tokens, "temperature": temperature}).encode()
-        request = urllib.request.Request(self.url, body, {"Content-Type": "application/json"})
+    def chat(self, messages, max_tokens, temperature, tools=None):
+        """One round trip to the model; returns its message (content and/or tool_calls)."""
+        body = {"model": self.model, "messages": messages, "stream": False,
+                "max_tokens": max_tokens, "temperature": temperature}
+        if tools:
+            body["tools"] = tools
+        request = urllib.request.Request(self.url, json.dumps(body).encode(), {"Content-Type": "application/json"})
         with urllib.request.urlopen(request, timeout=300) as response:
-            return json.load(response)["choices"][0]["message"]["content"].strip()
+            return json.load(response)["choices"][0]["message"]
+
+    def complete(self, messages, max_tokens, temperature):
+        return (self.chat(messages, max_tokens, temperature).get("content") or "").strip()
+
+    def converse(self, messages):
+        """Let the model use its tools, then return what it finally says."""
+        if not self.home:
+            return self.complete(messages, max_tokens=220, temperature=0.6)
+        from home import TOOLS
+
+        messages = list(messages)
+        for _ in range(MAX_TOOL_ROUNDS):
+            message = self.chat(messages, max_tokens=300, temperature=0.4, tools=TOOLS)
+            calls = message.get("tool_calls") or []
+            if not calls:
+                return (message.get("content") or "").strip()
+            messages.append({"role": "assistant", "content": message.get("content") or "", "tool_calls": calls})
+            for call in calls:
+                result = self.home.call(call["function"]["name"], call["function"].get("arguments"))
+                print(f"Tool: {call['function']['name']}({call['function'].get('arguments')}) -> {result}", flush=True)
+                messages.append({"role": "tool", "tool_call_id": call.get("id", ""), "content": result})
+        # Still calling tools after several rounds: make it answer with what it has.
+        return self.complete(messages, max_tokens=220, temperature=0.4)
 
     def system(self, person, notes):
         now = datetime.datetime.now()
@@ -110,9 +148,7 @@ class Brain:
             "── TERAZ ──",
             f"Jest {DAYS[now.weekday()]}, {now:%d.%m.%Y}, godzina {now:%H:%M}. Rozmawiasz z: {person.capitalize()}.",
             f"Najbliższe dni: {ahead}. Daty bierz z tej listy, nie licz ich samodzielnie.",
-            # Until Home Assistant is connected he must not pretend to act or to read sensors.
-            "Sterowanie urządzeniami, czujniki, kamery i kalendarz nie są jeszcze podłączone. "
-            "Nie twierdź, że coś włączyłeś, zmieniłeś lub odczytałeś — powiedz krótko, że jeszcze tego nie potrafisz.",
+            CONNECTED if self.home else NOT_CONNECTED,
         ]
         if notes:
             parts += [f"── PAMIĘĆ: CO WIESZ O {person.upper()} Z WCZEŚNIEJSZYCH ROZMÓW ──", notes]
@@ -129,7 +165,9 @@ class Brain:
             messages = history + [{"role": "user", "content": f"{system}\n\n── WIADOMOŚĆ OD {person.upper()} ──\n{text}"}]
         else:
             messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
-        answer = self.clean(self.complete(messages, max_tokens=220, temperature=0.6))
+        answer = self.clean(self.converse(messages))
+        if not answer:
+            raise RuntimeError("the model returned an empty answer")
         self.memory.add(person, "user", text)       # stored only once the model has answered
         self.memory.add(person, "assistant", answer)
         threading.Thread(target=self.fold, args=(person,), daemon=True).start()
