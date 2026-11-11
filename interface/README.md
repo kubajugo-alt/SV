@@ -84,8 +84,20 @@ ollama pull mistral-nemo          # the plan's conversation model
 python3 serve.py                  # talks to Ollama at http://127.0.0.1:11434
 ```
 
-On the page, press Enter, type, press Enter. ALAN listens while you type, thinks
-while the model answers, and speaks the reply.
+Two ways to talk to him on the page:
+
+- **Voice** — hold Space, speak, release. His face follows the microphone
+  level while you talk; pressing Space while he is speaking cuts him off.
+- **Keyboard** — press Enter, type, press Enter.
+
+Either way he thinks while the model answers and then speaks the reply; the line
+he heard or read stays visible, dimmed, in the prompt.
+
+Speech is recognised locally by faster-whisper (`pip install faster-whisper`),
+`medium` by default as in §04; `--stt-model small` is faster and a little less
+accurate, `--stt-model none` turns the microphone off. The browser asks for
+microphone permission once; in kiosk mode add `--use-fake-ui-for-media-stream`
+to Chromium's flags to skip the prompt.
 
 How he remembers:
 
@@ -104,7 +116,8 @@ Limits of this first version:
 
 - He cannot control or read anything in the flat yet, and is told to say so
   instead of pretending.
-- Typed input only; the microphone (Whisper, §04) is the next step.
+- Push-to-talk only: no wake word, and no room satellites — the microphone is
+  the one on the machine showing the page.
 - The notes are one text per person, read in full every time. Search over old
   conversations (the plan's ChromaDB) is not built.
 - `--llm-url` / `--llm-model` point at any OpenAI-compatible server; `--llm-url ''`
@@ -136,7 +149,8 @@ index.html
 css/crt.css          palette, type, scanlines, alert + dark modes
 js/main.js           config merge, boot, wiring
 js/store.js          page state + mode priority
-js/chat.js           typed conversation prompt
+js/chat.js           conversation prompt shared by keyboard and microphone
+js/mic.js            push-to-talk recording and speech recognition
 js/speech.js         voice playback, live level for the mouth, silent fallback
 js/avatar.js         WebGL face shader (eyes + trace mouth)
 js/ui.js             panel, typed text, alert, boot sequence

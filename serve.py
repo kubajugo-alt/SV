@@ -7,6 +7,7 @@
 
   /            the kiosk page (interface/)
   /tts?text=   speech for `text` as WAV, synthesised locally
+  /stt         POST a recording (WAV) -> {"text": "..."}; local speech recognition
   /chat        POST {"text": "...", "person": "kuba"} -> {"reply": "..."}
                conversation with the local language model, with memory (brain.py)
 
@@ -34,9 +35,11 @@ from urllib.parse import parse_qs, urlparse
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "interface")
 MAX_CHARS = 1000
+MAX_AUDIO = 10 * 1024 * 1024
 
 engine = None
 brain = None
+ears = None
 lock = threading.Lock()  # neither engine is safe to call from two threads at once
 
 
@@ -128,6 +131,44 @@ class Piper:
         return pcm_to_wav(pcm, round(chunks[0].sample_rate / self.factor))
 
 
+class Whisper:
+    """Speech recognition with faster-whisper (`pip install faster-whisper`)."""
+
+    def __init__(self, model, language):
+        from faster_whisper import WhisperModel
+
+        self.model = WhisperModel(model, device="auto", compute_type="int8")
+        self.language = language
+        self.lock = threading.Lock()
+        self.name = f"faster-whisper {model} ({language})"
+
+    @staticmethod
+    def samples(audio: bytes):
+        """16-bit WAV of any rate or channel count -> mono float32 at 16 kHz.
+        Decoded here so the recogniser's own media decoder is not needed."""
+        import numpy as np
+
+        with wave.open(io.BytesIO(audio)) as wav:
+            if wav.getsampwidth() != 2:
+                raise ValueError("expected 16-bit PCM WAV")
+            rate, channels = wav.getframerate(), wav.getnchannels()
+            pcm = np.frombuffer(wav.readframes(wav.getnframes()), dtype=np.int16).astype(np.float32) / 32768
+        pcm = pcm.reshape(-1, channels).mean(axis=1)
+        if rate != 16000:
+            pcm = np.interp(np.arange(0, len(pcm), rate / 16000), np.arange(len(pcm)), pcm).astype(np.float32)
+        return pcm
+
+    def text(self, audio: bytes) -> str:
+        pcm = self.samples(audio)
+        with self.lock:
+            segments, _ = self.model.transcribe(
+                pcm, language=self.language, beam_size=5,
+                vad_filter=True,                                   # silence in, nothing out
+                initial_prompt="ALAN, Kuba, Hubert, Tarnobrzeg.",  # names he should spell right
+            )
+            return " ".join(s.text.strip() for s in segments).strip()
+
+
 @functools.lru_cache(maxsize=256)  # repeated lines (greetings, confirmations) are instant
 def synthesise(text: str) -> bytes:
     with lock:
@@ -156,8 +197,33 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(audio)
 
+    def send_json(self, data):
+        payload = json.dumps(data, ensure_ascii=False).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def do_stt(self):
+        if ears is None:
+            return self.send_error(503, "No speech recognition loaded")
+        size = int(self.headers.get("Content-Length", 0))
+        if not 0 < size <= MAX_AUDIO:
+            return self.send_error(400, "Expected a recording of up to 10 MB")
+        try:
+            text = ears.text(self.rfile.read(size))
+        except Exception as err:  # unreadable audio, …
+            print(f"STT failed: {err!r}", file=sys.stderr)
+            return self.send_error(400, "Could not read that recording")
+        print(f"Heard: {text!r}", flush=True)
+        self.send_json({"text": text})
+
     def do_POST(self):
-        if urlparse(self.path).path != "/chat":
+        path = urlparse(self.path).path
+        if path == "/stt":
+            return self.do_stt()
+        if path != "/chat":
             return self.send_error(404)
         if brain is None:
             return self.send_error(503, "No language model configured")
@@ -174,30 +240,27 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as err:  # model not running, timed out, …
             print(f"Chat failed: {err!r}", file=sys.stderr)
             return self.send_error(502, "The language model did not answer")
-        payload = json.dumps({"reply": reply}, ensure_ascii=False).encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(payload)))
-        self.end_headers()
-        self.wfile.write(payload)
+        self.send_json({"reply": reply})
 
     def log_message(self, fmt, *args):
-        if "/tts" in str(args[0]) or "/chat" in str(args[0]) or str(args[1])[0] in "45":
+        if "/tts" in str(args[0]) or "/chat" in str(args[0]) or "/stt" in str(args[0]) or str(args[1])[0] in "45":
             super().log_message(fmt, *args)
 
 
 def main():
-    global engine, brain
+    global engine, brain, ears
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--engine", choices=["chatterbox", "piper", "none"], default=os.environ.get("ALAN_ENGINE", "chatterbox"))
     ap.add_argument("--voice", default=os.environ.get("ALAN_VOICE"),
                     help="chatterbox: optional reference recording to take the timbre from; piper: the .onnx voice (required)")
-    ap.add_argument("--language", default="pl", help="chatterbox language code (default %(default)s)")
+    ap.add_argument("--language", default="pl", help="language code for speech and recognition (default %(default)s)")
     ap.add_argument("--device", default="auto", help="chatterbox: auto, cuda, mps or cpu")
     ap.add_argument("--exaggeration", type=float, default=0.5, help="chatterbox expressiveness, 0.25-2 (default %(default)s)")
     ap.add_argument("--cfg-weight", type=float, default=0.5, help="chatterbox pacing/adherence, 0-1 (default %(default)s)")
     ap.add_argument("--pitch", type=float, default=0.0, help="piper only: semitones to shift the voice, negative is deeper")
     ap.add_argument("--warm", action="append", default=[], metavar="TEXT", help="line to synthesise at startup so it is instant later (repeatable)")
+    ap.add_argument("--stt-model", default=os.environ.get("ALAN_STT_MODEL", "medium"),
+                    help="faster-whisper model for the microphone: tiny, base, small, medium, large-v3; 'none' disables (default %(default)s)")
     ap.add_argument("--llm-url", default=os.environ.get("ALAN_LLM_URL", "http://127.0.0.1:11434"),
                     help="OpenAI-compatible server for conversation; Ollama's default address. '' disables /chat")
     ap.add_argument("--llm-model", default=os.environ.get("ALAN_LLM_MODEL", "mistral-nemo"))
@@ -216,6 +279,12 @@ def main():
     except Exception as err:
         print(f"Could not load the {args.engine} voice ({err!r}). ALAN will be silent.", file=sys.stderr)
     print(f"Voice: {engine.name if engine else 'none'}", flush=True)
+    if args.stt_model != "none":
+        try:
+            ears = Whisper(args.stt_model, args.language)
+        except Exception as err:
+            print(f"Could not load speech recognition ({err!r}). The microphone will not work.", file=sys.stderr)
+    print(f"Ears: {ears.name if ears else 'none'}", flush=True)
     if args.llm_url:
         from brain import Brain
 

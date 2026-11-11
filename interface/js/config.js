@@ -12,7 +12,10 @@ export default {
 
   // Typed conversation with the local model (serve.py /chat). '' hides the prompt.
   chat: 'chat',
-  person: 'kuba', // who is at the keyboard; each person has their own memory
+  // Hold Space and speak (serve.py /stt). '' turns the microphone off.
+  // Kiosk: add Chromium --use-fake-ui-for-media-stream to skip the permission prompt.
+  stt: 'stt',
+  person: 'kuba', // who is at the keyboard or microphone; each person has their own memory
 
   ha: {
     url: 'ws://homeassistant.local:8123/api/websocket',

@@ -71,6 +71,8 @@ html, body {
   caret-color: var(--fg); caret-shape: block; cursor: none;
 }
 
+#ask-input::placeholder { color: var(--fg-dim); opacity: 1; }
+
 /* --- instrument panel -------------------------------------------------- */
 .panel {
   grid-row: 4;

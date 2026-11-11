@@ -14,7 +14,7 @@ code the plan calls for is small:
 | --- | --- | --- |
 | Kiosk avatar page — TV Input 2 | §02, §33 | **`interface/`** — working against a demo feed and the HA WebSocket API |
 | ALAN's voice | §04, §34 | **`serve.py`** — local TTS endpoint, Chatterbox Multilingual by default (Piper as light fallback); the page plays it and lip-syncs. Speed on the Mac mini still to be measured |
-| Conversation and memory | §09, §15, §20 | **`brain.py`**, **`prompts/`** — local model via Ollama, per-person threads, self-updating notes in SQLite. No device control, microphone or search over old conversations yet |
+| Conversation and memory | §09, §15, §20 | **`brain.py`**, **`prompts/`** — local model via Ollama, per-person threads, self-updating notes in SQLite; push-to-talk microphone with local Whisper. No device control, wake word or search over old conversations yet |
 | Ambient / studio monitor page — kitchen Pi | §23 | next: reuses the store, feed and CRT styles |
 | HA side of the avatar feed (state helpers, `alan_avatar` event with TTS envelope) | §33, §34 | to do with the HA install — contract in `interface/README.md` |
 | Phone interface | §17 | configuration only (HA Companion, Siri Shortcuts) — no code |

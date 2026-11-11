@@ -145,6 +145,14 @@ export async function say({ text = '', audio, envelope, rate = 50, radio = false
   return playEnvelope(text, envelope?.length ? envelope : synthEnvelope(text, rate), rate);
 }
 
+/** Stop talking at once — someone is speaking to him. */
+export function hush() {
+  current++;                    // abandons a line still being prepared
+  stop();
+  store.set({ preparing: false });
+  finish();
+}
+
 /** Live level outside speech, e.g. room audio while listening. */
 export function level(value) {
   if (performance.now() >= store.get().speakingUntil) signal.level = Math.min(1, Math.max(0, value));
