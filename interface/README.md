@@ -21,6 +21,12 @@ head".
 - `art/room.jpg` is the room (1920x1080, also from Canva). Where he sits in it,
   and which lights breathe, are constants at the top of `js/avatar.js`. The
   desk hides his legs.
+- The room has three paintings chosen by the clock: day (7–16), sunset
+  (16–19) and the rainy night. They do not follow the real weather. Left alone
+  for a while he picks up a book or a coffee (`read.webp`, `coffee.webp`);
+  after a line that calls for it he laughs or looks sheepish for a moment
+  (`laugh`, `shy`, chosen by words in what he said); Pessoa the cat
+  (`art/cat.webp`) comes and goes on the desk.
 - Idle he blinks and now and then smirks; listening he leans in with raised
   brows; thinking he looks away; an alert alarms him and turns the room red.
   While he speaks the mouth follows the cues the server sends with the audio

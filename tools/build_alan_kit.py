@@ -40,7 +40,7 @@ def cut(path):
 body = cut('seated.png'); body.save(f'{OUT}/body.webp', quality=92, alpha_quality=100, method=6)
 w, h = HEAD[2] - HEAD[0], HEAD[3] - HEAD[1]
 fade = np.ones((h, w)); fade[h - 50:] = np.linspace(1, 0, 50)[:, None]
-frames = {'A': 'seated.png', **{n: f'kit/{n}.png' for n in ['B', 'C', 'D', 'E', 'F', 'think', 'listen', 'alarm', 'smirk']}}
+frames = {'A': 'seated.png', **{n: f'kit/{n}.png' for n in ['B', 'C', 'D', 'E', 'F', 'think', 'listen', 'alarm', 'smirk', 'laugh', 'shy']}}
 for name, path in frames.items():
     p = cut(path).crop(HEAD); a = np.asarray(p).copy()
     a[..., 3] = (a[..., 3] * fade).astype(np.uint8)
@@ -48,3 +48,12 @@ for name, path in frames.items():
 e = Image.open('kit/blink.png').convert('RGBA').crop(EYES)
 mask = Image.new('L', e.size, 0); ImageDraw.Draw(mask).ellipse((14, 12, e.width - 14, e.height - 12), fill=255)
 e.putalpha(mask.filter(ImageFilter.GaussianBlur(9))); e.save(f'{OUT}/blink.webp', quality=92, alpha_quality=100, method=6)
+
+# Whole figures for what he does when nobody is talking to him.
+for name in ('read', 'coffee'):
+    cut(f'kit/{name}.png').save(f'{OUT}/{name}.webp', quality=92, alpha_quality=100, method=6)
+# Pessoa, cropped to the cat.
+cat = cut('kit/cat.png')
+cat.crop(cat.getchannel('A').point(lambda v: 255 if v > 40 else 0).getbbox()).save(f'{OUT}/../cat.webp', quality=92, alpha_quality=100, method=6)
+for name in ('room_day', 'room_dusk'):
+    Image.open(f'kit/{name}.png').convert('RGB').save(f'{OUT}/../{name}.jpg', quality=88)
