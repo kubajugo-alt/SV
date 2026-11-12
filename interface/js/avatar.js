@@ -6,7 +6,7 @@
 // all motion is computed in the vertex shader, so the buffers never change.
 
 import { store, signal, mode } from './store.js';
-import { NODES, LINKS, STRIDE } from './face-mesh.js';
+import { NODES, LINKS, FEATURES, STRIDE } from './face-mesh.js';
 
 const VERT = `
 attribute vec3 aPos;
@@ -15,6 +15,7 @@ attribute vec3 aAnim;     // jaw weight, lid offset, kind (0 face, 1 head and sh
 uniform mat3 uRot;
 uniform vec2 uCentre;
 uniform float uScale, uAspect, uTime, uScatter, uOpen, uBlink, uLevel, uBright, uThink, uPoint;
+uniform vec2 uNudge;      // sub-pixel offset, to draw a line several times for weight
 varying float vGlow;
 
 void main() {
@@ -33,7 +34,7 @@ void main() {
   p = uRot * p;
   float persp = 1.0 / (1.0 - p.z * 0.16);
   vec2 s = p.xy * persp * uScale;
-  gl_Position = vec4(uCentre.x + s.x / uAspect, uCentre.y + s.y, 0.0, 1.0);
+  gl_Position = vec4(uCentre.x + s.x / uAspect + uNudge.x, uCentre.y + s.y + uNudge.y, 0.0, 1.0);
   gl_PointSize = uPoint * persp * (kind < 0.5 ? 1.0 : kind < 1.5 ? 0.8 : 0.7) * (0.7 + aRand.x * 0.6);
 
   float depth = clamp(0.62 + p.z * 0.55, 0.12, 1.25);               // nearer is brighter
@@ -62,9 +63,9 @@ void main() {
 // What each state does to the face. Angles in radians.
 const POSE = {
   idle:      { scatter: 0.13, bright: 0.62, line: 0.22, think: 0, yaw: 0,     pitch: 0 },
-  listening: { scatter: 0.02, bright: 1.00, line: 0.36, think: 0, yaw: 0,     pitch: 0.05 },
-  thinking:  { scatter: 0.05, bright: 0.85, line: 0.34, think: 1, yaw: -0.30, pitch: -0.13 },
-  speaking:  { scatter: 0.01, bright: 1.00, line: 0.36, think: 0, yaw: 0,     pitch: 0 },
+  listening: { scatter: 0.02, bright: 1.00, line: 0.30, think: 0, yaw: 0,     pitch: 0.05 },
+  thinking:  { scatter: 0.05, bright: 0.85, line: 0.28, think: 1, yaw: -0.30, pitch: -0.13 },
+  speaking:  { scatter: 0.01, bright: 1.00, line: 0.30, think: 0, yaw: 0,     pitch: 0 },
   alert:     { scatter: 0.00, bright: 1.15, line: 0.45, think: 0, yaw: 0,     pitch: 0 },
 };
 const CALM = [1.0, 0.80, 0.52];    // warm light, like the lamps in the flat
@@ -87,7 +88,7 @@ export function startAvatar(canvas, isDark) {
   gl.useProgram(prog);
   const u = {};
   for (const name of ['uRot', 'uCentre', 'uScale', 'uAspect', 'uTime', 'uScatter', 'uOpen', 'uBlink', 'uLevel',
-    'uBright', 'uThink', 'uPoint', 'uColour', 'uIsPoint', 'uLine']) u[name] = gl.getUniformLocation(prog, name);
+    'uBright', 'uThink', 'uPoint', 'uColour', 'uIsPoint', 'uLine', 'uNudge']) u[name] = gl.getUniformLocation(prog, name);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, NODES, gl.STATIC_DRAW);
@@ -95,8 +96,12 @@ export function startAvatar(canvas, isDark) {
     gl.enableVertexAttribArray(i);
     gl.vertexAttribPointer(i, 3, gl.FLOAT, false, STRIDE * 4, i * 12);
   }
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+  const mesh = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, LINKS, gl.STATIC_DRAW);
+  const features = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, features);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, FEATURES, gl.STATIC_DRAW);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.ONE, gl.ONE);    // light adds up where nodes and lines overlap
 
@@ -158,14 +163,25 @@ export function startAvatar(canvas, isDark) {
     gl.uniform1f(u.uLevel, signal.level);
     gl.uniform1f(u.uBright, pose.bright * (m === 'alert' ? 0.75 + 0.25 * Math.sin(t * 6.28) : 1));
     gl.uniform1f(u.uThink, pose.think);
-    gl.uniform1f(u.uPoint, canvas.height * 0.0085 * fit);
+    gl.uniform1f(u.uPoint, canvas.height * 0.0062 * fit);
     gl.uniform3f(u.uColour, ...CALM.map((c, i) => c + (ALARM[i] - c) * pose.alert));
 
     gl.clearColor(0.016 + 0.10 * pose.alert, 0.020, 0.027, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(u.uIsPoint, 0);
+    gl.uniform2f(u.uNudge, 0, 0);
     gl.uniform1f(u.uLine, pose.line);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh);
     gl.drawElements(gl.LINES, LINKS.length, gl.UNSIGNED_SHORT, 0);
+    // Outline, eyes, brows, nose and lips: brighter, and drawn three times a
+    // fraction of a pixel apart, since WebGL lines are one pixel wide.
+    gl.uniform1f(u.uLine, Math.min(1, pose.line * 2.2));
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, features);
+    for (const [dx, dy] of [[0, 0], [0.7, 0.4], [-0.4, 0.7]]) {
+      gl.uniform2f(u.uNudge, (dx * 2) / canvas.width, (dy * 2) / canvas.height);
+      gl.drawElements(gl.LINES, FEATURES.length, gl.UNSIGNED_SHORT, 0);
+    }
+    gl.uniform2f(u.uNudge, 0, 0);
     gl.uniform1f(u.uIsPoint, 1);
     gl.drawArrays(gl.POINTS, 0, NODES.length / STRIDE);
     requestAnimationFrame(frame);
