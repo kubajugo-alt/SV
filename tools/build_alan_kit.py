@@ -23,8 +23,19 @@ def cut(path):
         for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             v, u = y + dy, x + dx
             if 0 <= v < H and 0 <= u < W and near[v, u] and not m[v, u]: m[v, u] = True; q.append((v, u))
-    alpha = Image.fromarray((~m * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(1.2))
-    out = s.convert('RGBA'); out.putalpha(alpha); return out
+    # Grey caught between locks of hair, and the grey fringe the painting's soft edges leave:
+    # near the background, anything close to its colour goes too, and edge pixels are unmixed from it.
+    grown = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(31))) > 0
+    dist = np.abs(a - bg).sum(2)
+    m |= grown & (dist < 70) & (np.ptp(a, axis=2) < 26)
+    band = (np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9))) > 0) & ~m
+    alpha = np.where(m, 0.0, 1.0)
+    alpha[band] = np.clip((dist[band] - 40) / 110.0, 0.0, 1.0)
+    al = alpha[..., None]
+    rgb = np.where(al > 0.05, (a - (1 - al) * bg) / np.maximum(al, 0.05), a)
+    out = Image.fromarray(np.dstack([np.clip(rgb, 0, 255), alpha * 255]).astype(np.uint8), 'RGBA')
+    out.putalpha(out.getchannel('A').filter(ImageFilter.GaussianBlur(0.6)))
+    return out
 
 body = cut('seated.png'); body.save(f'{OUT}/body.webp', quality=92, alpha_quality=100, method=6)
 w, h = HEAD[2] - HEAD[0], HEAD[3] - HEAD[1]
