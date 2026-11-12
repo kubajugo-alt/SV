@@ -160,8 +160,8 @@ class InConversation(unittest.TestCase):
     def test_offline_by_default(self):
         model = ScriptedModel({"content": "Nie wiem."})
         self.make(model).reply("kuba", "Jaka pogoda?")
-        self.assertNotIn("check_online", {t["function"]["name"] for t in model.seen[0]["tools"]})
-        self.assertIn("Nie masz dostępu do internetu", model.seen[0]["messages"][0]["content"])
+        self.assertNotIn("check_online", {t["function"]["name"] for t in model.chosen[0]["tools"]})
+        self.assertIn("internet: nie znasz aktualnej pogody", model.spoken[0]["messages"][0]["content"])
 
     def test_lookup_reaches_the_model_and_is_not_logged_as_a_change(self):
         model = ScriptedModel({"tool_calls": [tool_call("check_online", source="air")]}, {"content": "Powietrze jest dobre."})
@@ -169,9 +169,9 @@ class InConversation(unittest.TestCase):
         b.online.fetch = FakeNet({"gios": AIR})
         result = b.respond("kuba", "Jakie jest powietrze?")
         self.assertEqual(result, {"reply": "Powietrze jest dobre.", "actions": []})
-        self.assertIn("Indeks jakości powietrza", model.seen[1]["messages"][-1]["content"])
-        self.assertIn("check_online z dostępem wyłącznie do: weather (pogoda i ostrzeżenia), air (jakość powietrza na zewnątrz).",
-                      model.seen[0]["messages"][0]["content"])
+        told = model.spoken[0]["messages"][0]["content"]
+        self.assertIn("- Indeks jakości powietrza w Tarnobrzegu", told)   # he answers from the looked-up text
+        self.assertIn("dane z zewnątrz: pogoda i ostrzeżenia, jakość powietrza na zewnątrz", told)
 
 
 if __name__ == "__main__":

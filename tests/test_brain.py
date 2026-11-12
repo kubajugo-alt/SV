@@ -48,7 +48,7 @@ class Memory(unittest.TestCase):
         self.talk(make(self.tmp, ScriptedModel()), "kuba", 13)
         model = ScriptedModel({"content": "Do Barcelony."})
         make(self.tmp, model).reply("kuba", "Dokąd lecę?")
-        sent = model.seen[0]["messages"]
+        sent = model.spoken[0]["messages"]
         self.assertEqual(sent[0]["role"], "system")
         self.assertIn("Leci do Barcelony.", sent[0]["content"])
         self.assertEqual(len(sent), 1 + brain.WINDOW_KEEP + 1)
@@ -58,7 +58,7 @@ class Memory(unittest.TestCase):
         b = make(self.tmp, model)
         b.reply("kuba", "sekret Kuby")
         b.reply("hubert", "cześć")
-        self.assertNotIn("sekret Kuby", str(model.seen[1]["messages"]))
+        self.assertNotIn("sekret Kuby", str(model.seen[2:]))   # neither step of Hubert's turn sees it
 
     def test_failed_model_call_stores_nothing(self):
         def broken(*args, **kwargs):
@@ -76,7 +76,7 @@ class Memory(unittest.TestCase):
     def test_inline_system_puts_instructions_in_the_user_message(self):
         model = ScriptedModel({"content": "ok"})
         make(self.tmp, model, inline_system=True).reply("kuba", "halo")
-        sent = model.seen[0]["messages"]
+        sent = model.spoken[0]["messages"]
         self.assertEqual([m["role"] for m in sent], ["user"])
         self.assertIn("Jesteś ALAN", sent[0]["content"])
         self.assertTrue(sent[0]["content"].endswith("halo"))
@@ -98,10 +98,31 @@ class Tools(unittest.TestCase):
     def test_without_home_he_is_told_nothing_is_connected(self):
         model = ScriptedModel({"content": "Jeszcze tego nie potrafię."})
         make(self.tmp, model).reply("kuba", "Włącz światło")
-        offered = {t["function"]["name"] for t in model.seen[0]["tools"]}
+        offered = {t["function"]["name"] for t in model.chosen[0]["tools"]}
         self.assertIn("set_timer", offered)          # his own tools are always there
         self.assertNotIn("set_light", offered)       # the flat's are not
-        self.assertIn("nie są jeszcze podłączone", model.seen[0]["messages"][0]["content"])
+        told = model.spoken[0]["messages"][0]["content"]
+        self.assertIn("mieszkanie nie jest jeszcze podłączone", told)
+        self.assertIn("niczego nie włączyłeś", told)  # nothing ran this turn, and he is told so
+
+    def test_choosing_tools_is_kept_apart_from_his_character(self):
+        model = ScriptedModel({"content": "Cześć."})
+        make(self.tmp, model, home=self.home).reply("kuba", "Cześć")
+        choosing, speaking = model.chosen[0]["messages"][0]["content"], model.spoken[0]["messages"][0]["content"]
+        self.assertIn("BRAK", choosing)
+        self.assertNotIn("HUMOR", choosing)           # the short step carries no personality
+        self.assertIn("HUMOR", speaking)
+        self.assertIsNone(model.spoken[0]["tools"])   # and the speaking step cannot call anything
+
+    def test_what_the_tools_did_is_put_in_front_of_him_when_he_speaks(self):
+        model = ScriptedModel({"tool_calls": [tool_call("set_light", room="salon", on=True),
+                                              tool_call("set_temperature", room="salon", degrees=40)]},
+                              {"content": "Światło włączone. Czterdziestu stopni nie ustawię."})
+        make(self.tmp, model, home=self.home).reply("kuba", "Światło i 40 stopni w salonie")
+        told = model.spoken[0]["messages"][0]["content"]
+        self.assertIn("- Wykonano: światło włączone w: salonie.", told)
+        self.assertIn("- Błąd: temperatura musi być między 5 a 28 stopni. Niczego nie zmieniono.", told)
+        self.assertNotIn("niczego nie włączyłeś", told)
 
     def test_tool_call_is_executed_and_result_returned_to_the_model(self):
         model = ScriptedModel({"content": None, "tool_calls": [tool_call("set_light", room="salon", on=True)]},

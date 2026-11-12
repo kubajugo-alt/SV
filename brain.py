@@ -31,18 +31,13 @@ WINDOW_KEEP = 10  # turns left verbatim after folding
 
 MAX_TOOL_ROUNDS = 3
 
-# He must never claim an action or a reading that did not actually happen.
-OWN = ("Masz własne narzędzia: set_timer (minutnik), set_reminder (przypomnienie lub budzik), show_reminders, cancel_reminder, "
-       "edit_list (wspólne listy, domyślnie zakupy), remember i forget (rzeczy do zapamiętania na prośbę). "
-       "Gdy ktoś prosi o którąś z tych rzeczy, użyj narzędzia, zanim odpowiesz. "
-       "Mów, że coś zrobiłeś, tylko jeśli narzędzie odpowiedziało 'Wykonano'; gdy zwróci błąd, powiedz krótko, czego nie da się zrobić. "
-       "Zawartość list i aktywne przypomnienia podawaj wyłącznie z narzędzi, nigdy z pamięci.")
-NOT_CONNECTED = ("Sterowanie urządzeniami, czujniki, kamery i kalendarz nie są jeszcze podłączone. "
-                 "Nie twierdź, że coś włączyłeś, zmieniłeś lub odczytałeś w mieszkaniu — powiedz krótko, że jeszcze tego nie potrafisz.")
-CONNECTED = ("Masz też narzędzia mieszkania: set_light (światło), set_temperature (ogrzewanie) i get_home_state (stan mieszkania). "
-             "Gdy ktoś prosi o światło lub ogrzewanie albo pyta o stan mieszkania, użyj narzędzia, zanim odpowiesz. "
-             "Temperatury i stan świateł podawaj wyłącznie z get_home_state, nigdy z pamięci. "
-             "Drzwi, zamki, kamery i kalendarz nie są podłączone.")
+DISPATCH_HISTORY = 4  # past turns the tool-choosing step sees, for "and in the bedroom too"
+
+DISPATCH = """Jesteś częścią asystenta domowego ALAN, która wybiera narzędzia. Nie rozmawiasz z domownikiem.
+Przeczytaj jego ostatnią wiadomość i zdecyduj:
+- Jeśli prosi o coś, do czego jest narzędzie, albo pyta o coś, co narzędzie potrafi sprawdzić — wywołaj je z poprawnymi parametrami. Możesz wywołać kilka narzędzi.
+- Jeśli żadne narzędzie nie pasuje (zwykła rozmowa, opinia, wiedza ogólna, prośba o coś, do czego narzędzia nie ma, na przykład drzwi) — odpowiedz jednym słowem: BRAK.
+Nie zgaduj parametrów, których w wiadomości nie ma. Nie wywołuj narzędzia drugi raz, jeśli już zwróciło wynik."""
 
 DAYS = ["poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela"]
 
@@ -167,17 +162,32 @@ class Brain:
             return self.home.call(name, arguments)
         return f"Błąd: nie ma narzędzia {name}."
 
-    def converse(self, person, messages):
-        """Let the model use its tools -> (what it finally says, what it did)."""
-        actions = []
-        messages = list(messages)
+    def frame(self, system, history, text, person):
+        """System text + past turns + the new message, in the shape the runtime needs."""
+        if self.inline_system:
+            # Some runtimes drop the system role for Mistral models. Put the
+            # instructions in front of the newest message, where Mistral's own
+            # template places them.
+            return history + [{"role": "user", "content": f"{system}\n\n── WIADOMOŚĆ OD {person.upper()} ──\n{text}"}]
+        return [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
+
+    def act(self, person, history, text):
+        """Step one of a turn: decide which tools the request needs and run them.
+
+        Done as its own short exchange, apart from ALAN's personality. Given the
+        whole character sheet at once, the model would rather say "done" in
+        character than actually call a tool; asked only "which tool, if any?",
+        it calls them. Returns (tool results, actions for the screen).
+        """
+        results, actions = [], []
+        if not self.tools_work:
+            return results, actions
+        messages = self.frame(self.dispatcher(person), history[-DISPATCH_HISTORY:], text, person)
         for _ in range(MAX_TOOL_ROUNDS):
-            if not self.tools_work:
-                break
             try:
-                message = self.chat(messages, max_tokens=300, temperature=0.5, tools=self.tools)
+                message = self.chat(messages, max_tokens=300, temperature=0.1, tools=self.tools)
             except urllib.error.HTTPError as err:
-                if err.code != 400 or actions:
+                if err.code != 400 or results:
                     raise
                 # e.g. an Ollama model without tool support: carry on as plain conversation
                 print("The model server refused tools; ALAN will only talk.", flush=True)
@@ -185,47 +195,57 @@ class Brain:
                 break
             calls = message.get("tool_calls") or self.written_calls(message.get("content"))
             if not calls:
-                return (message.get("content") or "").strip(), actions
-            said = "" if not message.get("tool_calls") else message.get("content") or ""  # written calls are not speech
-            messages.append({"role": "assistant", "content": said, "tool_calls": calls})
+                break
+            messages.append({"role": "assistant", "content": "", "tool_calls": calls})
             for call in calls:
                 name = call["function"]["name"]
                 result = self.run_tool(person, name, call["function"].get("arguments"))
                 print(f"Tool: {name}({call['function'].get('arguments')}) -> {result}", flush=True)
                 messages.append({"role": "tool", "tool_call_id": call.get("id", ""), "content": result})
+                results.append(result)
                 if result.startswith(("Wykonano", "Błąd")):   # reading something is not a change
                     actions.append({"ok": result.startswith("Wykonano"), "text": result.split(": ", 1)[-1].rstrip(".")})
-        # No tools available, or still calling them after several rounds: just answer.
-        return self.complete(messages, max_tokens=220, temperature=0.5), actions
+        return results, actions
 
-    def system(self, person, notes):
+    def dispatcher(self, person):
+        return "\n".join([DISPATCH, self.moment(person)])
+
+    def moment(self, person):
         now = datetime.datetime.now()
         # Small models get date arithmetic wrong; give them the calendar to read from.
         ahead = ", ".join(f"{DAYS[d.weekday()]} {d:%d.%m}" for d in (now + datetime.timedelta(days=i) for i in range(1, 15)))
-        parts = [
-            self.prompt,
-            "── TERAZ ──",
-            f"Jest {DAYS[now.weekday()]}, {now:%d.%m.%Y}, godzina {now:%H:%M}. Rozmawiasz z: {person.capitalize()}.",
-            f"Najbliższe dni: {ahead}. Daty bierz z tej listy, nie licz ich samodzielnie.",
-            OWN,
-            CONNECTED if self.home else NOT_CONNECTED,
-            self.outside(),
-        ]
+        return (f"Jest {DAYS[now.weekday()]}, {now:%d.%m.%Y}, godzina {now:%H:%M}. Rozmawiasz z: {person.capitalize()}.\n"
+                f"Najbliższe dni: {ahead}. Daty bierz z tej listy, nie licz ich samodzielnie.")
+
+    def system(self, person, notes, results=None):
+        """ALAN's character, what he knows, and — decisive for honesty — what the tools did this turn."""
+        parts = [self.prompt, "── TERAZ ──", self.moment(person), self.abilities()]
         if facts := self.own.facts(person):
             parts += [f"── ZAPAMIĘTANE NA PROŚBĘ ({person.upper()}) ──", "\n".join(f"- {f}" for f in facts)]
         if notes:
             parts += [f"── PAMIĘĆ: CO WIESZ O {person.upper()} Z WCZEŚNIEJSZYCH ROZMÓW ──", notes]
+        parts.append("── CO ZROBIŁY NARZĘDZIA W TEJ CHWILI ──")
+        if results:
+            parts += [f"- {r}" for r in results]
+            parts.append("Odpowiedz na podstawie tych wyników. 'Wykonano' znaczy, że to zrobiłeś; 'Błąd' znaczy, że się nie udało — "
+                         "powiedz krótko dlaczego. Liczby i fakty podawaj dokładnie tak, jak są w wynikach.")
+        else:
+            parts.append("Nic. W odpowiedzi na tę wiadomość niczego nie włączyłeś, nie ustawiłeś, nie zapisałeś ani nie sprawdziłeś. "
+                         "Jeśli rozmówca o to prosił, powiedz wprost, że tego nie zrobiłeś albo nie potrafisz — nie udawaj.")
         return "\n".join(parts)
 
-    def outside(self):
-        if not self.online:
-            return ("Nie masz dostępu do internetu. Nie znasz aktualnej pogody, wiadomości, kursów ani niczego, "
-                    "co wydarzyło się po twoim szkoleniu — powiedz to wprost, zamiast zgadywać.")
-        return ("Masz narzędzie check_online z dostępem wyłącznie do: "
-                + ", ".join(f"{s} ({SOURCES[s]})" for s in self.online.enabled) + ". "
-                "Pogodę, jakość powietrza, kursy, wiadomości i status paczek podawaj tylko z niego, nigdy z pamięci. "
-                "Do Wikipedii sięgaj, gdy pytanie dotyczy faktów, dat lub liczb, których nie jesteś pewien. "
-                "Jeśli narzędzie poda, że dane są starsze albo niedostępne, powiedz to. Poza tym nie masz internetu.")
+    def abilities(self):
+        can = ["minutnik, przypomnienia i budzik, wspólne listy (np. zakupy), zapamiętywanie na prośbę"]
+        cannot = ["drzwi, zamki, kamery, kalendarz"]
+        if self.home:
+            can.append("światło, ogrzewanie i odczyt stanu mieszkania")
+        else:
+            cannot.append("światło, ogrzewanie i czujniki (mieszkanie nie jest jeszcze podłączone)")
+        if self.online:
+            can.append("dane z zewnątrz: " + ", ".join(SOURCES[s] for s in self.online.enabled))
+        else:
+            cannot.append("internet: nie znasz aktualnej pogody, wiadomości ani kursów")
+        return f"Potrafisz: {'; '.join(can)}. Nie potrafisz: {'; '.join(cannot)}."
 
     def reply(self, person, text):
         return self.respond(person, text)["reply"]
@@ -233,16 +253,10 @@ class Brain:
     def respond(self, person, text):
         """-> {"reply": what he says, "actions": [{"ok": bool, "text": what he changed or could not}]}"""
         notes, _ = self.memory.notes(person)
-        system = self.system(person, notes)
         history = [{"role": role, "content": content} for _, role, content, _ in self.memory.recent(person)]
-        if self.inline_system:
-            # Some runtimes drop the system role for Mistral models. Put the
-            # instructions in front of the newest message, where Mistral's own
-            # template places them.
-            messages = history + [{"role": "user", "content": f"{system}\n\n── WIADOMOŚĆ OD {person.upper()} ──\n{text}"}]
-        else:
-            messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
-        said, actions = self.converse(person, messages)
+        results, actions = self.act(person, history, text)
+        said = self.complete(self.frame(self.system(person, notes, results), history, text, person),
+                             max_tokens=220, temperature=0.6)
         answer = self.clean(said)
         if not answer:
             raise RuntimeError("the model returned an empty answer")
