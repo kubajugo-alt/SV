@@ -3,26 +3,29 @@
 The page Chromium shows in kiosk mode on TV Input 2 (spec §02, §33): ALAN in
 his living room, what he says, and the state of the flat.
 
-ALAN is the painted character from the Alan Sanchez games (repository
-`kubajugo-alt/alansanchez`, frame `alan_front` and its face kit), sitting in an
-armchair at the desk of a 1960s living room: teak panelling, a sunburst clock,
-a valve radio, rain on the window. This departs from §33, which specified an
-abstract CRT entity "not a head".
+ALAN is the character from the Alan Sanchez games (repository
+`kubajugo-alt/alansanchez`), painted seated in his armchair, at the desk of a
+1960s living room: teak panelling, a sunburst clock, a valve radio, rain on the
+window. This departs from §33, which specified an abstract CRT entity "not a
+head".
 
-- `art/alan/body.webp` is the one painting of him. His face changes by laying
-  small patches over it, as in the games: mouth shapes `A`–`F` (Rhubarb Lip
-  Sync's basic shapes), `eyes_closed` for blinks, and eight expressions
-  (`emo_*`). He is drawn at 1.42x and the desk hides him from the belt down,
-  because the painting is of him standing; a painting of him seated would
-  replace this trick.
-- `art/room.jpg` is the room (1920x1080, generated in Canva for this page).
-  Where he sits in it, and which lights breathe, are constants at the top of
-  `js/avatar.js`.
+- `art/alan/body.webp` is the painting of him (1536x2048, shown at under half
+  size on a 1080p screen, so it stays sharp on a large 4K one). His face
+  changes by replacing the head with another painting of it: mouth shapes
+  `A`–`F` (Rhubarb Lip Sync's basic shapes), the expressions `think`, `listen`,
+  `alarm` and `smirk`, and `blink` laid over the eyes.
+- The paintings were generated in Canva from the games' character sheet, each
+  face frame as an edit of the seated painting; `tools/build_alan_kit.py` cuts
+  the exports into the kit. The Canva exports themselves are not in the
+  repository.
+- `art/room.jpg` is the room (1920x1080, also from Canva). Where he sits in it,
+  and which lights breathe, are constants at the top of `js/avatar.js`. The
+  desk hides his legs.
 - Idle he blinks and now and then smirks; listening he leans in with raised
-  brows; thinking he frowns and tilts his head; an alert frightens him and
-  turns the room red. While he speaks the mouth follows Rhubarb's cues if the
-  server sends them (header `X-Mouth-Cues` on `/tts`), otherwise the loudness
-  of his voice. The radio dial glows with his voice.
+  brows; thinking he looks away; an alert alarms him and turns the room red.
+  While he speaks the mouth follows Rhubarb's cues if the server sends them
+  (header `X-Mouth-Cues` on `/tts`), otherwise the loudness of his voice. The
+  radio dial glows with his voice.
 - Rhubarb is optional. `install.sh` downloads it to `vendor/rhubarb/`
   (`--rhubarb PATH` or `ALAN_RHUBARB` for another place); it runs with the
   phonetic recogniser, which does not depend on the language. The macOS build

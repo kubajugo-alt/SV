@@ -1,28 +1,29 @@
-// ALAN on screen: the painted character from the Alan Sanchez games, sitting
-// at the desk in his 1960s living room. One 2D canvas, redrawn each frame.
+// ALAN on screen: the character from the Alan Sanchez games, painted seated in
+// his armchair, at the desk of his 1960s living room. One 2D canvas.
 //
-// The body is one painting (art/alan/body.webp). His face is changed by laying
-// small patches over it, exactly as the games do:
-//   mouth shapes A-F (Rhubarb Lip Sync's basic shapes) while he speaks,
-//   closed eyelids for a blink,
-//   eight expressions (the whole face, worn while he is silent).
+// The body is one painting (art/alan/body.webp, 1536x2048, so it stays sharp on
+// a large 4K screen). His face is changed by replacing the head with another
+// painting of it (tools/build_alan_kit.py cuts them):
+//   A-F      mouth shapes, Rhubarb Lip Sync's basic set, while he speaks
+//   think, listen, alarm, smirk   expressions worn while he is silent
+//   blink    closed eyelids, laid over whichever head is showing
 // The mouth follows Rhubarb cues when the server supplies them (signal.mouth),
 // otherwise the loudness of his voice (signal.level).
 
 import { store, signal, mode } from './store.js';
 
 const ROOM = { w: 1920, h: 1080 };
-// Where he sits in the room painting: centred on the armchair, cut off by the desk's top edge.
-const SEAT = { x: 944, desk: 724, scale: 1.42 };
-const BODY = { w: 261, h: 749, belt: 318, face: 122 };  // sprite px; `belt` meets the desk, `face` is the head's centre line
-const MOUTH_BOX = [92, 51, 61, 67];
-const FACE_BOX = [92, 38, 61, 80];
+// Where he sits in the room painting: his lap meets the desk's top edge, which hides the rest.
+const SEAT = { x: 944, desk: 728, scale: 0.45 };
+const BODY = { w: 1536, h: 2048, lap: 1150, centre: 768 };   // painting px
+const HEAD_BOX = [540, 20, 460, 450];   // the last 50 px of a head patch fade into the body
+const EYES_BOX = [640, 160, 260, 102];
 const MOUTHS = ['A', 'B', 'C', 'D', 'E', 'F'];
-const FACES = ['anger', 'concern', 'embarrassed', 'fear', 'joy', 'mischievous', 'sadness', 'surprise'];
+const FACES = ['think', 'listen', 'alarm', 'smirk'];
 // Rhubarb's extended shapes and its rest shape, mapped onto the six that are painted.
 const SHAPE = { A: 'A', B: 'B', C: 'C', D: 'D', E: 'E', F: 'F', G: 'B', H: 'C', X: 'A' };
 // The face each state wears; idle is neutral, with a passing smirk now and then.
-const WEAR = { alert: 'fear', thinking: 'concern', listening: 'surprise' };
+const WEAR = { alert: 'alarm', thinking: 'think', listening: 'listen' };
 // Lights in the painting that breathe a little: [x, y, radius, strength].
 const LAMPS = [[1178, 190, 420, 0.10], [1700, 590, 330, 0.12], [150, 728, 150, 0.10]];
 
@@ -45,12 +46,12 @@ export async function startAvatar(canvas, isDark) {
   const [room, body] = await Promise.all([
     load('room.jpg'),
     load('alan/body.webp'),
-    keep('blink', 'alan/eyes_closed.webp'),
+    keep('blink', 'alan/blink.webp'),
     ...MOUTHS.map((m) => keep(m, `alan/${m}.webp`)),
-    ...FACES.map((face) => keep(face, `alan/emo_${face}.webp`)),
+    ...FACES.map((face) => keep(face, `alan/${face}.webp`)),
   ]);
 
-  // He is composed off screen at sprite size, then placed in the room.
+  // He is composed off screen at the painting's size, and only when his face changes.
   const figure = document.createElement('canvas');
   figure.width = BODY.w;
   figure.height = BODY.h;
@@ -68,32 +69,36 @@ export async function startAvatar(canvas, isDark) {
   let smirkAt = performance.now() + 18000;
   let mouth = 'A';
   let mouthSince = 0;
-  const pose = { lean: 0, tilt: 0, nod: 0 };
+  const pose = { lean: 0, nod: 0 };
   let running = false;
 
+  let shown = '';
+
   function paintFigure(m, now) {
-    let wear = WEAR[m];
+    let head = WEAR[m] || 'A';
     if (m === 'idle' && now > smirkAt) {
-      wear = 'mischievous';
+      head = 'smirk';
       if (now > smirkAt + 2600) smirkAt = now + 20000 + Math.random() * 30000;
     }
+    if (m === 'speaking') {
+      const want = SHAPE[signal.mouth] || mouthFor(signal.level);
+      if (want !== mouth && now - mouthSince > 55) { mouth = want; mouthSince = now; } // never flicker faster than speech
+      head = mouth;
+    }
     if (now > blinkAt + 140) blinkAt = now + 2200 + Math.random() * 3800;
-    const blinking = now > blinkAt;
+    const blinking = now > blinkAt && head !== 'alarm' && head !== 'think';
 
-    let want = 'A';
-    if (m === 'speaking') want = SHAPE[signal.mouth] || mouthFor(signal.level);
-    if (want !== mouth && now - mouthSince > 55) { mouth = want; mouthSince = now; } // never flicker faster than speech
-
+    const key = head + (blinking ? '+blink' : '');
+    if (key === shown) return;
+    shown = key;
     f.clearRect(0, 0, BODY.w, BODY.h);
     f.drawImage(body, 0, 0);
-    if (m === 'speaking') {
-      f.drawImage(art[mouth], ...MOUTH_BOX);
-      if (blinking) f.drawImage(art.blink, ...MOUTH_BOX);
-    } else if (wear) {
-      f.drawImage(art[wear], ...FACE_BOX);
-    } else if (blinking) {
-      f.drawImage(art.blink, ...MOUTH_BOX);
+    if (head !== 'A') {
+      const [x, y, w, h] = HEAD_BOX;
+      f.clearRect(x, y, w, h - 50);           // below this the patch fades into the body's own collar
+      f.drawImage(art[head], x, y);
     }
+    if (blinking) f.drawImage(art.blink, EYES_BOX[0], EYES_BOX[1]);
   }
 
   function frame(now) {
@@ -127,21 +132,20 @@ export async function startAvatar(canvas, isDark) {
     });
     g.globalCompositeOperation = 'source-over';
 
-    // Him: leans in to listen, tilts his head to think, nods along with his own voice.
+    // Him: leans in to listen, nods along with his own voice, breathes.
     paintFigure(m, now);
     pose.lean += ((m === 'listening' ? 1 : m === 'alert' ? 0.6 : 0) - pose.lean) * 0.06;
-    pose.tilt += ((m === 'thinking' ? 1 : 0) - pose.tilt) * 0.05;
     pose.nod += ((m === 'speaking' ? signal.level : 0) - pose.nod) * 0.2;
-    const breath = Math.sin(t * 1.25) * 0.006;
+    const breath = Math.sin(t * 1.25) * 0.004;
     const scale = SEAT.scale * (1 + pose.lean * 0.035);
     g.save();
     g.beginPath();
-    g.rect(0, 0, ROOM.w, SEAT.desk);          // the desk hides him from the belt down
+    g.rect(0, 0, ROOM.w, SEAT.desk);          // the desk hides his legs
     g.clip();
-    g.translate(SEAT.x, SEAT.desk + 6);
-    g.rotate(Math.sin(t * 0.4) * 0.004 + pose.tilt * 0.022);
+    g.translate(SEAT.x, SEAT.desk);
+    g.rotate(Math.sin(t * 0.4) * 0.003);
     g.scale(scale, scale * (1 + breath));
-    g.drawImage(figure, -BODY.face, -BODY.belt + pose.nod * 2.5);
+    g.drawImage(figure, -BODY.centre, -BODY.lap + pose.nod * 6);
     g.restore();
 
     if (m === 'alert') {                       // the room goes red with the alarm, 1 Hz like the page
