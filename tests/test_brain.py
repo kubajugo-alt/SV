@@ -297,8 +297,8 @@ class OwnTools(unittest.TestCase):
             return {"content": "Cześć."}
 
         b = make(self.tmp, no_tools)
-        self.assertEqual(b.reply("kuba", "cześć"), "Cześć.")
-        self.assertEqual(b.reply("kuba", "cześć"), "Cześć.")
+        self.assertEqual(b.reply("kuba", "ustaw minutnik"), "Cześć.")
+        self.assertEqual(b.reply("kuba", "ustaw minutnik"), "Cześć.")
         self.assertEqual([bool(c) for c in calls], [True, False, False])   # asked once, then stopped offering
 
 

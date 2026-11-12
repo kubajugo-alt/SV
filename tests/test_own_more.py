@@ -48,13 +48,12 @@ class More(unittest.TestCase):
     def test_reading_time(self):
         self.assertIn("280 słów; czytany spokojnie na głos potrwa około 2 min", self.own.reading_time("kuba", "słowo " * 280))
 
-    def test_on_a_laptop_he_knows_he_has_no_flat_and_gets_to_know_people(self):
+    def test_on_a_laptop_he_knows_he_has_no_flat(self):
         text = self.b.system("hubert", "")
         self.assertIn("mieszkasz w laptopie", text)
-        self.assertIn("Dopiero poznajesz Hubert", text)
-        for _ in range(brain.GETTING_TO_KNOW):
-            self.b.memory.add("hubert", "user", "hej")
-        self.assertNotIn("Dopiero poznajesz", self.b.system("hubert", ""))
+        self.assertNotIn("── DRZWI", text)                # the flat's rules are left out
+        self.assertNotIn("POZNAWANIE", text)              # questions about the person belong to when he speaks first
+        self.assertIn("Najpierw odpowiadasz wprost", text)
 
     def test_he_can_speak_first_and_it_is_not_stored_as_the_person_speaking(self):
         model = ScriptedModel({"content": "Cisza jak w księgarni w poniedziałek. Żyjesz tam?"})

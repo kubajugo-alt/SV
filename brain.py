@@ -43,7 +43,7 @@ DISPATCH_HISTORY = 0
 # answered in one pass of the model instead of two; a claim of having done something still sends it
 # back through the tool step (see respond).
 TOOL_HINTS = re.compile(
-    r"minutnik|stoper|odlicz|przypom|budzik|obudz|\blist|zakup|dopisz|skresl|zapamiet|zapomnij|zapisz|zanotuj|notat|pomysl na|"
+    r"minutnik|stoper|odlicz|przypom|budzik|obudz|\blist|lisci|zakup|dopisz|skresl|zapamiet|zapomnij|zapisz|zanotuj|notat|pomysl na|"
     r"pogod|deszcz|\bpada|temperatur|stopni|powietrz|smog|kurs|euro|dolar|frank|funt|wiadomosc|naglowk|paczk|przesylk|"
     r"kalendarz|spotkani|plan dnia|co dzis|co jutro|co mam|co mnie czeka|odpraw|jestem w|jestesmy w|przylecial|dolecial|wyladowal|"
     r"ile potrwa|czas czytania|mowilem|mowiles|mowilismy|rozmawialismy|ustalilismy|swiatl|lamp|ogrzewan|grzej|wlacz|wylacz|ustaw|"
@@ -54,7 +54,6 @@ PAST_HINTS = re.compile(
     r"matk|\bojc|ojciec|dziad|romans|sineir|lacerd|carmen|baute|lorenzo")
 FACT_HINTS = re.compile(r"\bkto\b|co to|czym jest|kim byl|kim jest|kiedy|gdzie|\bile\b|dlaczego|jak dziala|w ktorym|stolic|histori|\?")
 FLAT_ONLY = ("── MIESZKANIE", "── JAKOŚĆ POWIETRZA", "── TRYB PRACY", "── TRYB GOŚCIA", "── DRZWI", "── BEZPIECZEŃSTWO")
-GETTING_TO_KNOW = 25      # for this many of a person's messages he still asks them about themselves
 
 # Words that claim an action. If no tool did anything this turn and he still
 # uses one (not negated), the reply is rejected: he must not say "the door is
@@ -86,6 +85,7 @@ NUDGES = {
                "wyników narzędzi: tylko to, co dziś ważne.",
     "idle": "Od dłuższej chwili panuje cisza. Zagadnij {person} sam z siebie jednym, najwyżej dwoma krótkimi zdaniami: zaczepka, pytanie "
             "albo uwaga nawiązująca do pory dnia, do tego, co o nim wiesz, albo do waszych wcześniejszych rozmów. "
+            "Jeśli dopiero go poznajesz, możesz zapytać o coś, czego o nim jeszcze nie wiesz. "
             "Nie pytaj, czy możesz w czymś pomóc, i nie powtarzaj tego, czym zagadnąłeś ostatnio.",
     "evening": "Jest wieczór. Zapytaj {person} jednym zdaniem, jak minął dzień, albo skomentuj go po swojemu.",
 }
@@ -383,11 +383,6 @@ class Brain:
                       "Na razie mieszkasz w laptopie, nie w mieszkaniu: nie masz czujników, kamer ani urządzeń. Niczego nie mierzysz "
                       "i niczym nie sterujesz, i nie udajesz, że jest inaczej. Jesteś towarzyszem przy pracy i w podróży: rozmowa, "
                       "pamięć, notatki, przypomnienia, plan dnia, sprawdzanie faktów."]
-        if self.memory.count(person) < GETTING_TO_KNOW:
-            parts += ["── POZNAWANIE ──",
-                      f"Dopiero poznajesz {person.capitalize()}. Gdy rozmowa na to pozwala, dorzuć na końcu jedno krótkie pytanie o niego "
-                      "(praca, rytm dnia, jedzenie, co lubi, co go teraz zajmuje), o coś, czego jeszcze nie wiesz. Jedno pytanie, "
-                      "nie w każdej wypowiedzi, nigdy przy krótkich poleceniach. Przy pierwszej rozmowie przedstaw się po swojemu."]
         parts += ["── TERAZ ──", self.moment(person), self.abilities()]
         if facts := self.own.facts(person):
             parts += [f"── ZAPAMIĘTANE NA PROŚBĘ ({person.upper()}) ──", "\n".join(f"- {f}" for f in facts)]
