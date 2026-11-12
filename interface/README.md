@@ -100,6 +100,17 @@ chromium --kiosk --autoplay-policy=no-user-gesture-required http://localhost:888
 `serve.py` serves the page and a local text-to-speech endpoint, `/tts?text=…`.
 Everything runs on the machine; no audio or text leaves it.
 
+**Fast voice from the cloud (optional).** Chatterbox is natural but slow on a
+laptop. `--engine elevenlabs` speaks with the games' own ElevenLabs voice
+("Roger", model `eleven_v4` as in the games; `--eleven-model eleven_flash_v2_5`
+is the fastest) and is the one part of ALAN that is not local: the text of each
+line he speaks is sent to ElevenLabs, nothing else. Put the key in
+`data/elevenlabs.key` (not in the repository) or `ALAN_ELEVENLABS_KEY`;
+`scripts/start.sh` then chooses this engine by itself, and
+`ALAN_ENGINE=chatterbox scripts/start.sh` keeps everything local. If the
+service cannot be reached, the local voice is loaded and speaks instead
+(`--no-local-voice` to stay silent). Not yet run against the real service.
+
 The default engine is [Chatterbox Multilingual](https://github.com/resemble-ai/chatterbox)
 speaking Polish in ALAN's voice from the games: the timbre is taken from
 `voices/alan.wav`, 30 s of his recorded lines from `kubajugo-alt/alansanchez`

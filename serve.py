@@ -15,6 +15,8 @@
 
 Engines (both run entirely on this machine):
   chatterbox   default. Natural voice, heavier. `pip install chatterbox-tts`
+  elevenlabs   the games' voice from the cloud: fast and natural, but the text of each spoken
+               line leaves the machine. Key in data/elevenlabs.key or ALAN_ELEVENLABS_KEY
   piper        light and fast, more robotic. `pip install piper-tts` plus a voice file
 
 If the chosen engine cannot be loaded the page still works; /tts answers 503
@@ -37,6 +39,8 @@ import threading
 import time
 import wave
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+import urllib.error
+import urllib.request
 from urllib.parse import parse_qs, urlparse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -201,6 +205,51 @@ class Piper:
         return pcm_to_wav(pcm, round(chunks[0].sample_rate / self.factor))
 
 
+class ElevenLabs:
+    """ALAN's voice from ElevenLabs: the voice the games were recorded with, fast and natural.
+
+    The one part of him that is not local. What leaves the machine is the text of each line he
+    speaks, nothing else: not what was said to him, not his memory. If the service cannot be
+    reached, the local engine in `fallback` (loaded on first need) speaks instead.
+    """
+
+    ROGER = "CwhRBWXzGAHq8TQ4Fs17"   # "Roger", Alan's voice in the games (scripts/cast.json there)
+    RATE = 24000
+
+    def __init__(self, key, voice, model, language, fallback=None):
+        if not key:
+            raise ValueError("no ElevenLabs key: put it in the file elevenlabs.key in the data folder, or in ALAN_ELEVENLABS_KEY")
+        self.key, self.voice, self.model, self.language = key.strip(), voice or self.ROGER, model, language
+        self.fallback, self.local = fallback, None
+        self.name = f"elevenlabs ({self.model}, voice {self.voice})"
+
+    def fetch(self, text, fmt):
+        body = {"text": text, "model_id": self.model}
+        if "v2_5" in self.model:              # only these models take a language hint
+            body["language_code"] = self.language
+        request = urllib.request.Request(
+            f"https://api.elevenlabs.io/v1/text-to-speech/{self.voice}?output_format={fmt}",
+            data=json.dumps(body).encode(), headers={"xi-api-key": self.key, "Content-Type": "application/json"})
+        with urllib.request.urlopen(request, timeout=30) as r:
+            return r.read()
+
+    def wav(self, text: str) -> bytes:
+        text = re.sub(r"\bALAN\b", "Alan", text)
+        try:
+            try:
+                return pcm_to_wav(self.fetch(text, f"pcm_{self.RATE}"), self.RATE)   # PCM, so the mouth can be read from it
+            except urllib.error.HTTPError as err:
+                if err.code not in (400, 403, 422):
+                    raise
+                return self.fetch(text, "mp3_44100_128")                            # a plan without PCM output
+        except Exception as err:
+            if not self.fallback:
+                raise
+            print(f"ElevenLabs did not answer ({err!r}); speaking with the local voice.", flush=True)
+            self.local = self.local or self.fallback()
+            return self.local.wav(text)
+
+
 class Whisper:
     """Speech recognition with faster-whisper (`pip install faster-whisper`)."""
 
@@ -310,6 +359,8 @@ def mouth_cues(audio: bytes) -> str:
     word of ALAN's own line and the word's letters give the shapes. With neither,
     the page moves the mouth by loudness.
     """
+    if not audio.startswith(b"RIFF"):       # compressed audio from a cloud voice: the page goes by loudness
+        return ""
     if lipsync == "words" and ears is not None and hasattr(ears, "words"):
         try:
             cues = cues_from_words(ears.words(audio))
@@ -380,7 +431,7 @@ class Handler(SimpleHTTPRequestHandler):
             print(f"TTS failed: {err!r}", file=sys.stderr)
             return self.send_error(500, "Synthesis failed")
         self.send_response(200)
-        self.send_header("Content-Type", "audio/wav")
+        self.send_header("Content-Type", "audio/wav" if audio.startswith(b"RIFF") else "audio/mpeg")
         self.send_header("Content-Length", str(len(audio)))
         if cues:
             self.send_header("X-Mouth-Cues", cues)
@@ -460,7 +511,11 @@ class Handler(SimpleHTTPRequestHandler):
 def main():
     global engine, brain, ears, rhubarb, lipsync
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--engine", choices=["chatterbox", "piper", "none"], default=os.environ.get("ALAN_ENGINE", "chatterbox"))
+    ap.add_argument("--engine", choices=["chatterbox", "elevenlabs", "piper", "none"], default=os.environ.get("ALAN_ENGINE", "chatterbox"))
+    ap.add_argument("--eleven-model", default=os.environ.get("ALAN_ELEVEN_MODEL", "eleven_v4"),
+                    help="elevenlabs: the model (default %(default)s, as in the games; eleven_flash_v2_5 is the fastest)")
+    ap.add_argument("--no-local-voice", action="store_true",
+                    help="elevenlabs: stay silent when the service cannot be reached instead of loading the local voice")
     ap.add_argument("--voice", default=os.environ.get("ALAN_VOICE"),
                     help="chatterbox: reference recording to take the timbre from (default: voices/alan.wav, his voice "
                          "from the games; 'builtin' for the model's own voice); piper: the .onnx voice (required)")
@@ -506,6 +561,17 @@ def main():
             elif not args.voice and os.path.isfile(own_voice):
                 args.voice = own_voice
             engine = Chatterbox(args.language, args.voice, args.device, args.exaggeration, args.cfg_weight)
+        elif args.engine == "elevenlabs":
+            key = os.environ.get("ALAN_ELEVENLABS_KEY", "")
+            try:
+                with open(os.path.join(args.data, "elevenlabs.key"), encoding="utf-8") as f:
+                    key = key or f.read()
+            except OSError:
+                pass
+            own_voice = os.path.join(HERE, "voices", "alan.wav")
+            local = None if args.no_local_voice else (
+                lambda: Chatterbox(args.language, own_voice if os.path.isfile(own_voice) else None, args.device, args.exaggeration, args.cfg_weight))
+            engine = ElevenLabs(key, args.voice, args.eleven_model, args.language, local)
         elif args.engine == "piper":
             engine = Piper(args.voice, args.pitch)
     except Exception as err:

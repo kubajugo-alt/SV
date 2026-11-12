@@ -129,6 +129,41 @@ class Server(unittest.TestCase):
         with urllib.request.urlopen(self.url + "/tts?text=tak", timeout=10) as r:
             self.assertEqual(json.loads(r.headers["X-Mouth-Cues"]), [[0.0, "X"], [0.0, "B"], [0.07, "D"], [0.22, "B"], [0.3, "X"]])
 
+    def test_elevenlabs_voice_and_its_local_fallback(self):
+        calls = []
+
+        class Answer:
+            def __init__(self, data): self.data = data
+            def read(self): return self.data
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+
+        def cloud(request, timeout=0):
+            calls.append((request.full_url, json.loads(request.data), dict(request.header_items())))
+            if "pcm" in request.full_url and len(calls) == 3:
+                raise serve.urllib.error.HTTPError(request.full_url, 403, "no pcm on this plan", {}, None)
+            if len(calls) >= 5:
+                raise OSError("offline")
+            return Answer(b"ID3mp3" if "mp3" in request.full_url else b"\x00\x00" * 2400)
+
+        real, serve.urllib.request.urlopen = serve.urllib.request.urlopen, cloud
+        self.addCleanup(setattr, serve.urllib.request, "urlopen", real)
+        with self.assertRaises(ValueError):
+            serve.ElevenLabs("", None, "eleven_v4", "pl")
+        voice = serve.ElevenLabs(" key ", None, "eleven_flash_v2_5", "pl", fallback=FakeVoice)
+        self.assertEqual(voice.wav("Cześć, tu ALAN.")[:4], b"RIFF")
+        url, body, headers = calls[0]
+        self.assertIn(serve.ElevenLabs.ROGER + "?output_format=pcm_24000", url)
+        self.assertEqual(body, {"text": "Cześć, tu Alan.", "model_id": "eleven_flash_v2_5", "language_code": "pl"})
+        self.assertEqual(headers["Xi-api-key"], "key")
+        voice.model = "eleven_v4"
+        voice.wav("raz")
+        self.assertNotIn("language_code", calls[1][1])
+        self.assertEqual(voice.wav("bez pcm"), b"ID3mp3")                 # calls 3 and 4: PCM refused, MP3 taken
+        self.assertEqual(serve.mouth_cues(b"ID3mp3"), "")
+        self.assertEqual(voice.wav("bez sieci")[:4], b"RIFF")             # the local voice steps in
+        self.assertIsInstance(voice.local, FakeVoice)
+
     def test_stt(self):
         serve.ears = FakeEars()
         status, body = self.request("/stt", wav_bytes())

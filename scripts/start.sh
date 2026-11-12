@@ -19,4 +19,10 @@ if [ -z "${ALAN_LLM_MODEL:-}" ] && command -v ollama >/dev/null && ollama list 2
   ollama list | grep -q "^alan-nemo" && export ALAN_LLM_MODEL=alan-nemo
 fi
 
+# With an ElevenLabs key on this machine he speaks with the games' voice from the cloud
+# (ALAN_ENGINE=chatterbox keeps everything local).
+if [ -z "${ALAN_ENGINE:-}" ] && [ -s "$REPO/data/elevenlabs.key" ]; then
+  export ALAN_ENGINE=elevenlabs
+fi
+
 exec "$REPO/.venv/bin/python" serve.py "$@"
