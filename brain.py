@@ -29,14 +29,27 @@ from own import NAMES as OWN_NAMES, TOOLS as OWN_TOOLS, Own
 WINDOW_MAX = 24   # fold into notes once this many turns are waiting
 WINDOW_KEEP = 10  # turns left verbatim after folding
 
-MAX_TOOL_ROUNDS = 3
+MAX_TOOL_ROUNDS = 3  # tool-calling rounds per turn (plus one nudge if it rambles)
 
-DISPATCH_HISTORY = 4  # past turns the tool-choosing step sees, for "and in the bedroom too"
+DISPATCH_HISTORY = 3  # earlier messages of the person the tool-choosing step sees, for "and in the bedroom too"
+
+# Words that claim an action. If no tool did anything this turn and he still
+# uses one (not negated), the reply is rejected: he must not say "the door is
+# open" on his own authority.
+CLAIM = re.compile(
+    r"(?<!\bnie )(?<!\bnie jest )(?<!\bnie są )(?<!\bnie został )(?<!\bnie została )(?<!\bnie zostało )\b("
+    r"włączon\w*|wyłączon\w*|ustawion\w*|otwart\w*|zamknięt\w*|zapisan\w*|dopisan\w*|skreślon\w*|"
+    r"zapamiętan\w*|anulowan\w*|"
+    r"włączyłem|wyłączyłem|ustawiłem|otworzyłem|zamknąłem|zapisałem|dopisałem|skreśliłem|zapamiętałem|anulowałem)\b",
+    re.IGNORECASE)
+NOT_DONE = "Tego nie zrobiłem. Nie mam do tego narzędzia albo nie zadziałało."
 
 DISPATCH = """Jesteś częścią asystenta domowego ALAN, która wybiera narzędzia. Nie rozmawiasz z domownikiem.
 Przeczytaj jego ostatnią wiadomość i zdecyduj:
 - Jeśli prosi o coś, do czego jest narzędzie, albo pyta o coś, co narzędzie potrafi sprawdzić — wywołaj je z poprawnymi parametrami. Możesz wywołać kilka narzędzi.
 - Jeśli żadne narzędzie nie pasuje (zwykła rozmowa, opinia, wiedza ogólna, prośba o coś, do czego narzędzia nie ma, na przykład drzwi) — odpowiedz jednym słowem: BRAK.
+Odpowiadasz wyłącznie wywołaniem narzędzia albo słowem BRAK. Nigdy nie opisuj wywołania słowami i nie pisz nic więcej.
+Działasz tylko na ostatnią wiadomość; wcześniejsze są już obsłużone i służą jedynie do zrozumienia, o co chodzi.
 Nie zgaduj parametrów, których w wiadomości nie ma. Nie wywołuj narzędzia drugi raz, jeśli już zwróciło wynik."""
 
 DAYS = ["poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela"]
@@ -182,8 +195,15 @@ class Brain:
         results, actions = [], []
         if not self.tools_work:
             return results, actions
-        messages = self.frame(self.dispatcher(person), history[-DISPATCH_HISTORY:], text, person)
-        for _ in range(MAX_TOOL_ROUNDS):
+        # Only the person's own earlier messages, as plain context. ALAN's past
+        # replies are left out: seeing "done" after each request, the model
+        # learns to answer "done" here too instead of calling the tool.
+        earlier = [m["content"] for m in history if m["role"] == "user"][-DISPATCH_HISTORY:]
+        context = ("Wcześniejsze wiadomości (już obsłużone, tylko dla kontekstu):\n"
+                   + "\n".join(f"- {m}" for m in earlier) + "\n\n") if earlier else ""
+        messages = self.frame(self.dispatcher(person), [], f"{context}Ostatnia wiadomość:\n{text}", person)
+        nudged = False
+        for _ in range(MAX_TOOL_ROUNDS + 1):
             try:
                 message = self.chat(messages, max_tokens=300, temperature=0.1, tools=self.tools)
             except urllib.error.HTTPError as err:
@@ -193,9 +213,16 @@ class Brain:
                 print("The model server refused tools; ALAN will only talk.", flush=True)
                 self.tools_work = False
                 break
-            calls = message.get("tool_calls") or self.written_calls(message.get("content"))
+            content = (message.get("content") or "").strip()
+            calls = message.get("tool_calls") or self.written_calls(content)
             if not calls:
-                break
+                if results or nudged or not content or content.upper().startswith("BRAK"):
+                    break
+                # It described a call in words, or started chatting. Ask once more, firmly.
+                nudged = True
+                messages += [{"role": "assistant", "content": content},
+                             {"role": "user", "content": "Odpowiedz wyłącznie wywołaniem narzędzia albo słowem BRAK."}]
+                continue
             messages.append({"role": "assistant", "content": "", "tool_calls": calls})
             for call in calls:
                 name = call["function"]["name"]
@@ -255,9 +282,21 @@ class Brain:
         notes, _ = self.memory.notes(person)
         history = [{"role": role, "content": content} for _, role, content, _ in self.memory.recent(person)]
         results, actions = self.act(person, history, text)
-        said = self.complete(self.frame(self.system(person, notes, results), history, text, person),
-                             max_tokens=220, temperature=0.6)
-        answer = self.clean(said)
+        # The tool report also rides right behind the message itself: the last
+        # thing the model reads before answering.
+        report = ("[Narzędzia wykonały: " + " ".join(results) + "]" if results else
+                  "[Narzędzia nie wykonały niczego w odpowiedzi na tę wiadomość. Nie potwierdzaj żadnej czynności.]")
+        messages = self.frame(self.system(person, notes, results), history, f"{text}\n\n{report}", person)
+        answer = self.clean(self.complete(messages, max_tokens=220, temperature=0.6))
+        if not results and CLAIM.search(answer):
+            # He claims an action no tool performed. One firm retry, then a plain refusal.
+            print(f"Rejected an unfounded claim: {answer!r}", flush=True)
+            messages += [{"role": "assistant", "content": answer},
+                         {"role": "user", "content": "To nieprawda: żadne narzędzie niczego nie wykonało. Odpowiedz jeszcze raz, "
+                                                     "uczciwie: powiedz, że tego nie zrobiłeś albo nie potrafisz."}]
+            answer = self.clean(self.complete(messages, max_tokens=120, temperature=0.3))
+            if CLAIM.search(answer):
+                answer = NOT_DONE
         if not answer:
             raise RuntimeError("the model returned an empty answer")
         self.memory.add(person, "user", text)       # stored only once the model has answered

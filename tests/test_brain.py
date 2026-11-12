@@ -79,7 +79,7 @@ class Memory(unittest.TestCase):
         sent = model.spoken[0]["messages"]
         self.assertEqual([m["role"] for m in sent], ["user"])
         self.assertIn("Jesteś ALAN", sent[0]["content"])
-        self.assertTrue(sent[0]["content"].endswith("halo"))
+        self.assertIn("── WIADOMOŚĆ OD KUBA ──\nhalo\n\n[Narzędzia nie wykonały niczego", sent[0]["content"])
 
     def test_context_carries_date_and_calendar(self):
         system = make(self.tmp, ScriptedModel()).system("kuba", "")
@@ -113,6 +113,48 @@ class Tools(unittest.TestCase):
         self.assertNotIn("HUMOR", choosing)           # the short step carries no personality
         self.assertIn("HUMOR", speaking)
         self.assertIsNone(model.spoken[0]["tools"])   # and the speaking step cannot call anything
+
+    def test_he_cannot_claim_an_action_no_tool_performed(self):
+        model = ScriptedModel({"content": "Drzwi wejściowe otwarte."}, {"content": "Nie otworzę drzwi, nie mam do nich dostępu."})
+        b = make(self.tmp, model, home=self.home)
+        self.assertEqual(b.reply("kuba", "Otwórz drzwi"), "Nie otworzę drzwi, nie mam do nich dostępu.")
+        stubborn = ScriptedModel({"content": "Światło włączone."}, {"content": "Już włączyłem."})
+        self.assertEqual(make(tempfile.mkdtemp(), stubborn, home=self.home).reply("kuba", "Włącz światło"), brain.NOT_DONE)
+
+    def test_honest_and_factual_sentences_are_not_mistaken_for_claims(self):
+        for fine in ("Drzwi nie są podłączone, więc ich nie otworzę.", "Tego nie zrobiłem.", "Nie włączyłem światła.",
+                     "Stolicą Australii jest Canberra.", "Mogę ustawić minutnik, jeśli chcesz."):
+            self.assertIsNone(brain.CLAIM.search(fine), fine)
+        for claim in ("Drzwi wejściowe otwarte.", "Światło w salonie włączone na 30 procent.", "Ustawiłem 21 stopni.",
+                      "Minutnik ustawiony.", "Zapamiętano."):
+            self.assertIsNotNone(brain.CLAIM.search(claim), claim)
+
+    def test_a_described_call_is_asked_for_again_as_a_real_one(self):
+        model = ScriptedModel({"content": "[]"}, {"tool_calls": [tool_call("set_light", room="salon", on=True)]},
+                              {"content": "Światło włączone."})
+        model.queue[0] = {"content": "Należy wywołać set_light dla salonu."}
+        original = model.__call__
+
+        def talkative(messages, max_tokens, temperature, tools=None):
+            if tools and model.queue and not model.queue[0].get("tool_calls") and len(model.chosen) == 0:
+                model.seen.append({"messages": messages, "tools": tools})
+                return model.queue.pop(0)
+            return original(messages, max_tokens, temperature, tools)
+
+        b = make(self.tmp, talkative, home=self.home)
+        self.assertEqual(b.respond("kuba", "Włącz światło w salonie")["actions"], [{"ok": True, "text": "światło włączone w: salonie"}])
+        self.assertEqual(self.ha.STATES["light.salon"]["state"], "on")
+
+    def test_tool_choice_sees_only_the_persons_own_earlier_messages(self):
+        model = ScriptedModel({"content": "Dobrze."}, {"content": "Jasne."})
+        b = make(self.tmp, model, home=self.home)
+        b.reply("kuba", "Zimno mi w salonie")
+        b.reply("kuba", "A w sypialni?")
+        sent = model.chosen[1]["messages"]
+        self.assertEqual([m["role"] for m in sent], ["system", "user"])       # no assistant turns to imitate
+        self.assertIn("- Zimno mi w salonie", sent[1]["content"])
+        self.assertTrue(sent[1]["content"].endswith("Ostatnia wiadomość:\nA w sypialni?"))
+        self.assertNotIn("Dobrze.", str(sent))
 
     def test_what_the_tools_did_is_put_in_front_of_him_when_he_speaks(self):
         model = ScriptedModel({"tool_calls": [tool_call("set_light", room="salon", on=True),
