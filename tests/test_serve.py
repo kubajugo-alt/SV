@@ -114,6 +114,19 @@ class Server(unittest.TestCase):
             with urllib.request.urlopen(self.url + "/tts?text=hej", timeout=10) as r:
                 self.assertEqual((r.status, r.headers["X-Mouth-Cues"]), (200, None))
 
+    def test_lip_sync_from_word_timing(self):
+        self.assertEqual(serve.shapes_of("Dzień"), [("B", 1), ("C", 2), ("B", 1)])       # dz-e-ń: the i only softens
+        self.assertEqual([s for s, _ in serve.shapes_of("mała szuflada")], list("ADFDBFBCDBD"))
+        cues = serve.cues_from_words([(0.2, 0.5, " Mam"), (0.5, 0.8, " psa."), (1.5, 1.7, " O!")])
+        self.assertEqual(cues, [[0.0, "X"], [0.2, "A"], [0.28, "D"], [0.43, "A"], [0.57, "B"], [0.65, "D"],
+                                [0.8, "X"], [1.5, "E"], [1.7, "X"]])
+        self.assertEqual([s for _, s in serve.cues_from_words([(0.0, 0.5, " 21")])], list("XCBCBCBX"))   # numbers still move
+        serve.engine, serve.ears = FakeVoice(), FakeEars()
+        FakeEars.words = lambda self, audio: [(0.0, 0.3, "tak")]
+        self.addCleanup(lambda: delattr(FakeEars, "words"))
+        with urllib.request.urlopen(self.url + "/tts?text=tak", timeout=10) as r:
+            self.assertEqual(json.loads(r.headers["X-Mouth-Cues"]), [[0.0, "X"], [0.0, "B"], [0.07, "D"], [0.22, "B"], [0.3, "X"]])
+
     def test_stt(self):
         serve.ears = FakeEars()
         status, body = self.request("/stt", wav_bytes())

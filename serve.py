@@ -227,13 +227,82 @@ class Whisper:
             )
             return " ".join(s.text.strip() for s in segments).strip()
 
+    def words(self, audio: bytes) -> list:
+        """When each word of a recording is spoken: [(start s, end s, word), ...]."""
+        pcm = self.samples(audio)
+        with self.lock:
+            segments, _ = self.model.transcribe(pcm, language=self.language, beam_size=1, word_timestamps=True,
+                                                condition_on_previous_text=False)
+            return [(w.start, w.end, w.word) for s in segments for w in (s.words or [])]
+
+
+# Polish spelling is close to its sounds, so the letters of a word give its mouth shapes
+# (Rhubarb Lip Sync's set: A lips closed, B teeth nearly together, C open, D wide open,
+# E rounded, F puckered). Digraphs first; what is not listed is not a sound of its own.
+MOUTH_OF = {
+    "sz": "B", "cz": "B", "rz": "B", "ch": "B", "dz": "B", "dż": "B", "dź": "B",
+    "a": "D", "e": "C", "ę": "C", "i": "B", "y": "B", "o": "E", "ą": "E", "u": "F", "ó": "F", "ł": "F",
+    "p": "A", "b": "A", "m": "A", "l": "C",
+    **{c: "B" for c in "cćdfghjknńrsśtwzźżvxq"},
+}
+VOWELS = "aeęiyoąuó"
+
+
+def shapes_of(word: str) -> list:
+    """[(shape, weight), ...] for a word; vowels last twice as long as consonants."""
+    word, out, i = word.lower(), [], 0
+    while i < len(word):
+        two = word[i:i + 2]
+        if two in MOUTH_OF:
+            out.append((MOUTH_OF[two], 1))
+            i += 2
+            continue
+        ch = word[i]
+        i += 1
+        if ch == "i" and i < len(word) and word[i] in VOWELS:
+            continue                                    # "ie", "ia": the i only softens the consonant
+        if ch in MOUTH_OF:
+            out.append((MOUTH_OF[ch], 2 if ch in VOWELS else 1))
+    return out
+
+
+def cues_from_words(words: list) -> list:
+    """Mouth cues [[start s, shape], ...] from timed words; the mouth rests (X) in the gaps."""
+    cues, last = [[0.0, "X"]], 0.0
+    for start, end, word in words:
+        shapes = shapes_of(word)
+        if not shapes and any(ch.isdigit() for ch in word):     # "21": spoken, but spelled without letters
+            shapes = [("C", 2), ("B", 1)] * max(1, round((end - start) / 0.18))
+        if not shapes or end <= start:
+            continue
+        start = max(start, last)
+        if start - last > 0.12 and cues[-1][1] != "X":
+            cues.append([round(last, 2), "X"])
+        t, per = start, (end - start) / sum(w for _, w in shapes)
+        for shape, weight in shapes:
+            if cues[-1][1] != shape:
+                cues.append([round(t, 2), shape])
+            t += per * weight
+        last = end
+    cues.append([round(last, 2), "X"])
+    return cues
+
 
 def mouth_cues(audio: bytes) -> str:
-    """Rhubarb Lip Sync's mouth shapes for a WAV, as compact JSON [[start s, shape], ...]; "" without Rhubarb.
+    """The mouth shapes for a spoken WAV, as compact JSON [[start s, shape], ...], or "".
 
-    The phonetic recogniser is used because it works for any language; the basic
-    shapes A-F are the ones painted for ALAN's face.
+    With hearing loaded, the recogniser times each word of ALAN's own line and the
+    word's letters give the shapes: real lip sync, and it knows Polish. Otherwise
+    Rhubarb Lip Sync if its binary is there (phonetic recogniser, any language).
+    With neither, the page moves the mouth by loudness.
     """
+    if ears is not None and hasattr(ears, "words"):
+        try:
+            cues = cues_from_words(ears.words(audio))
+            if len(cues) > 2:
+                return json.dumps(cues, separators=(",", ":"))
+        except Exception as err:
+            print(f"Lip sync by word timing failed: {err!r}", file=sys.stderr)
     if not rhubarb:
         return ""
     try:
@@ -426,7 +495,8 @@ def main():
         print(f"Hands: {home.name if home else 'none (no --ha-url)'}", flush=True)
         print(f"Outside: {brain.online.name if brain.online else 'nothing (no --online)'}", flush=True)
     rhubarb = find_rhubarb(args.rhubarb)
-    print(f"Mouth: {'Rhubarb Lip Sync (' + rhubarb + ')' if rhubarb else 'follows loudness (no Rhubarb found)'}", flush=True)
+    mouth = "word timing from his hearing" if ears is not None else f"Rhubarb Lip Sync ({rhubarb})" if rhubarb else "follows loudness"
+    print(f"Mouth: {mouth}", flush=True)
     for line in args.warm:
         synthesise(line)
 
