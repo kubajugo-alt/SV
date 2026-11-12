@@ -1,4 +1,4 @@
-/* ALAN kiosk — a quiet dark screen for the node face: warm light on near-black, thin type. */
+/* ALAN kiosk — a quiet dark screen for the point-cloud head: cool light on near-black, thin type. */
 
 @font-face {
   font-family: 'IBM Plex Mono';
@@ -26,10 +26,10 @@
 }
 
 :root {
-  --bg: #040507;
-  --fg: #ece4d6;
-  --fg-dim: #7d7667;
-  --glow: rgba(255, 196, 130, .22);
+  --bg: #010204;
+  --fg: #dfeaf2;
+  --fg-dim: #66788a;
+  --glow: rgba(110, 200, 255, .25);
   --u: min(1vw, 1.78vh); /* one unit = 1% of a 16:9 frame */
 }
 body[data-alan="alert"] {
