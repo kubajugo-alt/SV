@@ -137,6 +137,7 @@ function playEnvelope(text, env, rate) {
  * @param {boolean} [u.radio]     bandwidth-limited voice
  */
 export async function say({ text = '', audio, envelope, rate = 50, radio = false }) {
+  if (store.get().flat === 'studio' && !Object.keys(store.get().alerts).length) return 0;   // recording: not a word
   const id = ++current;
   const url = audio || (ttsUrl && text ? ttsUrl + encodeURIComponent(text) : '');
   if (url) {

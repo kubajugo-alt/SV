@@ -8,6 +8,9 @@ import { startAgenda } from './agenda.js';
 import { startAvatar } from './avatar.js';
 import { startUI, boot } from './ui.js';
 import { startDemo } from './feeds/demo.js';
+import { startSolo } from './feeds/solo.js';
+import { startInitiative } from './initiative.js';
+import { store } from './store.js';
 import { startHA } from './feeds/ha.js';
 
 const local = (await import('./config.local.js').catch(() => ({}))).default || {};
@@ -30,4 +33,17 @@ startMic(config, startChat(config));
 startHome(config);
 startAgenda(config);
 startAvatar(document.getElementById('entity'), () => isDark(config));
-(config.feed === 'ha' ? startHA : startDemo)(config);
+({ ha: startHA, demo: startDemo }[config.feed] || startSolo)(config);
+startInitiative(config);
+
+// Keys that work everywhere (not while typing to him): S studio, P person.
+store.set({ person: config.person });
+addEventListener('keydown', (e) => {
+  if (e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey) return;
+  const s = store.get();
+  if (e.code === 'KeyS') store.set({ flat: s.flat === 'studio' ? 'normal' : 'studio' });   // black screen, silence
+  if (e.code === 'KeyP') {
+    const people = config.people || [config.person];
+    store.set({ person: people[(people.indexOf(s.person) + 1) % people.length] });
+  }
+});

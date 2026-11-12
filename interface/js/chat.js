@@ -10,7 +10,7 @@ export function startChat(config) {
   const form = document.getElementById('ask');
   const input = document.getElementById('ask-input');
   if (!config.chat) { form.hidden = true; return undefined; }
-  document.getElementById('ask-who').textContent = `${config.person}>`;
+  store.subscribe((s) => { document.getElementById('ask-who').textContent = `${s.person}>`; });
 
   let waiting = false;
 
@@ -21,7 +21,7 @@ export function startChat(config) {
     input.value = '';
     input.placeholder = text;          // what he heard or read stays visible, dimmed
     dispatchEvent(new Event('alan:chat'));
-    store.set({ alan: 'thinking' });
+    store.set({ alan: 'thinking', busy: true });
     let reply;
     let actions = [];
     store.set({ actions: [] });       // the previous exchange's log goes away
@@ -29,7 +29,7 @@ export function startChat(config) {
       const res = await fetch(config.chat, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, person: config.person }),
+        body: JSON.stringify({ text, person: store.get().person }),
       });
       if (!res.ok) throw new Error(`${res.status}`);
       ({ reply, actions = [] } = await res.json());
@@ -38,7 +38,7 @@ export function startChat(config) {
       reply = 'Nie mam teraz połączenia z modelem językowym.';
     }
     waiting = false;
-    store.set({ alan: 'idle', actions });   // say() shows "thinking" itself while the voice is prepared
+    store.set({ alan: 'idle', actions, busy: false });   // say() shows "thinking" itself while the voice is prepared
     if (actions.length) dispatchEvent(new Event('alan:acted'));
     say({ text: reply });
   }

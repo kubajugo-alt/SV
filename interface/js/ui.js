@@ -9,7 +9,7 @@ const FLAT = { away: 'TRYB WYJAZDU', guest: 'TRYB GOŚCIA', work: 'TRYB PRACY', 
 const ALERT = { smoke: 'DYM', co: 'CZAD', water: 'WYCIEK WODY' };
 const ALERT_RANK = ['co', 'smoke', 'water']; // most dangerous first
 const ROOM = { salon: 'SALON', sypialnia: 'SYPIALNIA', kuchnia: 'KUCHNIA', przedpokoj: 'PRZEDPOKÓJ', lazienka: 'ŁAZIENKA' };
-const LINK = { demo: 'DEMO', connecting: 'ŁĄCZENIE…', online: 'ONLINE', offline: 'BRAK ŁĄCZA' };
+const LINK = { solo: '', demo: 'DEMO', connecting: 'ŁĄCZENIE…', online: 'ONLINE', offline: 'BRAK ŁĄCZA' };
 
 const num = (v, digits = 0) => (Number.isFinite(v) ? v.toFixed(digits).replace('.', ',') : '--');
 
@@ -107,11 +107,18 @@ function render(s, config) {
     const clock = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
     return cell(`MINUTNIK${t.label ? ` ${t.label}` : ''}`, clock, left <= 10, false);   // a countdown always changes
   });
-  vitals.push(cell('W DOMU', home));
+  if (Object.keys(s.presence).length) vitals.push(cell('W DOMU', home));
   if (s.outdoor != null) vitals.push(cell('ZEWN.', `${num(s.outdoor, 1)}°`));
   if (s.co2 != null) vitals.push(cell('CO2', `${num(s.co2)} PPM`, s.co2 > 1200));
   if (s.battery != null) vitals.push(cell('BATERIA', `${num(s.battery)}%`, s.battery < 20));
-  vitals.push(cell('ŁĄCZE', LINK[s.link], s.link === 'offline'));
+  if (LINK[s.link]) vitals.push(cell('ŁĄCZE', LINK[s.link], s.link === 'offline'));
+  if (s.link === 'solo') {
+    // On a laptop the strip says who he is talking with and how to reach him.
+    vitals.push(cell('ROZMÓWCA', s.person.toUpperCase(), false, false));
+    vitals.push(cell('MIKROFON', s.handsfree ? 'POWIEDZ „ALAN”' : 'PRZYTRZYMAJ SPACJĘ', false, false));
+    if (!s.initiative) vitals.push(cell('ZAGADYWANIE', 'WYŁ.', false, false));
+    vitals.push(cell('KLAWISZE', 'ENTER PISZ · M MIKROFON · P OSOBA · I ZAGADYWANIE · S STUDIO', false, false));
+  }
   $('vitals').replaceChildren(...vitals);
 
   // One more render when the newest glow runs out, to drop the class.

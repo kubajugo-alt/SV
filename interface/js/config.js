@@ -2,7 +2,7 @@
 // see config.local.example.js. URL params win over both: ?feed=demo&boot=0
 
 export default {
-  feed: 'demo', // 'demo' | 'ha'
+  feed: 'solo', // 'solo' (on a laptop, no flat) | 'demo' (made-up flat for showing the page) | 'ha'
   boot: true,   // play the boot sequence on load
   chime: true,  // needs Chromium --autoplay-policy=no-user-gesture-required
 
@@ -19,7 +19,16 @@ export default {
   home: 'home',
   // Timers and reminders: countdown on screen, spoken when due (serve.py /agenda).
   agenda: 'agenda',
-  person: 'kuba', // who is at the keyboard or microphone; each person has their own memory
+  person: 'kuba', // who is at the keyboard or microphone at start; P switches
+  people: ['kuba', 'hubert'],
+
+  // Say his name instead of holding Space ("Alan, która godzina?"). Everything the
+  // microphone picks up is recognised on this machine and dropped unless it starts
+  // with his name or follows straight after his answer. M switches it.
+  handsfree: true,
+  // He may speak first: a greeting with the day's plan at the first sign of you after
+  // `from`, a remark after `idleMinutes` of silence, a question in the evening. I switches it.
+  initiative: { on: true, idleMinutes: 45, from: 8, to: 22, eveningAt: 20 },
 
   ha: {
     url: 'ws://homeassistant.local:8123/api/websocket',

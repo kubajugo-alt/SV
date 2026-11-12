@@ -40,6 +40,35 @@ head".
 Static files, no build step, no dependencies, no internet access needed
 (the typeface, IBM Plex Mono, is vendored).
 
+## On a laptop
+
+Until the flat is wired, ALAN lives on a laptop: the page starts with the feed
+`solo` (no rooms, no sensors; `?feed=demo` shows the made-up flat), and without
+`--ha-url` he is told he has no flat to mind. `scripts/window.sh` opens him in a
+window of his own beside your work; `scripts/kiosk.sh` is the full-screen form.
+
+- **Say his name.** With `handsfree` on (the default; key `M`), the microphone
+  stays open, each stretch of speech is recognised on this machine, and it
+  reaches him only if it starts with "Alan" or follows within 12 s of his own
+  answer. Everything else is dropped. Holding Space still works.
+- **He speaks first** (`initiative` in `js/config.js`; key `I`): a greeting
+  with the day's briefing at the first sign of you after 8:00, a remark after
+  about 45 minutes of silence, a question in the evening; never during a
+  calendar event, in studio mode or between 22:00 and 8:00.
+- **Keys:** `Enter` type, `Space` talk, `M` microphone mode, `P` who is talking
+  (Kuba / Hubert, separate memories), `I` speaking first, `S` studio mode
+  (black screen, no sound, no listening).
+- **Calendar:** put the address of an `.ics` calendar (Google Calendar: "secret
+  address in iCal format"; or a file path) on a line of `data/kalendarze.txt`.
+  He reads it, never writes to it, announces a meeting ten minutes ahead and
+  keeps quiet while one is on.
+- **Where you are:** tell him ("jestem w Las Palmas"); the weather and the
+  briefing follow. He knows the coordinates of a fixed list of cities
+  (`PLACES` in `own.py`).
+- **More tools** (`own.py`): dictated notes and their search, search of old
+  conversations, reading time of a text, and `briefing` (weather, calendar,
+  reminders, headlines in one go).
+
 ## Run
 
 ```sh

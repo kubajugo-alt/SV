@@ -146,6 +146,11 @@ body[data-flat="dark"] > * { display: none !important; }
   background: linear-gradient(to bottom, rgba(8, 4, 2, .78) 0, rgba(8, 4, 2, 0) 15%, rgba(8, 4, 2, 0) 62%, rgba(8, 4, 2, .5) 74%, rgba(8, 4, 2, .86) 100%);
 }
 
+/* In a window beside your work (not full screen) the pointer stays visible. */
+@media not (display-mode: fullscreen) {
+  html, body, #ask-input { cursor: auto; }
+}
+
 @keyframes blink { 50% { opacity: 0; } }
 @keyframes pulse { 50% { opacity: .45; } }
 /* 1 Hz — well under the 3 Hz photosensitivity threshold. */

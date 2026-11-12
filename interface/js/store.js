@@ -15,7 +15,11 @@ const state = {
   co2: null,
   outdoor: null,
   battery: null,
-  link: 'demo',      // demo | connecting | online | offline
+  link: 'demo',      // solo | demo | connecting | online | offline
+  person: 'kuba',    // who he is talking with; each person has their own memory
+  handsfree: false,  // listening for his name instead of waiting for Space
+  initiative: true,  // whether he may speak first
+  busy: false,       // an exchange with the model is under way
 };
 
 const listeners = new Set();
