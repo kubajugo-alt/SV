@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Serve ALAN's kiosk page and his voice from one origin.
 
-    python3 serve.py                      # Chatterbox, its built-in voice, Polish
+    python3 serve.py                      # Chatterbox, ALAN's voice from the games, Polish
     python3 serve.py --engine piper --voice ~/alan/voices/pl_PL-darkman-medium.onnx
     python3 serve.py --engine none        # page only, silent
 
@@ -359,7 +359,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--engine", choices=["chatterbox", "piper", "none"], default=os.environ.get("ALAN_ENGINE", "chatterbox"))
     ap.add_argument("--voice", default=os.environ.get("ALAN_VOICE"),
-                    help="chatterbox: optional reference recording to take the timbre from; piper: the .onnx voice (required)")
+                    help="chatterbox: reference recording to take the timbre from (default: voices/alan.wav, his voice "
+                         "from the games; 'builtin' for the model's own voice); piper: the .onnx voice (required)")
     ap.add_argument("--language", default="pl", help="language code for speech and recognition (default %(default)s)")
     ap.add_argument("--device", default="auto", help="chatterbox: auto, cuda, mps or cpu")
     ap.add_argument("--exaggeration", type=float, default=0.5, help="chatterbox expressiveness, 0.25-2 (default %(default)s)")
@@ -389,6 +390,11 @@ def main():
 
     try:
         if args.engine == "chatterbox":
+            own_voice = os.path.join(HERE, "voices", "alan.wav")   # ALAN's voice from the games
+            if args.voice == "builtin":
+                args.voice = None
+            elif not args.voice and os.path.isfile(own_voice):
+                args.voice = own_voice
             engine = Chatterbox(args.language, args.voice, args.device, args.exaggeration, args.cfg_weight)
         elif args.engine == "piper":
             engine = Piper(args.voice, args.pitch)

@@ -58,7 +58,9 @@ chromium --kiosk --autoplay-policy=no-user-gesture-required http://localhost:888
 Everything runs on the machine; no audio or text leaves it.
 
 The default engine is [Chatterbox Multilingual](https://github.com/resemble-ai/chatterbox)
-with its built-in voice, speaking Polish:
+speaking Polish in ALAN's voice from the games: the timbre is taken from
+`voices/alan.wav`, 30 s of his recorded lines from `kubajugo-alt/alansanchez`
+(`--voice builtin` gives the model's own voice, `--voice FILE` another one):
 
 ```sh
 pip install chatterbox-tts        # Python 3.11 recommended; on 3.13 also: pip install "setuptools<81"

@@ -65,7 +65,7 @@ import serve
 
 ears = serve.Whisper(os.environ["ALAN_STT_MODEL"], "pl")
 print("Słuch:", ears.name)
-voice = serve.Chatterbox("pl", None, "auto", 0.5, 0.5)
+voice = serve.Chatterbox("pl", "voices/alan.wav", "auto", 0.5, 0.5)
 print("Głos: ", voice.name)
 PY
 )
