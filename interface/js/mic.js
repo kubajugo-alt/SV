@@ -134,9 +134,9 @@ export function startMic(config, ask) {
   let awakeUntil = 0;         // until then, what is said is for him without his name
   let wasSpeaking = false;
 
-  async function recognise(recorded, rate) {
+  async function recognise(recorded, rate, wake) {
     try {
-      const res = await fetch(config.stt, {
+      const res = await fetch(config.stt + (wake ? '?wake=1' : ''), {   // wake: dropped by the server unless it starts with his name
         method: 'POST',
         headers: { 'Content-Type': 'audio/wav' },
         body: wav(await resample(recorded, rate)),
@@ -148,7 +148,7 @@ export function startMic(config, ask) {
   async function heard(recorded, rate) {
     const awake = Date.now() < awakeUntil;
     if (awake) store.set({ alan: 'thinking' });
-    const text = await recognise(recorded, rate);
+    const text = await recognise(recorded, rate, !awake);
     const forHim = addressed(text);
     if (forHim === '') {                        // just his name: he turns to listen
       awakeUntil = Date.now() + NAME_MS;

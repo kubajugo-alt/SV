@@ -34,6 +34,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import wave
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -42,6 +43,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "interface")
 MAX_CHARS = 1000
 MAX_AUDIO = 10 * 1024 * 1024
+# His name at the start of what was said (the page has the same rule in js/mic.js).
+WAKE = re.compile(r"^\W*(?:(?:hej|ej|cześć|halo|słuchaj|no)\W+)?al+an(?:ie|ku)?(?!\w)", re.I)
 
 engine = None
 rhubarb = ""         # path of the Rhubarb Lip Sync binary, if there is one
@@ -74,10 +77,16 @@ class Chatterbox:
         self.torch = torch
         self.language = language
         self.options = {"exaggeration": exaggeration, "cfg_weight": cfg_weight}
-        if reference:
-            self.options["audio_prompt_path"] = os.path.expanduser(reference)
         with self._weights_on_cpu(device):
             self.model = ChatterboxMultilingualTTS.from_pretrained(device=torch.device(device))
+        if reference:
+            # Analyse the reference voice once. Passed with every line instead, the library
+            # would load and analyse the recording again each time, seconds per sentence.
+            try:
+                self.model.prepare_conditionals(os.path.expanduser(reference), exaggeration=exaggeration)
+            except Exception as err:   # an older library without this call: fall back to the slow way
+                print(f"Voice reference will be analysed per line: {err!r}", flush=True)
+                self.options["audio_prompt_path"] = os.path.expanduser(reference)
 
         # The library always lets the model produce up to 1000 speech tokens
         # (40 s). Short lines then ramble: after the words come silence, noises
@@ -219,8 +228,11 @@ class Whisper:
             pcm = np.interp(np.arange(0, len(pcm), rate / 16000), np.arange(len(pcm)), pcm).astype(np.float32)
         return pcm
 
-    def text(self, audio: bytes) -> str:
+    def text(self, audio: bytes, seconds: float = 0) -> str:
+        """What was said; with `seconds`, only in the first so many seconds, read quickly."""
         pcm = self.samples(audio)
+        if seconds:
+            pcm = pcm[:int(seconds * 16000)]
         with self.lock:
             segments, _ = self.model.transcribe(
                 pcm, language=self.language, beam_size=5,
@@ -324,15 +336,26 @@ def mouth_cues(audio: bytes) -> str:
 def find_rhubarb(path: str) -> str:
     for candidate in (path, os.path.join(HERE, "vendor", "rhubarb", "rhubarb"), shutil.which("rhubarb")):
         if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK):
-            return candidate
+            try:
+                subprocess.run([candidate, "--version"], capture_output=True, timeout=20, check=True)
+                return candidate
+            except (OSError, subprocess.SubprocessError) as err:
+                # On Apple Silicon the macOS build needs Rosetta: softwareupdate --install-rosetta --agree-to-license
+                print(f"Rhubarb is there but does not run ({candidate}): {err!r}", flush=True)
     return ""
 
 
 @functools.lru_cache(maxsize=256)  # repeated lines (greetings, confirmations) are instant
 def synthesise(text: str) -> tuple[bytes, str]:
+    started = time.monotonic()
     with lock:
+        waited = time.monotonic() - started
         audio = engine.wav(text)
-    return audio, mouth_cues(audio)
+    spoken = time.monotonic() - started - waited
+    cues = mouth_cues(audio)
+    print(f"Timing: voice {spoken:.1f} s (waited {waited:.1f} s for the engine), mouth {time.monotonic() - started - waited - spoken:.1f} s, "
+          f"{len(text)} characters", flush=True)
+    return audio, cues
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -389,8 +412,16 @@ class Handler(SimpleHTTPRequestHandler):
         size = int(self.headers.get("Content-Length", 0))
         if not 0 < size <= MAX_AUDIO:
             return self.send_error(400, "Expected a recording of up to 10 MB")
+        # ?wake=1: the microphone is open all the time. Only the opening of the recording is read first,
+        # and unless it starts with his name the rest is never recognised, returned or logged.
+        wake = parse_qs(urlparse(self.path).query).get("wake") == ["1"]
         try:
-            text = ears.text(self.rfile.read(size))
+            started = time.monotonic()
+            audio = self.rfile.read(size)
+            if wake and not WAKE.match(ears.text(audio, 3.0)):
+                return self.send_json({"text": ""})
+            text = ears.text(audio)
+            print(f"Timing: hearing {time.monotonic() - started:.1f} s", flush=True)
         except Exception as err:  # unreadable audio, …
             print(f"STT failed: {err!r}", file=sys.stderr)
             return self.send_error(400, "Could not read that recording")

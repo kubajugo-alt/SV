@@ -37,9 +37,11 @@ class FakeVoice:
 class FakeEars:
     name = "fake"
 
-    def text(self, audio):
+    said = "dzień dobry"
+
+    def text(self, audio, seconds=0):
         serve.Whisper.samples(audio)  # the real decoder: rejects anything that is not 16-bit WAV
-        return "dzień dobry"
+        return self.said
 
 
 class FakeBrain:
@@ -102,7 +104,7 @@ class Server(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             fake = os.path.join(tmp, "rhubarb")
             with open(fake, "w") as f:                               # stands in for the real binary
-                f.write('#!/bin/sh\ntest -s "$8" || exit 1\n'
+                f.write('#!/bin/sh\ntest "$1" = --version && exit 0\ntest -s "$8" || exit 1\n'
                         'echo \'{"mouthCues":[{"start":0.0,"end":0.21,"value":"X"},{"start":0.214,"end":0.5,"value":"D"}]}\'\n')
             os.chmod(fake, 0o755)
             serve.rhubarb = serve.find_rhubarb(fake)
@@ -133,6 +135,14 @@ class Server(unittest.TestCase):
         self.assertEqual((status, json.loads(body)), (200, {"text": "dzień dobry"}))
         self.assertEqual(self.request("/stt", b"not audio at all")[0], 400)
         self.assertEqual(self.request("/stt", b"")[0], 400)
+
+    def test_open_microphone_passes_on_only_what_starts_with_his_name(self):
+        serve.ears = FakeEars()
+        self.assertEqual(json.loads(self.request("/stt?wake=1", wav_bytes())[1]), {"text": ""})     # the room's talk stays in the room
+        serve.ears.said = "Hej Alan, która godzina?"
+        self.assertEqual(json.loads(self.request("/stt?wake=1", wav_bytes())[1]), {"text": "Hej Alan, która godzina?"})
+        for said, his in [("Alanie.", True), ("Alanowi powiedz", False), ("To balans", False), ("  allan?", True)]:
+            self.assertEqual(bool(serve.WAKE.match(said)), his, said)
 
     def test_recordings_are_resampled_to_16k_mono(self):
         self.assertEqual(len(serve.Whisper.samples(wav_bytes(1.0, 48000))), 16000)

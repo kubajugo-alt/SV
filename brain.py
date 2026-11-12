@@ -18,6 +18,7 @@ import os
 import re
 import sqlite3
 import threading
+import time
 import urllib.request
 import urllib.error
 import uuid
@@ -38,6 +39,7 @@ MAX_TOOL_ROUNDS = 3  # tool-calling rounds per turn (plus one nudge if it ramble
 # Mistral Nemo, any earlier request in view was sometimes carried out again a
 # turn late. The cost is that "and in the bedroom too" needs saying in full.
 DISPATCH_HISTORY = 0
+FLAT_ONLY = ("── MIESZKANIE", "── JAKOŚĆ POWIETRZA", "── TRYB PRACY", "── TRYB GOŚCIA", "── DRZWI", "── BEZPIECZEŃSTWO")
 GETTING_TO_KNOW = 25      # for this many of a person's messages he still asks them about themselves
 
 # Words that claim an action. If no tool did anything this turn and he still
@@ -145,6 +147,11 @@ class Brain:
         self.model = model
         with open(prompt_path, encoding="utf-8") as f:
             self.prompt = f.read().strip()
+        if not home:
+            # No flat behind him yet: the rules about rooms, air, doors and guests would only crowd the
+            # model's limited context and push his character out of it.
+            parts = re.split(r"(?m)^(?=── )", self.prompt)
+            self.prompt = "".join(p for p in parts if not p.startswith(FLAT_ONLY)).strip()
         self.memory = Memory(db_path)
         # What he is told about the household up front: a private file beside his memory, never in the repository.
         self.household_path = os.path.join(os.path.dirname(os.path.abspath(db_path)), "domownicy.md")
@@ -359,8 +366,7 @@ class Brain:
                       "Korzystaj z tej wiedzy naturalnie, bez recytowania. Spraw jednego domownika nie opowiadaj gościom."]
         if not self.home:
             parts += ["── GDZIE TERAZ MIESZKASZ ──",
-                      "Na razie mieszkasz w laptopie, nie w mieszkaniu: nie masz czujników, kamer, głośników w pokojach ani urządzeń. "
-                      "Zasady o mieszkaniu, powietrzu, drzwiach, kurierach i gościach opisują przyszłość. Dziś niczego nie mierzysz "
+                      "Na razie mieszkasz w laptopie, nie w mieszkaniu: nie masz czujników, kamer ani urządzeń. Niczego nie mierzysz "
                       "i niczym nie sterujesz, i nie udajesz, że jest inaczej. Jesteś towarzyszem przy pracy i w podróży: rozmowa, "
                       "pamięć, notatki, przypomnienia, plan dnia, sprawdzanie faktów."]
         if self.memory.count(person) < GETTING_TO_KNOW:
@@ -415,8 +421,11 @@ class Brain:
         """-> {"reply": what he says, "actions": [{"ok": bool, "text": what he changed or could not}]}"""
         notes, _ = self.memory.notes(person)
         history = [{"role": role, "content": content} for _, role, content, _ in self.memory.recent(person)]
+        started = time.monotonic()
         results, actions = self.act(person, history, text)
+        chosen = time.monotonic()
         answer = self.speak(person, notes, history, text, results)
+        print(f"Timing: choosing tools {chosen - started:.1f} s, wording the answer {time.monotonic() - chosen:.1f} s", flush=True)
         if not results and CLAIM.search(answer):
             # He says he did something, but no tool ran. Most often the request was
             # real and the tool-choosing step missed it: try that step once more,
