@@ -8,6 +8,7 @@ to use it only when someone asks about his life.
 """
 
 import re
+import unicodedata
 
 TOOL = {"type": "function", "function": {
     "name": "recall_past",
@@ -20,14 +21,29 @@ MAX_CHARS = 2200
 # Words that say nothing about which memory is meant.
 COMMON = set("""a aby ale albo bo by byl byla bylo byly co czy czym dla do go i ich im jak jako je jego jej jest jestes juz kiedy kim kto ktora
 ktory ktorym ma mi mnie moze na nad nie nim o od on ona one oni opowiedz po pod powiedz przez przy sa sie skad ta tak tam te tego tej ten to tobie
-tu ty tym w we wtedy z za ze cie ci twoj twoja twoje cos mial miales bylo pamietasz wiesz""".split())
-PLAIN = str.maketrans("ąćęłńóśźż", "acelnoszz")
+tu ty tym w we wtedy z za cie ci twoj twoja twoje cos mial miales bylo pamietasz wiesz stalo stal jakis jakies jakas kiedys bardzo prosze cos tym czemu dlaczego gdzie ile""".split())
+# Forms whose stem changes, brought to the form the memories use.
+SAME = {"ojca": "ojciec", "ojcem": "ojciec", "ojcu": "ojciec", "ojcze": "ojciec", "tata": "ojciec", "taty": "ojciec", "tato": "ojciec",
+        "mama": "matka", "mamy": "matka", "mame": "matka", "mamie": "matka", "psa": "pies", "kota": "kot", "kotem": "kot",
+        "dziadkiem": "dziadek", "dziadku": "dziadek", "dziadka": "dziadek", "chlopak": "partner", "chlopaka": "partner",
+        "facet": "partner", "faceta": "partner", "maz": "partner", "meza": "partner", "kochales": "milosc", "kochasz": "milosc", "vaskiem": "vasco", "vaskowi": "vasco", "vasku": "vasco"}
+
+
+def plain(word):
+    """Lower case without accents of any language: Zé -> ze, Inês -> ines, łódź -> lodz."""
+    word = unicodedata.normalize("NFKD", word.lower().replace("ł", "l"))
+    return "".join(ch for ch in word if not unicodedata.combining(ch))
 
 
 def stems(text):
-    """Words reduced so that Polish endings do not matter: lower case, no accents, first five letters."""
-    words = re.findall(r"[a-z0-9]+", text.lower().translate(PLAIN))
-    return [w[:5] for w in words if w not in COMMON and len(w) > 2]
+    """Words reduced so that Polish endings do not matter: no accents, first four or five letters."""
+    out = []
+    for word in re.findall(r"[^\W_]+", text):
+        word = plain(word)
+        word = SAME.get(word, word)
+        if len(word) > 1 and word not in COMMON and (len(word) > 2 or text.strip().lower() != word):
+            out.append(word[:4] if len(word) <= 5 else word[:5])      # short words lose only their ending
+    return out
 
 
 class Past:
@@ -53,7 +69,9 @@ class Past:
         scored = []
         for s in self.sections:
             body = s["body_stems"]
-            score = sum(6 * (w in s["title_stems"]) + 4 * (w in s["key_stems"]) + min(3, body.count(w)) for w in wanted)
+            hits = [max(9 * (w in s["title_stems"]), 5 * (w in s["key_stems"])) + min(3, body.count(w)) for w in wanted]
+            # A memory that answers every word of the question beats one that repeats a single word often.
+            score = sum(hits) * (1 + sum(1 for h in hits if h >= 5)) * (1 + sum(1 for h in hits if h))
             if score:
                 scored.append((score, s))
         if not scored:
