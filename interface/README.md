@@ -115,9 +115,30 @@ How he remembers:
 - **Across restarts** — everything is in `data/alan.db` (SQLite, git-ignored).
   Delete the file to wipe his memory.
 
+### His own tools: timers, reminders, lists, things to remember
+
+These need nothing but ALAN himself and are always available (`own.py`):
+
+| Tool | Does |
+| --- | --- |
+| `set_timer` | a timer in minutes, with an optional label |
+| `set_reminder` | a reminder or alarm for a date and time |
+| `show_reminders`, `cancel_reminder` | what is running, and cancelling by number |
+| `edit_list` | shared household lists, shopping by default: add, cross off, read |
+| `remember`, `forget` | facts he was explicitly asked to keep, per person |
+
+- A running timer counts down in the panel. When a timer or reminder comes
+  due, ALAN says so on his own and the line stays in the action log.
+- Lists are shared by the household; reminders and remembered facts belong to
+  the person who asked. Remembered facts are put in front of the model on
+  every turn, separately from the automatic notes.
+- Everything is stored in `data/alan.db` and survives a restart.
+- If the model server does not accept tools at all, ALAN notices on the first
+  attempt and carries on as plain conversation.
+
 ### Hands: lights, heating, state of the flat
 
-With `--ha-url` (and the token in `ALAN_HA_TOKEN`) the model gets three tools,
+With `--ha-url` (and the token in `ALAN_HA_TOKEN`) the model gets three more tools,
 which `home.py` carries out through Home Assistant's REST API:
 
 | Tool | Does |
@@ -190,6 +211,7 @@ css/crt.css          palette, type, scanlines, alert + dark modes
 js/main.js           config merge, boot, wiring
 js/store.js          page state + mode priority
 js/home.js           live state of the flat for the panel
+js/agenda.js         timers and reminders: countdown, spoken when due
 js/chat.js           conversation prompt shared by keyboard and microphone
 js/mic.js            push-to-talk recording and speech recognition
 js/speech.js         voice playback, live level for the mouth, silent fallback

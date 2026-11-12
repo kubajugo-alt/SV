@@ -8,6 +8,7 @@ const state = {
   utterance: 0,      // bumped by every say(), so repeated lines still retype
   speakingUntil: 0,  // performance.now() deadline of the local speech envelope
   preparing: false,  // a line's audio is being synthesised — shown as thinking
+  timers: [],        // running timers: [{ label, endsAt (ms) }]
   actions: [],       // what ALAN did in the last exchange: [{ ok, text }]
   rooms: {},         // room -> { temp, hum, light?: { on, pct }, heating? }
   presence: {},      // person -> bool

@@ -98,7 +98,9 @@ class Tools(unittest.TestCase):
     def test_without_home_he_is_told_nothing_is_connected(self):
         model = ScriptedModel({"content": "Jeszcze tego nie potrafię."})
         make(self.tmp, model).reply("kuba", "Włącz światło")
-        self.assertIsNone(model.seen[0]["tools"])
+        offered = {t["function"]["name"] for t in model.seen[0]["tools"]}
+        self.assertIn("set_timer", offered)          # his own tools are always there
+        self.assertNotIn("set_light", offered)       # the flat's are not
         self.assertIn("nie są jeszcze podłączone", model.seen[0]["messages"][0]["content"])
 
     def test_tool_call_is_executed_and_result_returned_to_the_model(self):
@@ -110,8 +112,8 @@ class Tools(unittest.TestCase):
         second = model.seen[1]["messages"]
         self.assertEqual([m["role"] for m in second[-2:]], ["assistant", "tool"])
         self.assertIn("Wykonano", second[-1]["content"])
-        self.assertEqual({t["function"]["name"] for t in model.seen[0]["tools"]},
-                         {"set_light", "set_temperature", "get_home_state"})
+        self.assertLessEqual({"set_light", "set_temperature", "get_home_state", "set_timer", "edit_list"},
+                             {t["function"]["name"] for t in model.seen[0]["tools"]})
 
     def test_actions_are_reported_for_the_screen(self):
         model = ScriptedModel({"tool_calls": [tool_call("set_light", room="salon", on=True, brightness=30),
@@ -155,6 +157,45 @@ class Tools(unittest.TestCase):
         b = make(self.tmp, model, home=self.home)
         b.reply("kuba", "Ile jest w salonie?")
         self.assertEqual([role for _, role, _, _ in b.memory.recent("kuba")], ["user", "assistant"])
+
+
+class OwnTools(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+
+    def test_own_tool_call_is_carried_out_and_reported(self):
+        model = ScriptedModel({"tool_calls": [tool_call("set_timer", minutes=12, label="makaron")]},
+                              {"content": "Dwanaście minut, makaron."})
+        b = make(self.tmp, model)
+        result = b.respond("kuba", "Minutnik na 12 minut, makaron")
+        self.assertEqual(result["actions"], [{"ok": True, "text": "minutnik nr 1 na 12 min (makaron)"}])
+        self.assertEqual(b.own.agenda()["timers"][0]["label"], "makaron")
+
+    def test_reading_a_list_is_not_reported_as_a_change(self):
+        model = ScriptedModel({"tool_calls": [tool_call("edit_list")]}, {"content": "Lista jest pusta."})
+        self.assertEqual(make(self.tmp, model).respond("kuba", "Co na liście?")["actions"], [])
+
+    def test_remembered_facts_reach_the_model_for_that_person_only(self):
+        b = make(self.tmp, ScriptedModel())
+        b.own.remember("kuba", "Kuba ma uczulenie na orzechy.")
+        self.assertIn("- Kuba ma uczulenie na orzechy.", b.system("kuba", ""))
+        self.assertNotIn("orzechy", b.system("hubert", ""))
+
+    def test_server_without_tool_support_falls_back_to_talking(self):
+        import urllib.error
+
+        calls = []
+
+        def no_tools(messages, max_tokens, temperature, tools=None):
+            calls.append(tools)
+            if tools:
+                raise urllib.error.HTTPError("http://x", 400, "does not support tools", {}, None)
+            return {"content": "Cześć."}
+
+        b = make(self.tmp, no_tools)
+        self.assertEqual(b.reply("kuba", "cześć"), "Cześć.")
+        self.assertEqual(b.reply("kuba", "cześć"), "Cześć.")
+        self.assertEqual([bool(c) for c in calls], [True, False, False])   # asked once, then stopped offering
 
 
 if __name__ == "__main__":

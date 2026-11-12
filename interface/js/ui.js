@@ -21,7 +21,7 @@ const changedAt = new Map();   // label -> performance.now()
 let flashTimer = 0;
 let quietUntil = 0;           // no glow while the panel fills in after start-up
 
-function cell(label, value, warn = false) {
+function cell(label, value, warn = false, flash = true) {
   const el = document.createElement('span');
   el.className = warn ? 'cell warn' : 'cell';
   const b = document.createElement('b');
@@ -29,7 +29,7 @@ function cell(label, value, warn = false) {
   el.append(b, value);
 
   const now = performance.now();
-  if (now > quietUntil && lastValue.has(label) && lastValue.get(label) !== value) changedAt.set(label, now);
+  if (flash && now > quietUntil && lastValue.has(label) && lastValue.get(label) !== value) changedAt.set(label, now);
   lastValue.set(label, value);
   const age = now - (changedAt.get(label) ?? -Infinity);
   if (age < FLASH_MS) {
@@ -102,7 +102,12 @@ function render(s, config) {
     }));
 
   const home = Object.keys(s.presence).filter((p) => s.presence[p]).join(' + ') || 'NIKOGO';
-  const vitals = [cell('W DOMU', home)];
+  const vitals = s.timers.map((t) => {
+    const left = Math.max(0, Math.round((t.endsAt - Date.now()) / 1000));
+    const clock = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+    return cell(`MINUTNIK${t.label ? ` ${t.label}` : ''}`, clock, left <= 10, false);   // a countdown always changes
+  });
+  vitals.push(cell('W DOMU', home));
   if (s.outdoor != null) vitals.push(cell('ZEWN.', `${num(s.outdoor, 1)}°`));
   if (s.co2 != null) vitals.push(cell('CO2', `${num(s.co2)} PPM`, s.co2 > 1200));
   if (s.battery != null) vitals.push(cell('BATERIA', `${num(s.battery)}%`, s.battery < 20));

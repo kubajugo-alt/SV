@@ -45,6 +45,11 @@ class FakeBrain:
 
     home = None
 
+    class own:
+        @staticmethod
+        def agenda():
+            return {"say": ["Minutnik: czas minął."], "timers": [], "reminders": []}
+
     def respond(self, person, text):
         if text == "boom":
             raise OSError("model down")
@@ -106,6 +111,12 @@ class Server(unittest.TestCase):
             self.assertEqual(self.request("/chat", bad)[0], 400, bad)
         self.assertEqual(self.request("/chat", b'{"text": "boom"}')[0], 502)
         self.assertEqual(self.request("/nothing", b"{}")[0], 404)
+
+    def test_agenda(self):
+        self.assertEqual(self.request("/agenda")[0], 503)
+        serve.brain = FakeBrain()
+        status, body = self.request("/agenda")
+        self.assertEqual((status, json.loads(body)), (200, {"say": ["Minutnik: czas minął."], "timers": [], "reminders": []}))
 
     def test_home_state_for_the_panel(self):
         self.assertEqual(self.request("/home")[0], 503)

@@ -9,6 +9,7 @@
   /tts?text=   speech for `text` as WAV, synthesised locally
   /stt         POST a recording (WAV) -> {"text": "..."}; local speech recognition
   /home        the flat's current state as JSON, for the panel (needs --ha-url)
+  /agenda      timers and reminders: lines that have come due, and what is still running
   /chat        POST {"text": "...", "person": "kuba"} -> {"reply": "...", "actions": [...]}
                conversation with the local language model, with memory (brain.py)
 
@@ -234,6 +235,10 @@ class Handler(SimpleHTTPRequestHandler):
         url = urlparse(self.path)
         if url.path == "/home":
             return self.do_home()
+        if url.path == "/agenda":
+            if brain is None:
+                return self.send_error(503, "No language model configured")
+            return self.send_json(brain.own.agenda())
         if url.path != "/tts":
             return super().do_GET()
         text = parse_qs(url.query).get("text", [""])[0].strip()

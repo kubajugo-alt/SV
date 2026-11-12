@@ -19,7 +19,11 @@ import re
 import sqlite3
 import threading
 import urllib.request
+import urllib.error
 import uuid
+
+from home import TOOLS as HOME_TOOLS
+from own import NAMES as OWN_NAMES, TOOLS as OWN_TOOLS, Own
 
 WINDOW_MAX = 24   # fold into notes once this many turns are waiting
 WINDOW_KEEP = 10  # turns left verbatim after folding
@@ -27,11 +31,15 @@ WINDOW_KEEP = 10  # turns left verbatim after folding
 MAX_TOOL_ROUNDS = 3
 
 # He must never claim an action or a reading that did not actually happen.
+OWN = ("Masz własne narzędzia: set_timer (minutnik), set_reminder (przypomnienie lub budzik), show_reminders, cancel_reminder, "
+       "edit_list (wspólne listy, domyślnie zakupy), remember i forget (rzeczy do zapamiętania na prośbę). "
+       "Gdy ktoś prosi o którąś z tych rzeczy, użyj narzędzia, zanim odpowiesz. "
+       "Mów, że coś zrobiłeś, tylko jeśli narzędzie odpowiedziało 'Wykonano'; gdy zwróci błąd, powiedz krótko, czego nie da się zrobić. "
+       "Zawartość list i aktywne przypomnienia podawaj wyłącznie z narzędzi, nigdy z pamięci.")
 NOT_CONNECTED = ("Sterowanie urządzeniami, czujniki, kamery i kalendarz nie są jeszcze podłączone. "
-                 "Nie twierdź, że coś włączyłeś, zmieniłeś lub odczytałeś — powiedz krótko, że jeszcze tego nie potrafisz.")
-CONNECTED = ("Masz narzędzia: set_light (światło), set_temperature (ogrzewanie) i get_home_state (stan mieszkania). "
+                 "Nie twierdź, że coś włączyłeś, zmieniłeś lub odczytałeś w mieszkaniu — powiedz krótko, że jeszcze tego nie potrafisz.")
+CONNECTED = ("Masz też narzędzia mieszkania: set_light (światło), set_temperature (ogrzewanie) i get_home_state (stan mieszkania). "
              "Gdy ktoś prosi o światło lub ogrzewanie albo pyta o stan mieszkania, użyj narzędzia, zanim odpowiesz. "
-             "Mów, że coś zrobiłeś, tylko jeśli narzędzie odpowiedziało 'Wykonano'; gdy zwróci błąd, powiedz krótko, czego nie da się zrobić. "
              "Temperatury i stan świateł podawaj wyłącznie z get_home_state, nigdy z pamięci. "
              "Drzwi, zamki, kamery i kalendarz nie są podłączone.")
 
@@ -105,6 +113,9 @@ class Brain:
         self.folding = threading.Lock()  # one notes rewrite at a time
         self.inline_system = inline_system
         self.home = home  # home.Home, or None while the flat is not connected
+        self.own = Own(self.memory)
+        self.tools = OWN_TOOLS + (HOME_TOOLS if home else [])
+        self.tools_work = True  # cleared if the model server turns out not to accept tools
         self.name = f"{model} at {llm_url}"
 
     def chat(self, messages, max_tokens, temperature, tools=None):
@@ -128,8 +139,6 @@ class Brain:
         Ollama turns that into proper tool_calls, some other servers pass it
         through as the answer. Recognise it rather than have ALAN read it aloud.
         """
-        from home import TOOLS
-
         text = (content or "").strip().removeprefix("[TOOL_CALLS]").strip()
         if not text.startswith("["):
             return []
@@ -137,7 +146,7 @@ class Brain:
             items = json.loads(text)
         except ValueError:
             return []
-        known = {t["function"]["name"] for t in TOOLS}
+        known = {t["function"]["name"] for t in OWN_TOOLS + HOME_TOOLS}
         if not isinstance(items, list) or not items or not all(
                 isinstance(i, dict) and i.get("name") in known for i in items):
             return []
@@ -145,30 +154,43 @@ class Brain:
                  "function": {"name": i["name"], "arguments": json.dumps(i.get("arguments") or {})}}
                 for i in items]
 
-    def converse(self, messages):
+    def run_tool(self, person, name, arguments):
+        if name in OWN_NAMES:
+            return self.own.call(person, name, arguments)
+        if self.home:
+            return self.home.call(name, arguments)
+        return f"Błąd: nie ma narzędzia {name}."
+
+    def converse(self, person, messages):
         """Let the model use its tools -> (what it finally says, what it did)."""
         actions = []
-        if not self.home:
-            return self.complete(messages, max_tokens=220, temperature=0.6), actions
-        from home import TOOLS
-
         messages = list(messages)
         for _ in range(MAX_TOOL_ROUNDS):
-            message = self.chat(messages, max_tokens=300, temperature=0.4, tools=TOOLS)
+            if not self.tools_work:
+                break
+            try:
+                message = self.chat(messages, max_tokens=300, temperature=0.5, tools=self.tools)
+            except urllib.error.HTTPError as err:
+                if err.code != 400 or actions:
+                    raise
+                # e.g. an Ollama model without tool support: carry on as plain conversation
+                print("The model server refused tools; ALAN will only talk.", flush=True)
+                self.tools_work = False
+                break
             calls = message.get("tool_calls") or self.written_calls(message.get("content"))
             if not calls:
                 return (message.get("content") or "").strip(), actions
             said = "" if not message.get("tool_calls") else message.get("content") or ""  # written calls are not speech
             messages.append({"role": "assistant", "content": said, "tool_calls": calls})
             for call in calls:
-                result = self.home.call(call["function"]["name"], call["function"].get("arguments"))
-                print(f"Tool: {call['function']['name']}({call['function'].get('arguments')}) -> {result}", flush=True)
+                name = call["function"]["name"]
+                result = self.run_tool(person, name, call["function"].get("arguments"))
+                print(f"Tool: {name}({call['function'].get('arguments')}) -> {result}", flush=True)
                 messages.append({"role": "tool", "tool_call_id": call.get("id", ""), "content": result})
-                if call["function"]["name"] != "get_home_state":   # reading is not a change
-                    done = result.startswith("Wykonano")
-                    actions.append({"ok": done, "text": result.split(": ", 1)[-1].rstrip(".")})
-        # Still calling tools after several rounds: make it answer with what it has.
-        return self.complete(messages, max_tokens=220, temperature=0.4), actions
+                if result.startswith(("Wykonano", "Błąd")):   # reading something is not a change
+                    actions.append({"ok": result.startswith("Wykonano"), "text": result.split(": ", 1)[-1].rstrip(".")})
+        # No tools available, or still calling them after several rounds: just answer.
+        return self.complete(messages, max_tokens=220, temperature=0.5), actions
 
     def system(self, person, notes):
         now = datetime.datetime.now()
@@ -179,8 +201,11 @@ class Brain:
             "── TERAZ ──",
             f"Jest {DAYS[now.weekday()]}, {now:%d.%m.%Y}, godzina {now:%H:%M}. Rozmawiasz z: {person.capitalize()}.",
             f"Najbliższe dni: {ahead}. Daty bierz z tej listy, nie licz ich samodzielnie.",
+            OWN,
             CONNECTED if self.home else NOT_CONNECTED,
         ]
+        if facts := self.own.facts(person):
+            parts += [f"── ZAPAMIĘTANE NA PROŚBĘ ({person.upper()}) ──", "\n".join(f"- {f}" for f in facts)]
         if notes:
             parts += [f"── PAMIĘĆ: CO WIESZ O {person.upper()} Z WCZEŚNIEJSZYCH ROZMÓW ──", notes]
         return "\n".join(parts)
@@ -200,7 +225,7 @@ class Brain:
             messages = history + [{"role": "user", "content": f"{system}\n\n── WIADOMOŚĆ OD {person.upper()} ──\n{text}"}]
         else:
             messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
-        said, actions = self.converse(messages)
+        said, actions = self.converse(person, messages)
         answer = self.clean(said)
         if not answer:
             raise RuntimeError("the model returned an empty answer")
