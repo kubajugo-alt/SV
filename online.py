@@ -86,6 +86,7 @@ class Online:
         with self.lock, self.db:
             self.db.execute("CREATE TABLE IF NOT EXISTS online_cache (key TEXT PRIMARY KEY, at TEXT NOT NULL, text TEXT NOT NULL)")
         self.name = ", ".join(self.enabled)
+        self.place = None   # where they are now, if not at home: {"where", "lat", "lon", "tz"} (set by the mind)
 
     @property
     def tools(self):
@@ -146,10 +147,12 @@ class Online:
 
     # --- sources ----------------------------------------------------------------
     def weather(self, query):
-        place = self.config["place"]
+        home = self.config["place"]
+        place = self.place or home
+        away = place["where"] != home["where"]
         data = json.loads(self.fetch(
             "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode({
-                "latitude": place["lat"], "longitude": place["lon"], "timezone": "Europe/Warsaw", "forecast_days": 4,
+                "latitude": place["lat"], "longitude": place["lon"], "timezone": place.get("tz", "Europe/Warsaw"), "forecast_days": 4,
                 "current": "temperature_2m,weather_code,wind_speed_10m",
                 "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,"
                          "precipitation_probability_max,wind_speed_10m_max"})))
@@ -167,7 +170,8 @@ class Online:
                 + (f"opady {num(rain, 1)} mm, " if rain else "bez opadów, ")
                 + f"szansa opadów {daily['precipitation_probability_max'][i] or 0}%, "
                 f"wiatr do {num(daily['wind_speed_10m_max'][i])} km/h.")
-        parts.append(self.warnings())
+        if not away:                       # the warnings are IMGW's, for the home district only
+            parts.append(self.warnings())
         return " ".join(parts)
 
     def warnings(self):

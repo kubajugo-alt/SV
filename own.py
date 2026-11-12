@@ -14,6 +14,8 @@ import json
 import re
 import unicodedata
 
+from past import stems
+
 MAX_TIMER_MINUTES = 24 * 60
 
 TOOLS = [
@@ -55,8 +57,55 @@ TOOLS = [
         "description": "Usuwa zapamiętane fakty dotyczące podanego tematu.",
         "parameters": {"type": "object", "required": ["about"], "properties": {
             "about": {"type": "string", "description": "słowo lub fraza, której dotyczy fakt"}}}}},
+    {"type": "function", "function": {
+        "name": "take_note",
+        "description": "Zapisuje notatkę rozmówcy: pomysł, myśl, rzecz do zrobienia, cokolwiek podyktuje ('zapisz', 'zanotuj', 'pomysł na...').",
+        "parameters": {"type": "object", "required": ["text"], "properties": {
+            "text": {"type": "string", "description": "treść notatki, pełnym zdaniem"}}}}},
+    {"type": "function", "function": {
+        "name": "find_notes",
+        "description": "Szuka w notatkach rozmówcy albo podaje ostatnie ('co zapisałem o...', 'moje notatki z tego tygodnia').",
+        "parameters": {"type": "object", "properties": {
+            "query": {"type": "string", "description": "czego dotyczą; puste = wszystkie z okresu"},
+            "days": {"type": "integer", "description": "z ilu ostatnich dni, domyślnie 30"}}}}},
+    {"type": "function", "function": {
+        "name": "recall_talk",
+        "description": "Szuka w dawnych rozmowach z rozmówcą, co kto kiedy powiedział ('mówiłem ci kiedyś o...', 'co ustaliliśmy w sprawie...').",
+        "parameters": {"type": "object", "required": ["query"], "properties": {
+            "query": {"type": "string", "description": "słowa kluczowe"}}}}},
+    {"type": "function", "function": {
+        "name": "set_place",
+        "description": "Zapisuje, w jakim mieście rozmówca teraz jest ('jestem w...', 'przyleciałem do...'), żeby pogoda dotyczyła tego miejsca.",
+        "parameters": {"type": "object", "required": ["place"], "properties": {
+            "place": {"type": "string", "description": "miasto w mianowniku, np. Las Palmas"}}}}},
+    {"type": "function", "function": {
+        "name": "reading_time",
+        "description": "Liczy, ile potrwa przeczytanie na głos podanego tekstu (scenariusz, lektor, rolka).",
+        "parameters": {"type": "object", "required": ["text"], "properties": {
+            "text": {"type": "string"}}}}},
 ]
 NAMES = {t["function"]["name"] for t in TOOLS}
+
+# Where the household is likely to be: name, locative ("w ..."), latitude, longitude, time zone.
+PLACES = {
+    "tarnobrzeg": ("Tarnobrzeg", "Tarnobrzegu", 50.573, 21.679, "Europe/Warsaw"),
+    "las palmas": ("Las Palmas de Gran Canaria", "Las Palmas", 28.124, -15.430, "Atlantic/Canary"),
+    "gran canaria": ("Las Palmas de Gran Canaria", "Las Palmas", 28.124, -15.430, "Atlantic/Canary"),
+    "miami": ("Miami", "Miami", 25.774, -80.194, "America/New_York"),
+    "barcelon": ("Barcelona", "Barcelonie", 41.385, 2.173, "Europe/Madrid"),
+    "davos": ("Davos", "Davos", 46.802, 9.836, "Europe/Zurich"),
+    "lizbon": ("Lizbona", "Lizbonie", 38.722, -9.139, "Europe/Lisbon"),
+    "warszaw": ("Warszawa", "Warszawie", 52.230, 21.011, "Europe/Warsaw"),
+    "krakow": ("Kraków", "Krakowie", 50.062, 19.938, "Europe/Warsaw"),
+    "sandomierz": ("Sandomierz", "Sandomierzu", 50.682, 21.749, "Europe/Warsaw"),
+    "londyn": ("Londyn", "Londynie", 51.507, -0.128, "Europe/London"),
+    "london": ("Londyn", "Londynie", 51.507, -0.128, "Europe/London"),
+    "santo domingo": ("Santo Domingo", "Santo Domingo", 18.486, -69.931, "America/Santo_Domingo"),
+    "nowy jork": ("Nowy Jork", "Nowym Jorku", 40.713, -74.006, "America/New_York"),
+    "singapur": ("Singapur", "Singapurze", 1.352, 103.820, "Asia/Singapore"),
+    "frankfurt": ("Frankfurt", "Frankfurcie", 50.110, 8.682, "Europe/Berlin"),
+}
+WORDS_PER_MINUTE = 140   # an unhurried Polish voice-over
 
 
 def plain(text):
@@ -104,6 +153,9 @@ class Own:
                     list TEXT NOT NULL, item TEXT NOT NULL, key TEXT NOT NULL, PRIMARY KEY (list, key));
                 CREATE TABLE IF NOT EXISTS facts (
                     id INTEGER PRIMARY KEY, person TEXT NOT NULL, text TEXT NOT NULL, at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS jottings (
+                    id INTEGER PRIMARY KEY, person TEXT NOT NULL, text TEXT NOT NULL, at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             """)
 
     def call(self, person, name, arguments):
@@ -223,3 +275,64 @@ class Own:
     def facts(self, person):
         with self.lock:
             return [r[0] for r in self.db.execute("SELECT text FROM facts WHERE person = ? ORDER BY id", (person,))]
+
+    # --- notes dictated to him --------------------------------------------------
+    def take_note(self, person, text):
+        text = str(text).strip()
+        if not text:
+            return "Błąd: nie podano treści notatki."
+        with self.lock, self.db:
+            self.db.execute("INSERT INTO jottings (person, text, at) VALUES (?, ?, ?)",
+                            (person, text, self.now().isoformat(timespec="seconds")))
+        return f"Wykonano: zapisano notatkę: {text}"
+
+    def find_notes(self, person, query="", days=30):
+        since = (self.now() - datetime.timedelta(days=max(1, int(days or 30)))).isoformat(timespec="seconds")
+        with self.lock:
+            rows = self.db.execute("SELECT text, at FROM jottings WHERE person = ? AND at >= ? ORDER BY id DESC", (person, since)).fetchall()
+        wanted = set(stems(str(query or "")))
+        if wanted:
+            rows = [r for r in rows if wanted & set(stems(r[0]))]
+        if not rows:
+            return "Nie ma takich notatek." if wanted else "Nie ma notatek z tego okresu."
+        return "Notatki: " + " ".join(f"[{at[8:10]}.{at[5:7]}] {text}" + ("" if text.endswith((".", "!", "?")) else ".") for text, at in rows[:12])
+
+    # --- what was said in earlier conversations ---------------------------------------
+    def recall_talk(self, person, query):
+        wanted = set(stems(str(query or "")))
+        if not wanted:
+            return "Błąd: podaj, czego szukać w dawnych rozmowach."
+        with self.lock:
+            rows = self.db.execute("SELECT role, text, at FROM turns WHERE person = ? ORDER BY id", (person,)).fetchall()
+        scored = sorted(((len(wanted & set(stems(text))), at, role, text) for role, text, at in rows), reverse=True)
+        hits = [h for h in scored if h[0] >= max(1, min(2, len(wanted)))][:5]
+        if not hits:
+            return "W dawnych rozmowach nic o tym nie ma."
+        who = {"user": person.capitalize(), "assistant": "ty"}
+        return "Z dawnych rozmów: " + " ".join(
+            f"[{at[8:10]}.{at[5:7]}.{at[:4]}] {who.get(role, role)}: {text[:300]}" for _, at, role, text in sorted(hits, key=lambda h: h[1]))
+
+    # --- where the household is -------------------------------------------------------
+    def set_place(self, person, place):
+        key = plain(place)
+        found = next((v for k, v in PLACES.items() if k in key), None)
+        if not found:
+            return (f"Błąd: nie znam współrzędnych miejsca '{place}'. Znam: "
+                    + ", ".join(sorted({v[0] for v in PLACES.values()})) + ".")
+        with self.lock, self.db:
+            self.db.execute("INSERT INTO settings (key, value) VALUES ('place', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                            (json.dumps(found, ensure_ascii=False),))
+        return f"Wykonano: zapisano, że jesteście teraz w {found[1]}."
+
+    def place(self):
+        """{"name", "where", "lat", "lon", "tz"} of where they are now, or None while it was never said."""
+        with self.lock:
+            row = self.db.execute("SELECT value FROM settings WHERE key = 'place'").fetchone()
+        return dict(zip(("name", "where", "lat", "lon", "tz"), json.loads(row[0]))) if row else None
+
+    # --- reading aloud --------------------------------------------------------------
+    def reading_time(self, person, text):
+        words = len(re.findall(r"\w+", str(text)))
+        if not words:
+            return "Błąd: nie podano tekstu."
+        return f"Tekst ma {words} słów; czytany spokojnie na głos potrwa około {span(round(words / WORDS_PER_MINUTE * 60 / 5) * 5)}."

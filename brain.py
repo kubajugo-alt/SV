@@ -25,6 +25,7 @@ import uuid
 from home import TOOLS as HOME_TOOLS
 from online import SOURCES, Online
 from own import NAMES as OWN_NAMES, TOOLS as OWN_TOOLS, Own
+from diary import TOOL as DIARY_TOOL
 from past import TOOL as PAST_TOOL, Past
 from wiki import TOOL as WIKI_TOOL
 
@@ -37,6 +38,7 @@ MAX_TOOL_ROUNDS = 3  # tool-calling rounds per turn (plus one nudge if it ramble
 # Mistral Nemo, any earlier request in view was sometimes carried out again a
 # turn late. The cost is that "and in the bedroom too" needs saying in full.
 DISPATCH_HISTORY = 0
+GETTING_TO_KNOW = 25      # for this many of a person's messages he still asks them about themselves
 
 # Words that claim an action. If no tool did anything this turn and he still
 # uses one (not negated), the reply is rejected: he must not say "the door is
@@ -56,6 +58,21 @@ Przeczytaj jego ostatnią wiadomość i zdecyduj:
 Odpowiadasz wyłącznie wywołaniem narzędzia albo słowem BRAK. Nigdy nie opisuj wywołania słowami i nie pisz nic więcej.
 Działasz tylko na ostatnią wiadomość; wcześniejsze są już obsłużone i służą jedynie do zrozumienia, o co chodzi.
 Nie zgaduj parametrów, których w wiadomości nie ma. Nie wywołuj narzędzia drugi raz, jeśli już zwróciło wynik."""
+
+BRIEFING_TOOL = {"type": "function", "function": {
+    "name": "briefing",
+    "description": "Odprawa na dziś: pogoda, kalendarz, przypomnienia i wiadomości naraz ('co dziś', 'plan dnia', 'odprawa', 'co mnie czeka').",
+    "parameters": {"type": "object", "properties": {}}}}
+
+# What he is asked to do when he speaks unprompted.
+NUDGES = {
+    "morning": "To wasze pierwsze spotkanie dzisiaj. Przywitaj {person} po swojemu i w dwóch, trzech zdaniach podaj odprawę na podstawie "
+               "wyników narzędzi: tylko to, co dziś ważne.",
+    "idle": "Od dłuższej chwili panuje cisza. Zagadnij {person} sam z siebie jednym, najwyżej dwoma krótkimi zdaniami: zaczepka, pytanie "
+            "albo uwaga nawiązująca do pory dnia, do tego, co o nim wiesz, albo do waszych wcześniejszych rozmów. "
+            "Nie pytaj, czy możesz w czymś pomóc, i nie powtarzaj tego, czym zagadnąłeś ostatnio.",
+    "evening": "Jest wieczór. Zapytaj {person} jednym zdaniem, jak minął dzień, albo skomentuj go po swojemu.",
+}
 
 DAYS = ["poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela"]
 
@@ -97,6 +114,11 @@ class Memory:
             self.db.execute("INSERT INTO turns (person, role, text, at) VALUES (?, ?, ?, ?)",
                             (person, role, text, datetime.datetime.now().isoformat(timespec="seconds")))
 
+    def count(self, person):
+        """How many things this person has ever said to him."""
+        with self.lock:
+            return self.db.execute("SELECT COUNT(*) FROM turns WHERE person = ? AND role = 'user'", (person,)).fetchone()[0]
+
     def notes(self, person):
         """(notes text, id of the last turn they cover)"""
         with self.lock:
@@ -118,7 +140,7 @@ class Memory:
 
 
 class Brain:
-    def __init__(self, llm_url, model, prompt_path, db_path, inline_system=False, home=None, online=(), wiki=None):
+    def __init__(self, llm_url, model, prompt_path, db_path, inline_system=False, home=None, online=(), wiki=None, diary=None):
         self.url = llm_url.rstrip("/") + "/v1/chat/completions"
         self.model = model
         with open(prompt_path, encoding="utf-8") as f:
@@ -137,8 +159,10 @@ class Brain:
         # His own life, if the memories file is there (next to the prompt).
         memories = os.path.join(os.path.dirname(os.path.abspath(prompt_path)), "memories.pl.md")
         self.past = Past(memories) if os.path.isfile(memories) else None
+        self.diary = diary  # diary.Diary, or None without calendars
         self.tools = (OWN_TOOLS + (HOME_TOOLS if home else []) + (self.online.tools if self.online else [])
-                      + ([WIKI_TOOL] if wiki else []) + ([PAST_TOOL] if self.past else []))
+                      + ([WIKI_TOOL] if wiki else []) + ([PAST_TOOL] if self.past else [])
+                      + ([DIARY_TOOL] if diary else []) + [BRIEFING_TOOL])
         self.tools_work = True  # cleared if the model server turns out not to accept tools
         self.name = f"{model} at {llm_url}"
 
@@ -170,7 +194,7 @@ class Brain:
             items = json.loads(text)
         except ValueError:
             return []
-        known = {t["function"]["name"] for t in OWN_TOOLS + HOME_TOOLS} | {"check_online", "look_up", "recall_past"}
+        known = {t["function"]["name"] for t in OWN_TOOLS + HOME_TOOLS} | {"check_online", "look_up", "recall_past", "calendar", "briefing"}
         if not isinstance(items, list) or not items or not all(
                 isinstance(i, dict) and i.get("name") in known for i in items):
             return []
@@ -182,7 +206,12 @@ class Brain:
         if name in OWN_NAMES:
             return self.own.call(person, name, arguments)
         if name == "check_online" and self.online:
+            self.online.place = self.own.place()
             return self.online.call(name, arguments)
+        if name == "calendar" and self.diary:
+            return self.diary.call(name, json.loads(arguments) if isinstance(arguments, str) else (arguments or {}))
+        if name == "briefing":
+            return self.briefing(person)
         if name == "look_up" and self.wiki:
             return self.wiki.call(name, arguments)
         if name == "recall_past" and self.past:
@@ -190,6 +219,48 @@ class Brain:
         if self.home:
             return self.home.call(name, arguments)
         return f"Błąd: nie ma narzędzia {name}."
+
+    def agenda(self):
+        """For the page: what to say now (timers, reminders, a meeting about to start) and what is running."""
+        out = self.own.agenda()
+        if self.diary:
+            try:
+                out["say"] += self.diary.soon()
+            except Exception as err:   # a broken calendar must not stop the timers
+                print(f"Calendar check failed: {err!r}", flush=True)
+        out["flat"] = bool(self.home)
+        return out
+
+    def briefing(self, person):
+        """Everything for the day in one result: weather where they are, the calendar, reminders, headlines."""
+        parts = []
+        if self.online and "weather" in self.online.enabled:
+            self.online.place = self.own.place()
+            weather = self.online.call("check_online", {"source": "weather"})
+            parts.append(" ".join(re.split(r"(?<=\.) (?=Jutro|Pojutrze)", weather)[:2]) if not weather.startswith("Błąd") else weather)
+        if self.diary:
+            parts.append(self.diary.calendar("dziś"))
+        parts.append(self.own.show_reminders(person))
+        if self.online and "news" in self.online.enabled:
+            parts.append(self.online.call("check_online", {"source": "news"}))
+        return "Odprawa na dziś. " + " ".join(parts)
+
+    def nudge(self, person, kind):
+        """He speaks first: a greeting with the day's briefing, a remark after a long silence, an evening question.
+
+        -> {"reply": text} ("" when he should stay quiet). Nothing is stored as said by the person.
+        """
+        if kind not in NUDGES or (self.diary and self.diary.busy()):
+            return {"reply": ""}
+        notes, _ = self.memory.notes(person)
+        history = [{"role": role, "content": content} for _, role, content, _ in self.memory.recent(person)]
+        results = [self.briefing(person)] if kind == "morning" else []
+        said = f"[To nie jest wiadomość od domownika. {NUDGES[kind].format(person=person.capitalize())}]"
+        answer = self.clean(self.complete(self.frame(self.system(person, notes, results), history, said, person),
+                                          max_tokens=220 if results else 90, temperature=0.8))
+        if answer:
+            self.memory.add(person, "assistant", answer)
+        return {"reply": answer}
 
     def frame(self, system, history, text, person):
         """System text + past turns + the new message, in the shape the runtime needs."""
@@ -267,7 +338,9 @@ class Brain:
         now = datetime.datetime.now()
         # Small models get date arithmetic wrong; give them the calendar to read from.
         ahead = ", ".join(f"{DAYS[d.weekday()]} {d:%d.%m}" for d in (now + datetime.timedelta(days=i) for i in range(1, 15)))
-        return (f"Jest {DAYS[now.weekday()]}, {now:%d.%m.%Y}, godzina {now:%H:%M}. Rozmawiasz z: {person.capitalize()}.\n"
+        place = self.own.place()
+        where = f" Jesteście teraz w: {place['name']}." if place else ""
+        return (f"Jest {DAYS[now.weekday()]}, {now:%d.%m.%Y}, godzina {now:%H:%M}. Rozmawiasz z: {person.capitalize()}.{where}\n"
                 f"Najbliższe dni: {ahead}. Daty bierz z tej listy, nie licz ich samodzielnie.")
 
     def household(self):
@@ -284,6 +357,17 @@ class Brain:
         if household := self.household():
             parts += ["── DOMOWNICY: CO O NICH WIESZ ──", household,
                       "Korzystaj z tej wiedzy naturalnie, bez recytowania. Spraw jednego domownika nie opowiadaj gościom."]
+        if not self.home:
+            parts += ["── GDZIE TERAZ MIESZKASZ ──",
+                      "Na razie mieszkasz w laptopie, nie w mieszkaniu: nie masz czujników, kamer, głośników w pokojach ani urządzeń. "
+                      "Zasady o mieszkaniu, powietrzu, drzwiach, kurierach i gościach opisują przyszłość. Dziś niczego nie mierzysz "
+                      "i niczym nie sterujesz, i nie udajesz, że jest inaczej. Jesteś towarzyszem przy pracy i w podróży: rozmowa, "
+                      "pamięć, notatki, przypomnienia, plan dnia, sprawdzanie faktów."]
+        if self.memory.count(person) < GETTING_TO_KNOW:
+            parts += ["── POZNAWANIE ──",
+                      f"Dopiero poznajesz {person.capitalize()}. Gdy rozmowa na to pozwala, dorzuć na końcu jedno krótkie pytanie o niego "
+                      "(praca, rytm dnia, jedzenie, co lubi, co go teraz zajmuje), o coś, czego jeszcze nie wiesz. Jedno pytanie, "
+                      "nie w każdej wypowiedzi, nigdy przy krótkich poleceniach. Przy pierwszej rozmowie przedstaw się po swojemu."]
         parts += ["── TERAZ ──", self.moment(person), self.abilities()]
         if facts := self.own.facts(person):
             parts += [f"── ZAPAMIĘTANE NA PROŚBĘ ({person.upper()}) ──", "\n".join(f"- {f}" for f in facts)]
@@ -297,8 +381,13 @@ class Brain:
         return "\n".join(parts)
 
     def abilities(self):
-        can = ["minutnik, przypomnienia i budzik, wspólne listy (np. zakupy), zapamiętywanie na prośbę"]
-        cannot = ["drzwi, zamki, kamery, kalendarz"]
+        can = ["minutnik, przypomnienia i budzik, wspólne listy (np. zakupy), zapamiętywanie na prośbę, notatki dyktowane i ich "
+               "wyszukiwanie, szukanie w dawnych rozmowach, odprawa na dziś, liczenie czasu czytania tekstu"]
+        cannot = ["drzwi, zamki, kamery"]
+        if self.diary:
+            can.append("odczyt kalendarza (bez dopisywania)")
+        else:
+            cannot.append("kalendarz (nie jest podłączony)")
         if self.home:
             can.append("światło, ogrzewanie i odczyt stanu mieszkania")
         else:

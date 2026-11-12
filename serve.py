@@ -343,7 +343,7 @@ class Handler(SimpleHTTPRequestHandler):
         if url.path == "/agenda":
             if brain is None:
                 return self.send_error(503, "No language model configured")
-            return self.send_json(brain.own.agenda())
+            return self.send_json(brain.agenda() if hasattr(brain, "agenda") else brain.own.agenda())
         if url.path != "/tts":
             return super().do_GET()
         text = parse_qs(url.query).get("text", [""])[0].strip()
@@ -407,14 +407,15 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_error(503, "No language model configured")
         try:
             body = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length", 0)), 16384)))
-            text = str(body["text"]).strip()
+            nudge = str(body.get("nudge", ""))            # he speaks first: morning | idle | evening
+            text = "" if nudge else str(body["text"]).strip()
             person = str(body.get("person", "kuba")).lower()
-            if not text or len(text) > 2000 or not re.fullmatch(r"[a-ząćęłńóśźż]{1,24}", person):
+            if (not text and not nudge) or len(text) > 2000 or not re.fullmatch(r"[a-ząćęłńóśźż]{1,24}", person):
                 raise ValueError
         except (ValueError, KeyError, TypeError):
             return self.send_error(400, "Expected JSON with text (1-2000 chars) and an optional person name")
         try:
-            answer = brain.respond(person, text)
+            answer = brain.nudge(person, nudge) if nudge else brain.respond(person, text)
         except Exception as err:  # model not running, timed out, …
             print(f"Chat failed: {err!r}", file=sys.stderr)
             return self.send_error(502, "The language model did not answer")
@@ -457,6 +458,8 @@ def main():
     ap.add_argument("--online", default=os.environ.get("ALAN_ONLINE", ""), metavar="SOURCES",
                     help="outside sources ALAN may consult, comma-separated: weather, air, rates, wiki, news, parcel, or 'all'. "
                          "Default: none — he stays offline")
+    ap.add_argument("--calendar", action="append", default=[], metavar="ICS",
+                    help="a calendar to read: an .ics file or its https address (repeatable); default: the lines of kalendarze.txt in the data folder")
     ap.add_argument("--wiki", default=os.environ.get("ALAN_WIKI", ""), metavar="FILE.zim",
                     help="offline Wikipedia (a Kiwix .zim archive) he may look facts up in; default: the newest .zim in the data folder")
     ap.add_argument("--data", default=os.path.join(HERE, "data"), help="folder for ALAN's memory (default %(default)s)")
@@ -505,8 +508,20 @@ def main():
                 wiki = Encyclopedia(os.path.expanduser(archive))
             except Exception as err:  # a missing library or a broken download must not stop him talking
                 print(f"Encyclopedia not loaded ({archive}): {err!r}", file=sys.stderr)
+        calendars = list(args.calendar)
+        try:
+            with open(os.path.join(args.data, "kalendarze.txt"), encoding="utf-8") as f:
+                calendars += f.read().splitlines()
+        except OSError:
+            pass
+        diary = None
+        if any(c.strip() and not c.strip().startswith("#") for c in calendars):
+            from diary import Diary
+
+            diary = Diary(calendars)
         brain = Brain(args.llm_url, args.llm_model, os.path.join(HERE, "prompts", "system.pl.txt"),
-                      os.path.join(args.data, "alan.db"), args.llm_inline_system, home, online, wiki)
+                      os.path.join(args.data, "alan.db"), args.llm_inline_system, home, online, wiki, diary)
+        print(f"Calendar: {diary.name if diary else 'none (no kalendarze.txt in the data folder)'}", flush=True)
         print(f"Mind: {brain.name}", flush=True)
         print(f"Encyclopedia: {wiki.name if wiki else 'none (no .zim archive in the data folder)'}", flush=True)
         print(f"Hands: {home.name if home else 'none (no --ha-url)'}", flush=True)
