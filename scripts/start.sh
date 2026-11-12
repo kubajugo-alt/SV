@@ -9,14 +9,18 @@ cd "$REPO"
 # alone are longer: the start of them (who he is) would be cut off and he would
 # answer like a stock assistant. "alan-nemo" is mistral-nemo with a window that fits.
 BASE="${ALAN_LLM_BASE:-mistral-nemo}"
-if [ -z "${ALAN_LLM_MODEL:-}" ] && command -v ollama >/dev/null && ollama list 2>/dev/null | grep -q "^$BASE"; then
-  if ! ollama list | grep -q "^alan-nemo"; then
-    TMP="$(mktemp)"
-    printf 'FROM %s\nPARAMETER num_ctx 8192\n' "$BASE" > "$TMP"
-    ollama create alan-nemo -f "$TMP" >/dev/null && echo "Utworzono model alan-nemo (mistral-nemo z większym kontekstem)."
-    rm -f "$TMP"
+if [ -z "${ALAN_LLM_MODEL:-}" ] && command -v ollama >/dev/null; then
+  MODELS="$(ollama list 2>/dev/null || true)"     # read once: piping it into grep -q can fail under pipefail
+  if grep -q "^$BASE" <<<"$MODELS"; then
+    if ! grep -q "^alan-nemo" <<<"$MODELS"; then
+      TMP="$(mktemp)"
+      printf 'FROM %s\nPARAMETER num_ctx 8192\n' "$BASE" > "$TMP"
+      ollama create alan-nemo -f "$TMP" >/dev/null 2>&1 && echo "Utworzono model alan-nemo (mistral-nemo z większym kontekstem)."
+      rm -f "$TMP"
+      MODELS="$(ollama list 2>/dev/null || true)"
+    fi
+    if grep -q "^alan-nemo" <<<"$MODELS"; then export ALAN_LLM_MODEL=alan-nemo; fi
   fi
-  ollama list | grep -q "^alan-nemo" && export ALAN_LLM_MODEL=alan-nemo
 fi
 
 # With an ElevenLabs key on this machine he speaks with the games' voice from the cloud
