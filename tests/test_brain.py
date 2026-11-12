@@ -78,7 +78,7 @@ class Memory(unittest.TestCase):
         make(self.tmp, model, inline_system=True).reply("kuba", "halo")
         sent = model.spoken[0]["messages"]
         self.assertEqual([m["role"] for m in sent], ["user"])
-        self.assertIn("Jesteś ALAN", sent[0]["content"])
+        self.assertIn("Jesteś Alan Sanches", sent[0]["content"])
         self.assertTrue(sent[0]["content"].endswith("── WIADOMOŚĆ OD KUBA ──\nhalo"))
 
     def test_context_carries_date_and_calendar(self):
