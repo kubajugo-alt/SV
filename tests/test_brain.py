@@ -73,6 +73,16 @@ class Memory(unittest.TestCase):
         b = make(self.tmp, ScriptedModel({"content": "ALAN: **Dobrze.**\n\n  Zrobione."}))
         self.assertEqual(b.reply("kuba", "x"), "Dobrze. Zrobione.")
 
+    def test_household_file_is_part_of_what_he_knows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            b = brain.Brain("http://unused", "test", PROMPT, os.path.join(tmp, "alan.db"))
+            self.assertNotIn("DOMOWNICY: CO O NICH WIESZ", b.system("Kuba", ""))
+            with open(os.path.join(tmp, "domownicy.md"), "w", encoding="utf-8") as f:
+                f.write("# notatka dla edytującego\nHubert:\n- pije herbatę, nie kawę\n")
+            text = b.system("Kuba", "")                    # read afresh: no restart needed
+            self.assertIn("pije herbatę", text)
+            self.assertNotIn("notatka dla edytującego", text)
+
     def test_inline_system_puts_instructions_in_the_user_message(self):
         model = ScriptedModel({"content": "ok"})
         make(self.tmp, model, inline_system=True).reply("kuba", "halo")

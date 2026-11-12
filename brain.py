@@ -124,6 +124,8 @@ class Brain:
         with open(prompt_path, encoding="utf-8") as f:
             self.prompt = f.read().strip()
         self.memory = Memory(db_path)
+        # What he is told about the household up front: a private file beside his memory, never in the repository.
+        self.household_path = os.path.join(os.path.dirname(os.path.abspath(db_path)), "domownicy.md")
         self.folding = threading.Lock()  # one notes rewrite at a time
         self.inline_system = inline_system
         self.home = home  # home.Home, or None while the flat is not connected
@@ -268,9 +270,21 @@ class Brain:
         return (f"Jest {DAYS[now.weekday()]}, {now:%d.%m.%Y}, godzina {now:%H:%M}. Rozmawiasz z: {person.capitalize()}.\n"
                 f"Najbliższe dni: {ahead}. Daty bierz z tej listy, nie licz ich samodzielnie.")
 
+    def household(self):
+        """The household file, read afresh each time so edits take effect without a restart; lines starting with # are notes to the editor."""
+        try:
+            with open(self.household_path, encoding="utf-8") as f:
+                return "\n".join(line.rstrip() for line in f if line.strip() and not line.startswith("#"))[:6000]
+        except OSError:
+            return ""
+
     def system(self, person, notes, results=None):
         """ALAN's character, what he knows, and — decisive for honesty — what the tools did this turn."""
-        parts = [self.prompt, "── TERAZ ──", self.moment(person), self.abilities()]
+        parts = [self.prompt]
+        if household := self.household():
+            parts += ["── DOMOWNICY: CO O NICH WIESZ ──", household,
+                      "Korzystaj z tej wiedzy naturalnie, bez recytowania. Spraw jednego domownika nie opowiadaj gościom."]
+        parts += ["── TERAZ ──", self.moment(person), self.abilities()]
         if facts := self.own.facts(person):
             parts += [f"── ZAPAMIĘTANE NA PROŚBĘ ({person.upper()}) ──", "\n".join(f"- {f}" for f in facts)]
         if notes:
