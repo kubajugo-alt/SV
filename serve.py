@@ -28,7 +28,10 @@ import io
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 import threading
 import wave
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -40,6 +43,7 @@ MAX_CHARS = 1000
 MAX_AUDIO = 10 * 1024 * 1024
 
 engine = None
+rhubarb = ""         # path of the Rhubarb Lip Sync binary, if there is one
 brain = None
 ears = None
 lock = threading.Lock()  # neither engine is safe to call from two threads at once
@@ -224,10 +228,40 @@ class Whisper:
             return " ".join(s.text.strip() for s in segments).strip()
 
 
+def mouth_cues(audio: bytes) -> str:
+    """Rhubarb Lip Sync's mouth shapes for a WAV, as compact JSON [[start s, shape], ...]; "" without Rhubarb.
+
+    The phonetic recogniser is used because it works for any language; the basic
+    shapes A-F are the ones painted for ALAN's face.
+    """
+    if not rhubarb:
+        return ""
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "line.wav")
+            with open(path, "wb") as f:
+                f.write(audio)
+            out = subprocess.run([rhubarb, "-q", "-f", "json", "-r", "phonetic", "--extendedShapes", "", path],
+                                 capture_output=True, text=True, timeout=30, check=True).stdout
+        cues = [[round(c["start"], 2), c["value"]] for c in json.loads(out)["mouthCues"]]
+        return json.dumps(cues, separators=(",", ":"))
+    except Exception as err:  # the mouth falls back to following loudness
+        print(f"Rhubarb failed: {err!r}", file=sys.stderr)
+        return ""
+
+
+def find_rhubarb(path: str) -> str:
+    for candidate in (path, os.path.join(HERE, "vendor", "rhubarb", "rhubarb"), shutil.which("rhubarb")):
+        if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return ""
+
+
 @functools.lru_cache(maxsize=256)  # repeated lines (greetings, confirmations) are instant
-def synthesise(text: str) -> bytes:
+def synthesise(text: str) -> tuple[bytes, str]:
     with lock:
-        return engine.wav(text)
+        audio = engine.wav(text)
+    return audio, mouth_cues(audio)
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -247,13 +281,15 @@ class Handler(SimpleHTTPRequestHandler):
         if not text or len(text) > MAX_CHARS:
             return self.send_error(400, f"text must be 1-{MAX_CHARS} characters")
         try:
-            audio = synthesise(text)
+            audio, cues = synthesise(text)
         except Exception as err:  # a failed line must not take the page down
             print(f"TTS failed: {err!r}", file=sys.stderr)
             return self.send_error(500, "Synthesis failed")
         self.send_response(200)
         self.send_header("Content-Type", "audio/wav")
         self.send_header("Content-Length", str(len(audio)))
+        if cues:
+            self.send_header("X-Mouth-Cues", cues)
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(audio)
@@ -319,7 +355,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
-    global engine, brain, ears
+    global engine, brain, ears, rhubarb
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--engine", choices=["chatterbox", "piper", "none"], default=os.environ.get("ALAN_ENGINE", "chatterbox"))
     ap.add_argument("--voice", default=os.environ.get("ALAN_VOICE"),
@@ -330,6 +366,8 @@ def main():
     ap.add_argument("--cfg-weight", type=float, default=0.5, help="chatterbox pacing/adherence, 0-1 (default %(default)s)")
     ap.add_argument("--pitch", type=float, default=0.0, help="piper only: semitones to shift the voice, negative is deeper")
     ap.add_argument("--warm", action="append", default=[], metavar="TEXT", help="line to synthesise at startup so it is instant later (repeatable)")
+    ap.add_argument("--rhubarb", default=os.environ.get("ALAN_RHUBARB", ""),
+                    help="path of the Rhubarb Lip Sync binary for mouth shapes (default: vendor/rhubarb/rhubarb or PATH; without it the mouth follows loudness)")
     ap.add_argument("--stt-model", default=os.environ.get("ALAN_STT_MODEL", "medium"),
                     help="faster-whisper model for the microphone: tiny, base, small, medium, large-v3; 'none' disables (default %(default)s)")
     ap.add_argument("--llm-url", default=os.environ.get("ALAN_LLM_URL", "http://127.0.0.1:11434"),
@@ -381,6 +419,8 @@ def main():
         print(f"Mind: {brain.name}", flush=True)
         print(f"Hands: {home.name if home else 'none (no --ha-url)'}", flush=True)
         print(f"Outside: {brain.online.name if brain.online else 'nothing (no --online)'}", flush=True)
+    rhubarb = find_rhubarb(args.rhubarb)
+    print(f"Mouth: {'Rhubarb Lip Sync (' + rhubarb + ')' if rhubarb else 'follows loudness (no Rhubarb found)'}", flush=True)
     for line in args.warm:
         synthesise(line)
 

@@ -1,4 +1,5 @@
-// ALAN's voice, and the level that moves his mouth.
+// ALAN's voice, and what moves his mouth: Rhubarb cues when the server sends
+// them with the audio, and always the live level of the sound.
 //
 // Preferred path: play real speech audio (a URL from the feed, or the local
 // TTS endpoint) through an analyser, so the mouth follows the exact sound
@@ -41,6 +42,7 @@ function begin(text, duration) {
 
 function finish() {
   signal.level = 0;
+  signal.mouth = null;
   store.set({ speakingUntil: 0 }); // re-render: back to the feed's state
 }
 
@@ -49,10 +51,12 @@ async function fetchAudio(url) {
   if (ac.state !== 'running') throw new Error('audio is locked until the page is clicked');
   const res = await fetch(url);
   if (!res.ok) throw Object.assign(new Error(`${res.status} from ${url}`), { status: res.status });
-  return ac.decodeAudioData(await res.arrayBuffer());
+  let cues = null;                       // [[start s, shape], ...] from Rhubarb Lip Sync, if the server has it
+  try { cues = JSON.parse(res.headers.get('X-Mouth-Cues') || 'null'); } catch { /* go by loudness */ }
+  return { buffer: await ac.decodeAudioData(await res.arrayBuffer()), cues };
 }
 
-function playAudio(text, buffer, radio) {
+function playAudio(text, buffer, radio, cues) {
   const analyser = ctx.createAnalyser();
   analyser.fftSize = 1024;
   source = ctx.createBufferSource();
@@ -72,16 +76,23 @@ function playAudio(text, buffer, radio) {
   analyser.connect(ctx.destination);
 
   const samples = new Float32Array(analyser.fftSize);
+  let startedAt = 0;
+  let next = 0;
   const tick = () => {
     analyser.getFloatTimeDomainData(samples);
     let sum = 0;
     for (const s of samples) sum += s * s;
     signal.level = Math.min(1, Math.sqrt(sum / samples.length) * 4); // speech RMS sits around 0.05–0.25
+    if (cues?.length) {
+      const at = ctx.currentTime - startedAt;
+      while (next < cues.length && cues[next][0] <= at) signal.mouth = cues[next++][1];
+    }
     raf = requestAnimationFrame(tick);
   };
   source.onended = () => { stop(); finish(); };
   begin(text, buffer.duration * 1000);
   source.start();
+  startedAt = ctx.currentTime;
   raf = requestAnimationFrame(tick);
   return buffer.duration * 1000;
 }
@@ -131,10 +142,10 @@ export async function say({ text = '', audio, envelope, rate = 50, radio = false
   if (url) {
     try {
       store.set({ preparing: true });    // a heavy voice engine can take seconds
-      const buffer = await fetchAudio(url);
+      const { buffer, cues } = await fetchAudio(url);
       if (id !== current) return 0;      // a newer utterance arrived while this one loaded
       stop();
-      return playAudio(text, buffer, radio);
+      return playAudio(text, buffer, radio, cues);
     } catch (err) {
       console.warn('ALAN voice unavailable, mouthing silently:', err.message);
       if (!audio && (err.status === 404 || err.status === 503)) ttsUrl = ''; // no TTS on this server

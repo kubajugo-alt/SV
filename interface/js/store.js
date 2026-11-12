@@ -33,7 +33,8 @@ export const store = {
 };
 
 // 60 Hz audio level lives outside the store so it never triggers UI renders.
-export const signal = { level: 0 };
+// `mouth` is the current Rhubarb shape (A-H, X) while a line with cues plays, else null.
+export const signal = { level: 0, mouth: null };
 
 /** Studio discipline: black screen, no rendering — unless something is on fire. */
 export function isDark(config, s = state) {

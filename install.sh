@@ -70,6 +70,28 @@ print("Głos: ", voice.name)
 PY
 )
 
+step "Ruch ust (Rhubarb Lip Sync)"
+# Optional: without it ALAN still talks, his mouth just follows loudness.
+RHUBARB="$REPO/vendor/rhubarb/rhubarb"
+if [ ! -x "$RHUBARB" ]; then
+  TMP="$(mktemp -d)"
+  if curl -fsSL -m 300 -o "$TMP/rhubarb.zip" "https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.13.0/Rhubarb-Lip-Sync-1.13.0-macOS.zip" \
+     && unzip -q "$TMP/rhubarb.zip" -d "$TMP"; then
+    rm -rf "$REPO/vendor/rhubarb"
+    mkdir -p "$REPO/vendor"
+    mv "$TMP/Rhubarb-Lip-Sync-1.13.0-macOS" "$REPO/vendor/rhubarb"
+    xattr -dr com.apple.quarantine "$REPO/vendor/rhubarb" 2>/dev/null || true
+  else
+    echo "Nie udało się pobrać Rhubarba — usta będą podążać za głośnością głosu."
+  fi
+  rm -rf "$TMP"
+fi
+if [ -x "$RHUBARB" ] && ! "$RHUBARB" --version >/dev/null 2>&1; then
+  echo "Rhubarb jest pobrany, ale się nie uruchamia. To program dla procesorów Intela;"
+  echo "na Macu z Apple Silicon wymaga Rosetty:  softwareupdate --install-rosetta --agree-to-license"
+  echo "Bez niej usta będą podążać za głośnością głosu."
+fi
+
 if [ "${1:-}" = "--autostart" ]; then
   step "Uruchamianie przy logowaniu"
   mkdir -p "$AGENTS" "$HOME/Library/Logs"

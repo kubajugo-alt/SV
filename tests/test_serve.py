@@ -1,7 +1,9 @@
 import functools
 import io
 import json
+import os
 import struct
+import tempfile
 import threading
 import unittest
 import urllib.error
@@ -58,7 +60,7 @@ class FakeBrain:
 
 class Server(unittest.TestCase):
     def setUp(self):
-        serve.engine, serve.ears, serve.brain = None, None, None
+        serve.engine, serve.ears, serve.brain, serve.rhubarb = None, None, None, ""
         serve.synthesise.cache_clear()
         handler = functools.partial(serve.Handler, directory=serve.ROOT)
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
@@ -92,6 +94,25 @@ class Server(unittest.TestCase):
         self.assertEqual((status, body[:4]), (200, b"RIFF"))
         self.assertEqual(self.request("/tts?text=")[0], 400)
         self.assertEqual(self.request("/tts?text=" + "a" * (serve.MAX_CHARS + 1))[0], 400)
+
+    def test_tts_carries_mouth_cues_when_rhubarb_is_there(self):
+        serve.engine = FakeVoice()
+        with urllib.request.urlopen(self.url + "/tts?text=hej", timeout=10) as r:
+            self.assertIsNone(r.headers["X-Mouth-Cues"])            # no Rhubarb: the page goes by loudness
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = os.path.join(tmp, "rhubarb")
+            with open(fake, "w") as f:                               # stands in for the real binary
+                f.write('#!/bin/sh\ntest -s "$8" || exit 1\n'
+                        'echo \'{"mouthCues":[{"start":0.0,"end":0.21,"value":"X"},{"start":0.214,"end":0.5,"value":"D"}]}\'\n')
+            os.chmod(fake, 0o755)
+            serve.rhubarb = serve.find_rhubarb(fake)
+            serve.synthesise.cache_clear()
+            with urllib.request.urlopen(self.url + "/tts?text=hej", timeout=10) as r:
+                self.assertEqual(json.loads(r.headers["X-Mouth-Cues"]), [[0.0, "X"], [0.21, "D"]])
+            serve.rhubarb = os.path.join(tmp, "missing")             # a broken Rhubarb must not cost him his voice
+            serve.synthesise.cache_clear()
+            with urllib.request.urlopen(self.url + "/tts?text=hej", timeout=10) as r:
+                self.assertEqual((r.status, r.headers["X-Mouth-Cues"]), (200, None))
 
     def test_stt(self):
         serve.ears = FakeEars()
