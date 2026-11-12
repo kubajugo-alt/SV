@@ -136,6 +136,35 @@ These need nothing but ALAN himself and are always available (`own.py`):
 - If the model server does not accept tools at all, ALAN notices on the first
   attempt and carries on as plain conversation.
 
+### A narrow window outside: weather, air, rates, Wikipedia, news, parcels
+
+ALAN is offline unless you switch sources on, one by one:
+
+```sh
+scripts/start.sh --online weather,air,rates      # or: --online all
+```
+
+He then gets one more tool, `check_online`, limited to those sources (`online.py`):
+
+| Source | Gives him | Service | Leaves the flat |
+| --- | --- | --- | --- |
+| `weather` | now, four days ahead, official warnings | Open-Meteo, IMGW | the town's coordinates |
+| `air` | outdoor air quality index | GIOŚ | a station number |
+| `rates` | exchange rates | NBP | the currency |
+| `wiki` | the opening of a Polish Wikipedia article | Wikipedia | what was looked up |
+| `news` | headlines, local ones first; titles only | feeds in `online.json` | nothing |
+| `parcel` | InPost parcel status | InPost | the tracking number |
+
+- All are public, read-only and need no account. He can contact only the hosts
+  of the sources you enabled; anything else is refused in code.
+- Answers are cached (20 minutes for weather, a week for Wikipedia). If the
+  line drops he gives the last answer with its time, and says so.
+- The town, air station and news feeds are set in `online.json`.
+- Not the plan's final shape: §36 wants the fetching done on Network A with
+  only digest text crossing to ALAN. Here it runs inside his own process.
+- The default news feed is regional, not Tarnobrzeg-specific; local feeds
+  still have to be found and added.
+
 ### Hands: lights, heating, state of the flat
 
 With `--ha-url` (and the token in `ALAN_HA_TOKEN`) the model gets three more tools,

@@ -23,6 +23,7 @@ import urllib.error
 import uuid
 
 from home import TOOLS as HOME_TOOLS
+from online import SOURCES, Online
 from own import NAMES as OWN_NAMES, TOOLS as OWN_TOOLS, Own
 
 WINDOW_MAX = 24   # fold into notes once this many turns are waiting
@@ -104,7 +105,7 @@ class Memory:
 
 
 class Brain:
-    def __init__(self, llm_url, model, prompt_path, db_path, inline_system=False, home=None):
+    def __init__(self, llm_url, model, prompt_path, db_path, inline_system=False, home=None, online=()):
         self.url = llm_url.rstrip("/") + "/v1/chat/completions"
         self.model = model
         with open(prompt_path, encoding="utf-8") as f:
@@ -114,7 +115,10 @@ class Brain:
         self.inline_system = inline_system
         self.home = home  # home.Home, or None while the flat is not connected
         self.own = Own(self.memory)
-        self.tools = OWN_TOOLS + (HOME_TOOLS if home else [])
+        # Which outside sources he may consult; none unless switched on.
+        self.online = Online(self.memory, os.path.join(os.path.dirname(os.path.abspath(__file__)), "online.json"),
+                             list(online)) if online else None
+        self.tools = OWN_TOOLS + (HOME_TOOLS if home else []) + (self.online.tools if self.online else [])
         self.tools_work = True  # cleared if the model server turns out not to accept tools
         self.name = f"{model} at {llm_url}"
 
@@ -146,7 +150,7 @@ class Brain:
             items = json.loads(text)
         except ValueError:
             return []
-        known = {t["function"]["name"] for t in OWN_TOOLS + HOME_TOOLS}
+        known = {t["function"]["name"] for t in OWN_TOOLS + HOME_TOOLS} | {"check_online"}
         if not isinstance(items, list) or not items or not all(
                 isinstance(i, dict) and i.get("name") in known for i in items):
             return []
@@ -157,6 +161,8 @@ class Brain:
     def run_tool(self, person, name, arguments):
         if name in OWN_NAMES:
             return self.own.call(person, name, arguments)
+        if name == "check_online" and self.online:
+            return self.online.call(name, arguments)
         if self.home:
             return self.home.call(name, arguments)
         return f"Błąd: nie ma narzędzia {name}."
@@ -203,12 +209,23 @@ class Brain:
             f"Najbliższe dni: {ahead}. Daty bierz z tej listy, nie licz ich samodzielnie.",
             OWN,
             CONNECTED if self.home else NOT_CONNECTED,
+            self.outside(),
         ]
         if facts := self.own.facts(person):
             parts += [f"── ZAPAMIĘTANE NA PROŚBĘ ({person.upper()}) ──", "\n".join(f"- {f}" for f in facts)]
         if notes:
             parts += [f"── PAMIĘĆ: CO WIESZ O {person.upper()} Z WCZEŚNIEJSZYCH ROZMÓW ──", notes]
         return "\n".join(parts)
+
+    def outside(self):
+        if not self.online:
+            return ("Nie masz dostępu do internetu. Nie znasz aktualnej pogody, wiadomości, kursów ani niczego, "
+                    "co wydarzyło się po twoim szkoleniu — powiedz to wprost, zamiast zgadywać.")
+        return ("Masz narzędzie check_online z dostępem wyłącznie do: "
+                + ", ".join(f"{s} ({SOURCES[s]})" for s in self.online.enabled) + ". "
+                "Pogodę, jakość powietrza, kursy, wiadomości i status paczek podawaj tylko z niego, nigdy z pamięci. "
+                "Do Wikipedii sięgaj, gdy pytanie dotyczy faktów, dat lub liczb, których nie jesteś pewien. "
+                "Jeśli narzędzie poda, że dane są starsze albo niedostępne, powiedz to. Poza tym nie masz internetu.")
 
     def reply(self, person, text):
         return self.respond(person, text)["reply"]

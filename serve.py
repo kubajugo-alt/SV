@@ -341,6 +341,9 @@ def main():
                     help="Home Assistant address, e.g. http://homeassistant.local:8123; gives ALAN his tools (lights, heating, state)")
     ap.add_argument("--ha-token", default=os.environ.get("ALAN_HA_TOKEN", ""),
                     help="long-lived access token; prefer the ALAN_HA_TOKEN environment variable")
+    ap.add_argument("--online", default=os.environ.get("ALAN_ONLINE", ""), metavar="SOURCES",
+                    help="outside sources ALAN may consult, comma-separated: weather, air, rates, wiki, news, parcel, or 'all'. "
+                         "Default: none — he stays offline")
     ap.add_argument("--data", default=os.path.join(HERE, "data"), help="folder for ALAN's memory (default %(default)s)")
     ap.add_argument("--host", default="127.0.0.1", help="use 0.0.0.0 to serve other devices on Network B")
     ap.add_argument("--port", type=int, default=8888)
@@ -363,15 +366,21 @@ def main():
     if args.llm_url:
         from brain import Brain
 
+        from online import SOURCES
+
+        online = list(SOURCES) if args.online.strip().lower() == "all" else [s.strip().lower() for s in args.online.split(",") if s.strip()]
+        if unknown := sorted(set(online) - set(SOURCES)):
+            ap.error(f"--online: unknown source {', '.join(unknown)}; choose from {', '.join(SOURCES)} or 'all'")
         home = None
         if args.ha_url:
             from home import Home
 
             home = Home(args.ha_url, args.ha_token, os.path.join(HERE, "home.json"))
         brain = Brain(args.llm_url, args.llm_model, os.path.join(HERE, "prompts", "system.pl.txt"),
-                      os.path.join(args.data, "alan.db"), args.llm_inline_system, home)
+                      os.path.join(args.data, "alan.db"), args.llm_inline_system, home, online)
         print(f"Mind: {brain.name}", flush=True)
         print(f"Hands: {home.name if home else 'none (no --ha-url)'}", flush=True)
+        print(f"Outside: {brain.online.name if brain.online else 'nothing (no --online)'}", flush=True)
     for line in args.warm:
         synthesise(line)
 
