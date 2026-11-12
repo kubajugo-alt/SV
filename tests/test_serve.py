@@ -60,7 +60,7 @@ class FakeBrain:
 
 class Server(unittest.TestCase):
     def setUp(self):
-        serve.engine, serve.ears, serve.brain, serve.rhubarb = None, None, None, ""
+        serve.engine, serve.ears, serve.brain, serve.rhubarb, serve.lipsync = None, None, None, "", "rhubarb"
         serve.synthesise.cache_clear()
         handler = functools.partial(serve.Handler, directory=serve.ROOT)
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
@@ -121,7 +121,7 @@ class Server(unittest.TestCase):
         self.assertEqual(cues, [[0.0, "X"], [0.2, "A"], [0.28, "D"], [0.43, "A"], [0.57, "B"], [0.65, "D"],
                                 [0.8, "X"], [1.5, "E"], [1.7, "X"]])
         self.assertEqual([s for _, s in serve.cues_from_words([(0.0, 0.5, " 21")])], list("XCBCBCBX"))   # numbers still move
-        serve.engine, serve.ears = FakeVoice(), FakeEars()
+        serve.engine, serve.ears, serve.lipsync = FakeVoice(), FakeEars(), "words"
         FakeEars.words = lambda self, audio: [(0.0, 0.3, "tak")]
         self.addCleanup(lambda: delattr(FakeEars, "words"))
         with urllib.request.urlopen(self.url + "/tts?text=tak", timeout=10) as r:

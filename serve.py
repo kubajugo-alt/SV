@@ -44,6 +44,7 @@ MAX_AUDIO = 10 * 1024 * 1024
 
 engine = None
 rhubarb = ""         # path of the Rhubarb Lip Sync binary, if there is one
+lipsync = "rhubarb"  # or "words" (timing from the recogniser) or "level" (loudness only)
 brain = None
 ears = None
 lock = threading.Lock()  # neither engine is safe to call from two threads at once
@@ -291,19 +292,19 @@ def cues_from_words(words: list) -> list:
 def mouth_cues(audio: bytes) -> str:
     """The mouth shapes for a spoken WAV, as compact JSON [[start s, shape], ...], or "".
 
-    With hearing loaded, the recogniser times each word of ALAN's own line and the
-    word's letters give the shapes: real lip sync, and it knows Polish. Otherwise
-    Rhubarb Lip Sync if its binary is there (phonetic recogniser, any language).
-    With neither, the page moves the mouth by loudness.
+    Rhubarb Lip Sync by default, if its binary is there (phonetic recogniser, any
+    language). With `--lipsync words` and hearing loaded, the recogniser times each
+    word of ALAN's own line and the word's letters give the shapes. With neither,
+    the page moves the mouth by loudness.
     """
-    if ears is not None and hasattr(ears, "words"):
+    if lipsync == "words" and ears is not None and hasattr(ears, "words"):
         try:
             cues = cues_from_words(ears.words(audio))
             if len(cues) > 2:
                 return json.dumps(cues, separators=(",", ":"))
         except Exception as err:
             print(f"Lip sync by word timing failed: {err!r}", file=sys.stderr)
-    if not rhubarb:
+    if lipsync == "level" or not rhubarb:
         return ""
     try:
         with tempfile.TemporaryDirectory() as tmp:
@@ -424,7 +425,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
-    global engine, brain, ears, rhubarb
+    global engine, brain, ears, rhubarb, lipsync
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--engine", choices=["chatterbox", "piper", "none"], default=os.environ.get("ALAN_ENGINE", "chatterbox"))
     ap.add_argument("--voice", default=os.environ.get("ALAN_VOICE"),
@@ -436,6 +437,9 @@ def main():
     ap.add_argument("--cfg-weight", type=float, default=0.5, help="chatterbox pacing/adherence, 0-1 (default %(default)s)")
     ap.add_argument("--pitch", type=float, default=0.0, help="piper only: semitones to shift the voice, negative is deeper")
     ap.add_argument("--warm", action="append", default=[], metavar="TEXT", help="line to synthesise at startup so it is instant later (repeatable)")
+    ap.add_argument("--lipsync", choices=["rhubarb", "words", "level"], default=os.environ.get("ALAN_LIPSYNC", "rhubarb"),
+                    help="what moves his mouth: Rhubarb Lip Sync (default), word timing from his hearing plus Polish spelling, "
+                         "or loudness only")
     ap.add_argument("--rhubarb", default=os.environ.get("ALAN_RHUBARB", ""),
                     help="path of the Rhubarb Lip Sync binary for mouth shapes (default: vendor/rhubarb/rhubarb or PATH; without it the mouth follows loudness)")
     ap.add_argument("--stt-model", default=os.environ.get("ALAN_STT_MODEL", "medium"),
@@ -495,7 +499,10 @@ def main():
         print(f"Hands: {home.name if home else 'none (no --ha-url)'}", flush=True)
         print(f"Outside: {brain.online.name if brain.online else 'nothing (no --online)'}", flush=True)
     rhubarb = find_rhubarb(args.rhubarb)
-    mouth = "word timing from his hearing" if ears is not None else f"Rhubarb Lip Sync ({rhubarb})" if rhubarb else "follows loudness"
+    lipsync = args.lipsync
+    mouth = ("word timing from his hearing" if lipsync == "words" and ears is not None
+             else f"Rhubarb Lip Sync ({rhubarb})" if lipsync != "level" and rhubarb else "follows loudness (no Rhubarb found)"
+             if lipsync == "rhubarb" else "follows loudness")
     print(f"Mouth: {mouth}", flush=True)
     for line in args.warm:
         synthesise(line)

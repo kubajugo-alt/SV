@@ -26,17 +26,16 @@ head".
   While he speaks the mouth follows the cues the server sends with the audio
   (header `X-Mouth-Cues` on `/tts`), otherwise the loudness of his voice. The
   radio dial glows with his voice.
-- Lip sync: when hearing is loaded (the default), the server times each word of
-  the line it has just synthesised with the speech recogniser and turns the
-  word's Polish spelling into mouth shapes, so the mouth forms the sounds he is
-  saying. This adds one recognition pass per new line (2.3 s for a 6 s line
-  with the `small` model on a 4-core CPU; not yet measured on the Mac); lines
-  are cached with their cues.
-- Without hearing, Rhubarb Lip Sync is used if its binary is there
-  (`install.sh` downloads it to `vendor/rhubarb/`, `--rhubarb PATH` or
-  `ALAN_RHUBARB` for another place; phonetic recogniser; the macOS build is
-  for Intel processors and needs Rosetta on Apple Silicon; not yet run for
-  real). With neither, the mouth follows loudness.
+- Lip sync is done by Rhubarb Lip Sync, as in the games: the server runs it on
+  each synthesised line (phonetic recogniser, which does not depend on the
+  language) and sends its cues with the audio. `install.sh` downloads the
+  binary to `vendor/rhubarb/` (`--rhubarb PATH` or `ALAN_RHUBARB` for another
+  place). The macOS build is for Intel processors and needs Rosetta on Apple
+  Silicon. Not yet run for real: here only with a stand-in binary in the tests.
+- `--lipsync words` is an alternative that needs no Rhubarb: the speech
+  recogniser times each word of the line and the word's Polish spelling gives
+  the shapes (2.3 s extra for a 6 s line with the `small` model on a 4-core
+  CPU). `--lipsync level`, or no Rhubarb binary, moves the mouth by loudness.
 
 Static files, no build step, no dependencies, no internet access needed
 (the typeface, IBM Plex Mono, is vendored).
