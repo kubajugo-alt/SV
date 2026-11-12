@@ -25,6 +25,7 @@ import uuid
 from home import TOOLS as HOME_TOOLS
 from online import SOURCES, Online
 from own import NAMES as OWN_NAMES, TOOLS as OWN_TOOLS, Own
+from wiki import TOOL as WIKI_TOOL
 
 WINDOW_MAX = 24   # fold into notes once this many turns are waiting
 WINDOW_KEEP = 10  # turns left verbatim after folding
@@ -116,7 +117,7 @@ class Memory:
 
 
 class Brain:
-    def __init__(self, llm_url, model, prompt_path, db_path, inline_system=False, home=None, online=()):
+    def __init__(self, llm_url, model, prompt_path, db_path, inline_system=False, home=None, online=(), wiki=None):
         self.url = llm_url.rstrip("/") + "/v1/chat/completions"
         self.model = model
         with open(prompt_path, encoding="utf-8") as f:
@@ -129,7 +130,9 @@ class Brain:
         # Which outside sources he may consult; none unless switched on.
         self.online = Online(self.memory, os.path.join(os.path.dirname(os.path.abspath(__file__)), "online.json"),
                              list(online)) if online else None
-        self.tools = OWN_TOOLS + (HOME_TOOLS if home else []) + (self.online.tools if self.online else [])
+        self.wiki = wiki  # wiki.Encyclopedia, or None without an archive on disk
+        self.tools = (OWN_TOOLS + (HOME_TOOLS if home else []) + (self.online.tools if self.online else [])
+                      + ([WIKI_TOOL] if wiki else []))
         self.tools_work = True  # cleared if the model server turns out not to accept tools
         self.name = f"{model} at {llm_url}"
 
@@ -161,7 +164,7 @@ class Brain:
             items = json.loads(text)
         except ValueError:
             return []
-        known = {t["function"]["name"] for t in OWN_TOOLS + HOME_TOOLS} | {"check_online"}
+        known = {t["function"]["name"] for t in OWN_TOOLS + HOME_TOOLS} | {"check_online", "look_up"}
         if not isinstance(items, list) or not items or not all(
                 isinstance(i, dict) and i.get("name") in known for i in items):
             return []
@@ -174,6 +177,8 @@ class Brain:
             return self.own.call(person, name, arguments)
         if name == "check_online" and self.online:
             return self.online.call(name, arguments)
+        if name == "look_up" and self.wiki:
+            return self.wiki.call(name, arguments)
         if self.home:
             return self.home.call(name, arguments)
         return f"Błąd: nie ma narzędzia {name}."
@@ -240,7 +245,11 @@ class Brain:
         return results, actions
 
     def dispatcher(self, person):
-        return "\n".join([DISPATCH, self.moment(person)])
+        parts = [DISPATCH]
+        if self.wiki:
+            parts.append("Wyjątek: masz encyklopedię (look_up). Gdy domownik pyta o fakty — kto, co, gdzie, kiedy, ile, jak coś działa, "
+                         "o osobę, miejsce, wydarzenie historyczne, pojęcie — wywołaj look_up z hasłem zamiast odpowiadać BRAK.")
+        return "\n".join(parts + [self.moment(person)])
 
     def moment(self, person):
         now = datetime.datetime.now()
@@ -270,6 +279,8 @@ class Brain:
             can.append("światło, ogrzewanie i odczyt stanu mieszkania")
         else:
             cannot.append("światło, ogrzewanie i czujniki (mieszkanie nie jest jeszcze podłączone)")
+        if self.wiki:
+            can.append("sprawdzanie faktów w encyklopedii zapisanej lokalnie")
         if self.online:
             can.append("dane z zewnątrz: " + ", ".join(SOURCES[s] for s in self.online.enabled))
         else:

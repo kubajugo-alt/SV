@@ -4,6 +4,7 @@
 #   ./install.sh                 install or update everything
 #   ./install.sh --autostart     also start ALAN and the full-screen page at login
 #   ./install.sh --no-autostart  remove the start-at-login setup
+#   ./install.sh --wiki          also download Polish Wikipedia for offline use (large; see below)
 #
 # Safe to run again: each step is skipped when it is already done.
 # Needs Homebrew (https://brew.sh). Downloads about 12 GB on the first run.
@@ -56,7 +57,7 @@ ollama list | grep -q "^$MODEL" || ollama pull "$MODEL"
 step "Środowisko Pythona (głos i słuch)"
 [ -x "$REPO/.venv/bin/python" ] || "$PYTHON" -m venv "$REPO/.venv"
 "$REPO/.venv/bin/pip" install --quiet --upgrade pip
-"$REPO/.venv/bin/pip" install --quiet chatterbox-tts faster-whisper "setuptools<81"
+"$REPO/.venv/bin/pip" install --quiet chatterbox-tts faster-whisper libzim "setuptools<81"
 
 step "Pobieranie i sprawdzenie modeli głosu i słuchu"
 (cd "$REPO" && ALAN_STT_MODEL="$STT_MODEL" "$REPO/.venv/bin/python" - <<'PY'
@@ -92,6 +93,25 @@ if [ -x "$RHUBARB" ] && ! "$RHUBARB" --version >/dev/null 2>&1; then
   echo "Bez niej usta będą podążać za głośnością głosu."
 fi
 
+if [ "${1:-}" = "--wiki" ]; then
+  step "Encyklopedia offline (polska Wikipedia z Kiwix)"
+  # ALAN_WIKI_KIND: nopic = whole text without pictures (default), mini = openings of articles only, maxi = with pictures.
+  KIND="${ALAN_WIKI_KIND:-nopic}"
+  LIST="https://download.kiwix.org/zim/wikipedia/"
+  NAME="$(curl -fsSL -m 60 "$LIST" | grep -o "wikipedia_pl_all_${KIND}_[0-9-]*\.zim" | sort -u | tail -1 || true)"
+  [ -n "$NAME" ] || fail "nie znalazłem pliku wikipedia_pl_all_${KIND} na $LIST. Pobierz go ręcznie do $REPO/data/."
+  mkdir -p "$REPO/data"
+  if [ -f "$REPO/data/$NAME" ]; then
+    echo "Jest już: data/$NAME"
+  else
+    SIZE="$(curl -fsSIL -m 60 "$LIST$NAME" | awk 'tolower($1)=="content-length:" {n=$2} END {printf "%.1f", n/1e9}')"
+    echo "Pobieram $NAME (${SIZE} GB). Przerwane pobieranie można wznowić tym samym poleceniem."
+    curl -fL -C - -o "$REPO/data/$NAME.part" "$LIST$NAME"
+    mv "$REPO/data/$NAME.part" "$REPO/data/$NAME"
+  fi
+  "$REPO/.venv/bin/python" -c "import sys; sys.path.insert(0, '$REPO'); from wiki import Encyclopedia; print('Encyklopedia:', Encyclopedia('$REPO/data/$NAME').name)"
+fi
+
 if [ "${1:-}" = "--autostart" ]; then
   step "Uruchamianie przy logowaniu"
   mkdir -p "$AGENTS" "$HOME/Library/Logs"
@@ -109,6 +129,7 @@ Uruchomienie ręczne:   $REPO/scripts/start.sh
 Strona:                http://127.0.0.1:8888/
 Pełny ekran (kiosk):   $REPO/scripts/kiosk.sh
 Start przy logowaniu:  $REPO/install.sh --autostart
+Wikipedia offline:     $REPO/install.sh --wiki
 
 Na stronie: przytrzymaj spację i mów, albo Enter, tekst, Enter.
 TXT

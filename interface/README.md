@@ -239,6 +239,15 @@ Limits of this first version:
   the one on the machine showing the page.
 - The notes are one text per person, read in full every time. Search over old
   conversations (the plan's ChromaDB) is not built.
+- Offline encyclopedia: with a Kiwix archive of Polish Wikipedia in `data/`
+  (`./install.sh --wiki` downloads `wikipedia_pl_all_nopic_*.zim`, the whole
+  text without pictures; `ALAN_WIKI_KIND=mini` for article openings only), the
+  model gets a tool `look_up` and is told to use it for questions of fact. It
+  finds the article by title, else by full-text search inside the archive, and
+  reads the first 1,500 characters of its prose. Nothing leaves the machine.
+  `--wiki FILE.zim` names another archive; needs `pip install libzim`. Tested
+  here on a small archive built in the tests; the real archive and the
+  download step have not been run.
 - `--llm-url` / `--llm-model` point at any OpenAI-compatible server; `--llm-url ''`
   turns conversation off, and `chat: ''` in the config hides the prompt.
 

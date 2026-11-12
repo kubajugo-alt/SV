@@ -24,6 +24,7 @@ and the face mouths its lines silently.
 import argparse
 import contextlib
 import functools
+import glob
 import io
 import json
 import os
@@ -456,6 +457,8 @@ def main():
     ap.add_argument("--online", default=os.environ.get("ALAN_ONLINE", ""), metavar="SOURCES",
                     help="outside sources ALAN may consult, comma-separated: weather, air, rates, wiki, news, parcel, or 'all'. "
                          "Default: none — he stays offline")
+    ap.add_argument("--wiki", default=os.environ.get("ALAN_WIKI", ""), metavar="FILE.zim",
+                    help="offline Wikipedia (a Kiwix .zim archive) he may look facts up in; default: the newest .zim in the data folder")
     ap.add_argument("--data", default=os.path.join(HERE, "data"), help="folder for ALAN's memory (default %(default)s)")
     ap.add_argument("--host", default="127.0.0.1", help="use 0.0.0.0 to serve other devices on Network B")
     ap.add_argument("--port", type=int, default=8888)
@@ -493,9 +496,19 @@ def main():
             from home import Home
 
             home = Home(args.ha_url, args.ha_token, os.path.join(HERE, "home.json"))
+        wiki = None
+        archive = args.wiki or next(iter(sorted(glob.glob(os.path.join(args.data, "*.zim")), reverse=True)), "")
+        if archive:
+            try:
+                from wiki import Encyclopedia
+
+                wiki = Encyclopedia(os.path.expanduser(archive))
+            except Exception as err:  # a missing library or a broken download must not stop him talking
+                print(f"Encyclopedia not loaded ({archive}): {err!r}", file=sys.stderr)
         brain = Brain(args.llm_url, args.llm_model, os.path.join(HERE, "prompts", "system.pl.txt"),
-                      os.path.join(args.data, "alan.db"), args.llm_inline_system, home, online)
+                      os.path.join(args.data, "alan.db"), args.llm_inline_system, home, online, wiki)
         print(f"Mind: {brain.name}", flush=True)
+        print(f"Encyclopedia: {wiki.name if wiki else 'none (no .zim archive in the data folder)'}", flush=True)
         print(f"Hands: {home.name if home else 'none (no --ha-url)'}", flush=True)
         print(f"Outside: {brain.online.name if brain.online else 'nothing (no --online)'}", flush=True)
     rhubarb = find_rhubarb(args.rhubarb)
