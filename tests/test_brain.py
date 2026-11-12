@@ -73,6 +73,19 @@ class Memory(unittest.TestCase):
         b = make(self.tmp, ScriptedModel({"content": "ALAN: **Dobrze.**\n\n  Zrobione."}))
         self.assertEqual(b.reply("kuba", "x"), "Dobrze. Zrobione.")
 
+    def test_plain_talk_skips_the_tool_step(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            b = brain.Brain("http://unused", "test", PROMPT, os.path.join(tmp, "alan.db"))
+            for text in ["Hej Alan, co słychać?", "Dobranoc", "Nudzi mi się", "Ale ty jesteś uparty"]:
+                self.assertFalse(b.may_need_tools(text), text)
+            for text in ["Ustaw minutnik na 5 minut", "Zapisz pomysł na rolkę", "Jaka jutro pogoda?", "Co mam dziś w kalendarzu",
+                         "Opowiedz o swoim dziadku", "Jak poznałeś Vasca?", "Jestem w Las Palmas", "Dopisz mleko do listy"]:
+                self.assertTrue(b.may_need_tools(text), text)
+            model = ScriptedModel({"content": "Żyję. Ledwo."})
+            b.chat = model
+            self.assertEqual(b.reply("kuba", "Hej Alan, co słychać?"), "Żyję. Ledwo.")
+            self.assertEqual(len(model.seen), 1)                     # one pass of the model, not two
+
     def test_household_file_is_part_of_what_he_knows(self):
         with tempfile.TemporaryDirectory() as tmp:
             b = brain.Brain("http://unused", "test", PROMPT, os.path.join(tmp, "alan.db"))

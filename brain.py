@@ -39,6 +39,20 @@ MAX_TOOL_ROUNDS = 3  # tool-calling rounds per turn (plus one nudge if it ramble
 # Mistral Nemo, any earlier request in view was sometimes carried out again a
 # turn late. The cost is that "and in the bedroom too" needs saying in full.
 DISPATCH_HISTORY = 0
+# Words (without accents) that suggest a message may need a tool. Anything else is plain talk and is
+# answered in one pass of the model instead of two; a claim of having done something still sends it
+# back through the tool step (see respond).
+TOOL_HINTS = re.compile(
+    r"minutnik|stoper|odlicz|przypom|budzik|obudz|\blist|zakup|dopisz|skresl|zapamiet|zapomnij|zapisz|zanotuj|notat|pomysl na|"
+    r"pogod|deszcz|\bpada|temperatur|stopni|powietrz|smog|kurs|euro|dolar|frank|funt|wiadomosc|naglowk|paczk|przesylk|"
+    r"kalendarz|spotkani|plan dnia|co dzis|co jutro|co mam|co mnie czeka|odpraw|jestem w|jestesmy w|przylecial|dolecial|wyladowal|"
+    r"ile potrwa|czas czytania|mowilem|mowiles|mowilismy|rozmawialismy|ustalilismy|swiatl|lamp|ogrzewan|grzej|wlacz|wylacz|ustaw|"
+    r"zmien|anuluj|skasuj|usun|sprawdz|wikipedi|encykloped")
+PAST_HINTS = re.compile(
+    r"twoj|twoja|twoje|twoim|twoich|twoja|ciebie|tobie|byles|miales|znales|kochales|pamietasz|opowiedz|skad jestes|kim jestes|o sobie|"
+    r"vasc|vask|ines|joaquim|lizbon|alfam|dzwon|gran canari|canari|\brafa|\brafy|duarte|teixeir|\bze\b|amali|ksiegarni|pessoa|"
+    r"matk|\bojc|ojciec|dziad|romans|sineir|lacerd|carmen|baute|lorenzo")
+FACT_HINTS = re.compile(r"\bkto\b|co to|czym jest|kim byl|kim jest|kiedy|gdzie|\bile\b|dlaczego|jak dziala|w ktorym|stolic|histori|\?")
 FLAT_ONLY = ("── MIESZKANIE", "── JAKOŚĆ POWIETRZA", "── TRYB PRACY", "── TRYB GOŚCIA", "── DRZWI", "── BEZPIECZEŃSTWO")
 GETTING_TO_KNOW = 25      # for this many of a person's messages he still asks them about themselves
 
@@ -414,6 +428,30 @@ class Brain:
         return self.clean(self.complete(self.frame(self.system(person, notes, results), history, said, person),
                                         max_tokens=220, temperature=0.6))
 
+    def may_need_tools(self, text):
+        """Whether to spend a pass of the model on choosing tools. Plain talk does not need it."""
+        from past import plain
+
+        words = plain(text)
+        return bool(TOOL_HINTS.search(words) or (self.past and PAST_HINTS.search(words)) or (self.wiki and FACT_HINTS.search(words))
+                    or self.home)
+
+    def keep_warm(self):
+        """With Ollama: load the model now and keep it in memory, so no answer waits for it to be read from disk."""
+        base = self.url.rsplit("/v1/", 1)[0]
+
+        def ping():
+            while True:
+                try:
+                    request = urllib.request.Request(base + "/api/generate", headers={"Content-Type": "application/json"},
+                                                     data=json.dumps({"model": self.model, "keep_alive": "30m"}).encode())
+                    urllib.request.urlopen(request, timeout=300).read()
+                except Exception:      # not Ollama, or not running yet: nothing to keep warm
+                    pass
+                time.sleep(240)
+
+        threading.Thread(target=ping, daemon=True).start()
+
     def reply(self, person, text):
         return self.respond(person, text)["reply"]
 
@@ -422,7 +460,7 @@ class Brain:
         notes, _ = self.memory.notes(person)
         history = [{"role": role, "content": content} for _, role, content, _ in self.memory.recent(person)]
         started = time.monotonic()
-        results, actions = self.act(person, history, text)
+        results, actions = self.act(person, history, text) if self.may_need_tools(text) else ([], [])
         chosen = time.monotonic()
         answer = self.speak(person, notes, history, text, results)
         print(f"Timing: choosing tools {chosen - started:.1f} s, wording the answer {time.monotonic() - chosen:.1f} s", flush=True)

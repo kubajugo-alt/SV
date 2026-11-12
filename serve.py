@@ -620,6 +620,7 @@ def main():
                       os.path.join(args.data, "alan.db"), args.llm_inline_system, home, online, wiki, diary)
         print(f"Calendar: {diary.name if diary else 'none (no kalendarze.txt in the data folder)'}", flush=True)
         print(f"Mind: {brain.name}", flush=True)
+        brain.keep_warm()
         print(f"Encyclopedia: {wiki.name if wiki else 'none (no .zim archive in the data folder)'}", flush=True)
         print(f"Hands: {home.name if home else 'none (no --ha-url)'}", flush=True)
         print(f"Outside: {brain.online.name if brain.online else 'nothing (no --online)'}", flush=True)
