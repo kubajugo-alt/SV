@@ -79,7 +79,7 @@ class Memory(unittest.TestCase):
         sent = model.spoken[0]["messages"]
         self.assertEqual([m["role"] for m in sent], ["user"])
         self.assertIn("Jesteś ALAN", sent[0]["content"])
-        self.assertIn("── WIADOMOŚĆ OD KUBA ──\nhalo\n\n[Narzędzia nie wykonały niczego", sent[0]["content"])
+        self.assertTrue(sent[0]["content"].endswith("── WIADOMOŚĆ OD KUBA ──\nhalo"))
 
     def test_context_carries_date_and_calendar(self):
         system = make(self.tmp, ScriptedModel()).system("kuba", "")
@@ -103,7 +103,7 @@ class Tools(unittest.TestCase):
         self.assertNotIn("set_light", offered)       # the flat's are not
         told = model.spoken[0]["messages"][0]["content"]
         self.assertIn("mieszkanie nie jest jeszcze podłączone", told)
-        self.assertIn("niczego nie włączyłeś", told)  # nothing ran this turn, and he is told so
+        self.assertNotIn("CO ZROBIŁY NARZĘDZIA", told)   # nothing ran, so there is no report to answer to
 
     def test_choosing_tools_is_kept_apart_from_his_character(self):
         model = ScriptedModel({"content": "Cześć."})
@@ -115,11 +115,29 @@ class Tools(unittest.TestCase):
         self.assertIsNone(model.spoken[0]["tools"])   # and the speaking step cannot call anything
 
     def test_he_cannot_claim_an_action_no_tool_performed(self):
-        model = ScriptedModel({"content": "Drzwi wejściowe otwarte."}, {"content": "Nie otworzę drzwi, nie mam do nich dostępu."})
+        model = ScriptedModel({"content": "Drzwi wejściowe otwarte."})
         b = make(self.tmp, model, home=self.home)
-        self.assertEqual(b.reply("kuba", "Otwórz drzwi"), "Nie otworzę drzwi, nie mam do nich dostępu.")
-        stubborn = ScriptedModel({"content": "Światło włączone."}, {"content": "Już włączyłem."})
-        self.assertEqual(make(tempfile.mkdtemp(), stubborn, home=self.home).reply("kuba", "Włącz światło"), brain.NOT_DONE)
+        self.assertEqual(b.reply("kuba", "Otwórz drzwi"), brain.NOT_DONE)
+        self.assertEqual(len(model.chosen), 2)                      # the tools were asked a second time…
+        self.assertIn("wywołaj je teraz", model.chosen[1]["messages"][0]["content"])   # …insistently
+        self.assertEqual([r for _, r, _, _ in b.memory.recent("kuba")], ["user", "assistant"])
+
+    def test_a_missed_tool_call_is_recovered_when_he_claims_the_action(self):
+        calls = []
+
+        def forgetful(messages, max_tokens, temperature, tools=None):
+            calls.append(bool(tools))
+            if tools:   # misses the request the first time, calls the tool when pressed
+                pressed = "wywołaj je teraz" in messages[0]["content"]
+                done = messages[-1]["role"] == "tool"
+                return {"tool_calls": [tool_call("set_temperature", room="sypialnia", degrees=21)]} if pressed and not done else {"content": "BRAK"}
+            return {"content": "Ustawione, dwadzieścia jeden stopni w sypialni."}
+
+        b = make(self.tmp, forgetful, home=self.home)
+        result = b.respond("kuba", "Ustaw w sypialni 21 stopni")
+        self.assertEqual(result["actions"], [{"ok": True, "text": "ogrzewanie ustawione na 21°C w: sypialni"}])
+        self.assertEqual(self.ha.STATES["climate.sypialnia"]["attributes"]["temperature"], 21)
+        self.assertEqual(result["reply"], "Ustawione, dwadzieścia jeden stopni w sypialni.")
 
     def test_honest_and_factual_sentences_are_not_mistaken_for_claims(self):
         for fine in ("Drzwi nie są podłączone, więc ich nie otworzę.", "Tego nie zrobiłem.", "Nie włączyłem światła.",
@@ -145,15 +163,15 @@ class Tools(unittest.TestCase):
         self.assertEqual(b.respond("kuba", "Włącz światło w salonie")["actions"], [{"ok": True, "text": "światło włączone w: salonie"}])
         self.assertEqual(self.ha.STATES["light.salon"]["state"], "on")
 
-    def test_tool_choice_sees_only_the_persons_own_earlier_messages(self):
+    def test_tool_choice_sees_only_the_message_it_acts_on(self):
         model = ScriptedModel({"content": "Dobrze."}, {"content": "Jasne."})
         b = make(self.tmp, model, home=self.home)
         b.reply("kuba", "Zimno mi w salonie")
         b.reply("kuba", "A w sypialni?")
         sent = model.chosen[1]["messages"]
         self.assertEqual([m["role"] for m in sent], ["system", "user"])       # no assistant turns to imitate
-        self.assertIn("- Zimno mi w salonie", sent[1]["content"])
-        self.assertTrue(sent[1]["content"].endswith("Ostatnia wiadomość:\nA w sypialni?"))
+        self.assertEqual(sent[1]["content"], "Ostatnia wiadomość:\nA w sypialni?")
+        self.assertNotIn("Zimno mi w salonie", str(sent))   # an earlier request cannot be carried out a turn late
         self.assertNotIn("Dobrze.", str(sent))
 
     def test_what_the_tools_did_is_put_in_front_of_him_when_he_speaks(self):

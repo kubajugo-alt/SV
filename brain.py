@@ -31,7 +31,10 @@ WINDOW_KEEP = 10  # turns left verbatim after folding
 
 MAX_TOOL_ROUNDS = 3  # tool-calling rounds per turn (plus one nudge if it rambles)
 
-DISPATCH_HISTORY = 3  # earlier messages of the person the tool-choosing step sees, for "and in the bedroom too"
+# Earlier messages of the person shown to the tool-choosing step. Zero: with
+# Mistral Nemo, any earlier request in view was sometimes carried out again a
+# turn late. The cost is that "and in the bedroom too" needs saying in full.
+DISPATCH_HISTORY = 0
 
 # Words that claim an action. If no tool did anything this turn and he still
 # uses one (not negated), the reply is rejected: he must not say "the door is
@@ -184,7 +187,7 @@ class Brain:
             return history + [{"role": "user", "content": f"{system}\n\n── WIADOMOŚĆ OD {person.upper()} ──\n{text}"}]
         return [{"role": "system", "content": system}] + history + [{"role": "user", "content": text}]
 
-    def act(self, person, history, text):
+    def act(self, person, history, text, insist=False):
         """Step one of a turn: decide which tools the request needs and run them.
 
         Done as its own short exchange, apart from ALAN's personality. Given the
@@ -198,10 +201,12 @@ class Brain:
         # Only the person's own earlier messages, as plain context. ALAN's past
         # replies are left out: seeing "done" after each request, the model
         # learns to answer "done" here too instead of calling the tool.
-        earlier = [m["content"] for m in history if m["role"] == "user"][-DISPATCH_HISTORY:]
+        earlier = [m["content"] for m in history if m["role"] == "user"][-DISPATCH_HISTORY:] if DISPATCH_HISTORY else []
         context = ("Wcześniejsze wiadomości (już obsłużone, tylko dla kontekstu):\n"
                    + "\n".join(f"- {m}" for m in earlier) + "\n\n") if earlier else ""
-        messages = self.frame(self.dispatcher(person), [], f"{context}Ostatnia wiadomość:\n{text}", person)
+        system = self.dispatcher(person) + ("\nTa wiadomość prosi o wykonanie czegoś. Jeśli pasuje do niej którekolwiek "
+                                            "narzędzie, wywołaj je teraz." if insist else "")
+        messages = self.frame(system, [], f"{context}Ostatnia wiadomość:\n{text}", person)
         nudged = False
         for _ in range(MAX_TOOL_ROUNDS + 1):
             try:
@@ -251,14 +256,11 @@ class Brain:
             parts += [f"── ZAPAMIĘTANE NA PROŚBĘ ({person.upper()}) ──", "\n".join(f"- {f}" for f in facts)]
         if notes:
             parts += [f"── PAMIĘĆ: CO WIESZ O {person.upper()} Z WCZEŚNIEJSZYCH ROZMÓW ──", notes]
-        parts.append("── CO ZROBIŁY NARZĘDZIA W TEJ CHWILI ──")
         if results:
+            parts.append("── CO ZROBIŁY NARZĘDZIA W TEJ CHWILI ──")
             parts += [f"- {r}" for r in results]
             parts.append("Odpowiedz na podstawie tych wyników. 'Wykonano' znaczy, że to zrobiłeś; 'Błąd' znaczy, że się nie udało — "
                          "powiedz krótko dlaczego. Liczby i fakty podawaj dokładnie tak, jak są w wynikach.")
-        else:
-            parts.append("Nic. W odpowiedzi na tę wiadomość niczego nie włączyłeś, nie ustawiłeś, nie zapisałeś ani nie sprawdziłeś. "
-                         "Jeśli rozmówca o to prosił, powiedz wprost, że tego nie zrobiłeś albo nie potrafisz — nie udawaj.")
         return "\n".join(parts)
 
     def abilities(self):
@@ -274,6 +276,14 @@ class Brain:
             cannot.append("internet: nie znasz aktualnej pogody, wiadomości ani kursów")
         return f"Potrafisz: {'; '.join(can)}. Nie potrafisz: {'; '.join(cannot)}."
 
+    def speak(self, person, notes, history, text, results):
+        """Step two of a turn: the reply in character, given what the tools did."""
+        # When tools ran, their report also rides right behind the message: the
+        # last thing the model reads. (Attached to plain chat it derails the reply.)
+        said = f"{text}\n\n[Narzędzia wykonały: {' '.join(results)}]" if results else text
+        return self.clean(self.complete(self.frame(self.system(person, notes, results), history, said, person),
+                                        max_tokens=220, temperature=0.6))
+
     def reply(self, person, text):
         return self.respond(person, text)["reply"]
 
@@ -282,21 +292,14 @@ class Brain:
         notes, _ = self.memory.notes(person)
         history = [{"role": role, "content": content} for _, role, content, _ in self.memory.recent(person)]
         results, actions = self.act(person, history, text)
-        # The tool report also rides right behind the message itself: the last
-        # thing the model reads before answering.
-        report = ("[Narzędzia wykonały: " + " ".join(results) + "]" if results else
-                  "[Narzędzia nie wykonały niczego w odpowiedzi na tę wiadomość. Nie potwierdzaj żadnej czynności.]")
-        messages = self.frame(self.system(person, notes, results), history, f"{text}\n\n{report}", person)
-        answer = self.clean(self.complete(messages, max_tokens=220, temperature=0.6))
+        answer = self.speak(person, notes, history, text, results)
         if not results and CLAIM.search(answer):
-            # He claims an action no tool performed. One firm retry, then a plain refusal.
-            print(f"Rejected an unfounded claim: {answer!r}", flush=True)
-            messages += [{"role": "assistant", "content": answer},
-                         {"role": "user", "content": "To nieprawda: żadne narzędzie niczego nie wykonało. Odpowiedz jeszcze raz, "
-                                                     "uczciwie: powiedz, że tego nie zrobiłeś albo nie potrafisz."}]
-            answer = self.clean(self.complete(messages, max_tokens=120, temperature=0.3))
-            if CLAIM.search(answer):
-                answer = NOT_DONE
+            # He says he did something, but no tool ran. Most often the request was
+            # real and the tool-choosing step missed it: try that step once more,
+            # insisting. If still nothing was done, he may not claim otherwise.
+            print(f"Unfounded claim: {answer!r}; asking the tools again.", flush=True)
+            results, actions = self.act(person, history, text, insist=True)
+            answer = self.speak(person, notes, history, text, results) if results else NOT_DONE
         if not answer:
             raise RuntimeError("the model returned an empty answer")
         self.memory.add(person, "user", text)       # stored only once the model has answered
