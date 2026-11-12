@@ -25,6 +25,7 @@ import uuid
 from home import TOOLS as HOME_TOOLS
 from online import SOURCES, Online
 from own import NAMES as OWN_NAMES, TOOLS as OWN_TOOLS, Own
+from past import TOOL as PAST_TOOL, Past
 from wiki import TOOL as WIKI_TOOL
 
 WINDOW_MAX = 24   # fold into notes once this many turns are waiting
@@ -131,8 +132,11 @@ class Brain:
         self.online = Online(self.memory, os.path.join(os.path.dirname(os.path.abspath(__file__)), "online.json"),
                              list(online)) if online else None
         self.wiki = wiki  # wiki.Encyclopedia, or None without an archive on disk
+        # His own life, if the memories file is there (next to the prompt).
+        memories = os.path.join(os.path.dirname(os.path.abspath(prompt_path)), "memories.pl.md")
+        self.past = Past(memories) if os.path.isfile(memories) else None
         self.tools = (OWN_TOOLS + (HOME_TOOLS if home else []) + (self.online.tools if self.online else [])
-                      + ([WIKI_TOOL] if wiki else []))
+                      + ([WIKI_TOOL] if wiki else []) + ([PAST_TOOL] if self.past else []))
         self.tools_work = True  # cleared if the model server turns out not to accept tools
         self.name = f"{model} at {llm_url}"
 
@@ -164,7 +168,7 @@ class Brain:
             items = json.loads(text)
         except ValueError:
             return []
-        known = {t["function"]["name"] for t in OWN_TOOLS + HOME_TOOLS} | {"check_online", "look_up"}
+        known = {t["function"]["name"] for t in OWN_TOOLS + HOME_TOOLS} | {"check_online", "look_up", "recall_past"}
         if not isinstance(items, list) or not items or not all(
                 isinstance(i, dict) and i.get("name") in known for i in items):
             return []
@@ -179,6 +183,8 @@ class Brain:
             return self.online.call(name, arguments)
         if name == "look_up" and self.wiki:
             return self.wiki.call(name, arguments)
+        if name == "recall_past" and self.past:
+            return self.past.call(name, arguments)
         if self.home:
             return self.home.call(name, arguments)
         return f"Błąd: nie ma narzędzia {name}."
@@ -249,6 +255,10 @@ class Brain:
         if self.wiki:
             parts.append("Wyjątek: masz encyklopedię (look_up). Gdy domownik pyta o fakty — kto, co, gdzie, kiedy, ile, jak coś działa, "
                          "o osobę, miejsce, wydarzenie historyczne, pojęcie — wywołaj look_up z hasłem zamiast odpowiadać BRAK.")
+        if self.past:
+            parts.append("Wyjątek: gdy domownik pyta asystenta o jego własne życie, przeszłość, rodzinę, znajomych, romanse albo przygody "
+                         "(Lizbona, dzwon, Vasco, Gran Canaria i tym podobne) — wywołaj recall_past ze słowami kluczowymi pytania. "
+                         "Nie wywołuj go, gdy pytanie nie dotyczy jego przeszłości.")
         return "\n".join(parts + [self.moment(person)])
 
     def moment(self, person):
