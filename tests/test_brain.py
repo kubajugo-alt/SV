@@ -124,6 +124,19 @@ class Tools(unittest.TestCase):
             {"ok": False, "text": "temperatura musi być między 5 a 28 stopni. Niczego nie zmieniono"},
         ])  # reading the state is not listed as a change
 
+    def test_tool_calls_written_as_text_are_still_carried_out(self):
+        written = '[TOOL_CALLS][{"name": "set_light", "arguments": {"room": "salon", "on": true}}]'
+        model = ScriptedModel({"content": written}, {"content": "Światło włączone."})
+        result = make(self.tmp, model, home=self.home).respond("kuba", "Włącz światło w salonie")
+        self.assertEqual(result["reply"], "Światło włączone.")
+        self.assertEqual(self.ha.STATES["light.salon"]["state"], "on")
+        call = model.seen[1]["messages"][-2]["tool_calls"][0]
+        self.assertEqual((len(call["id"]), model.seen[1]["messages"][-2]["content"]), (9, ""))
+
+    def test_ordinary_text_is_not_mistaken_for_a_tool_call(self):
+        for text in ("[żart] Dobrze.", '[{"name": "open_door", "arguments": {}}]', "[1, 2, 3]", "", None):
+            self.assertEqual(brain.Brain.written_calls(text), [], text)
+
     def test_refused_action_is_reported_to_the_model(self):
         model = ScriptedModel({"tool_calls": [tool_call("set_temperature", room="salon", degrees=40)]},
                               {"content": "Czterdziestu stopni nie ustawię."})

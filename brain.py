@@ -19,6 +19,7 @@ import re
 import sqlite3
 import threading
 import urllib.request
+import uuid
 
 WINDOW_MAX = 24   # fold into notes once this many turns are waiting
 WINDOW_KEEP = 10  # turns left verbatim after folding
@@ -119,6 +120,31 @@ class Brain:
     def complete(self, messages, max_tokens, temperature):
         return (self.chat(messages, max_tokens, temperature).get("content") or "").strip()
 
+    @staticmethod
+    def written_calls(content):
+        """Tool calls a runtime left in the text instead of parsing them.
+
+        Mistral models emit `[TOOL_CALLS][{"name": ..., "arguments": {...}}]`;
+        Ollama turns that into proper tool_calls, some other servers pass it
+        through as the answer. Recognise it rather than have ALAN read it aloud.
+        """
+        from home import TOOLS
+
+        text = (content or "").strip().removeprefix("[TOOL_CALLS]").strip()
+        if not text.startswith("["):
+            return []
+        try:
+            items = json.loads(text)
+        except ValueError:
+            return []
+        known = {t["function"]["name"] for t in TOOLS}
+        if not isinstance(items, list) or not items or not all(
+                isinstance(i, dict) and i.get("name") in known for i in items):
+            return []
+        return [{"id": uuid.uuid4().hex[:9], "type": "function",   # Mistral wants 9-character ids
+                 "function": {"name": i["name"], "arguments": json.dumps(i.get("arguments") or {})}}
+                for i in items]
+
     def converse(self, messages):
         """Let the model use its tools -> (what it finally says, what it did)."""
         actions = []
@@ -129,10 +155,11 @@ class Brain:
         messages = list(messages)
         for _ in range(MAX_TOOL_ROUNDS):
             message = self.chat(messages, max_tokens=300, temperature=0.4, tools=TOOLS)
-            calls = message.get("tool_calls") or []
+            calls = message.get("tool_calls") or self.written_calls(message.get("content"))
             if not calls:
                 return (message.get("content") or "").strip(), actions
-            messages.append({"role": "assistant", "content": message.get("content") or "", "tool_calls": calls})
+            said = "" if not message.get("tool_calls") else message.get("content") or ""  # written calls are not speech
+            messages.append({"role": "assistant", "content": said, "tool_calls": calls})
             for call in calls:
                 result = self.home.call(call["function"]["name"], call["function"].get("arguments"))
                 print(f"Tool: {call['function']['name']}({call['function'].get('arguments')}) -> {result}", flush=True)
