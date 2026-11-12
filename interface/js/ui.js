@@ -136,7 +136,7 @@ export function startUI(config) {
 
 // --- boot sequence -------------------------------------------------------
 const BOOT_LINES = [
-  'ALAN BIOS v22.0  (C) 1991 TARNOBRZEG',
+  'ALAN · AUTONOMOUS LOCAL AI NODE',
   '',
   'PAMIĘĆ ................ 16384 MB OK',
   'SIEĆ B ................ OK',
@@ -154,7 +154,7 @@ function chime() {
     [[220, 0], [330, 0.12], [440, 0.24]].forEach(([freq, at]) => {
       const osc = ac.createOscillator();
       const gain = ac.createGain();
-      osc.type = 'square';
+      osc.type = 'sine';
       osc.frequency.value = freq;
       gain.gain.setValueAtTime(0.05, ac.currentTime + at);
       gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + at + 0.5);

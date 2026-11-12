@@ -1,94 +1,78 @@
-// ALAN's face: one full-screen fragment shader. Two phosphor eyes and an
-// oscilloscope-trace mouth, drawn as vector shapes whose form is a blend of
-// the four states, driven by the live audio level. All work is on the GPU; nothing here touches Ollama's CPU.
+// ALAN's presence: a cloud of nodes joined by lines, from which a man's face
+// emerges. At rest the face is loosely scattered into the cloud; when he
+// listens or speaks the nodes gather into it. The jaw follows the live audio
+// level, the lids blink, signals ripple across the links while he thinks.
+// Node and link data come from face-mesh.js (see tools/build_face_mesh.py);
+// all motion is computed in the vertex shader, so the buffers never change.
 
 import { store, signal, mode } from './store.js';
+import { NODES, LINKS, STRIDE } from './face-mesh.js';
 
-const VERT = 'attribute vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }';
+const VERT = `
+attribute vec3 aPos;
+attribute vec3 aRand;
+attribute vec3 aAnim;     // jaw weight, lid offset, kind (0 face, 1 head and shoulders, 2 cloud)
+uniform mat3 uRot;
+uniform vec2 uCentre;
+uniform float uScale, uAspect, uTime, uScatter, uOpen, uBlink, uLevel, uBright, uThink, uPoint;
+varying float vGlow;
+
+void main() {
+  float kind = aAnim.z;
+  vec3 p = aPos;
+  p.y -= aAnim.x * uOpen * 0.17 + aAnim.y * uBlink;       // jaw drops, lids close
+  p.z -= aAnim.x * uOpen * 0.05;
+
+  // Every node drifts a little; scattered ones are pushed off their place.
+  vec3 drift = vec3(sin(uTime * (0.31 + aRand.x * 0.4) + aRand.y * 6.28),
+                    cos(uTime * (0.27 + aRand.y * 0.4) + aRand.z * 6.28),
+                    sin(uTime * (0.23 + aRand.z * 0.4) + aRand.x * 6.28));
+  float loose = uScatter * (kind < 0.5 ? 1.0 : 1.5);
+  p += (aRand - 0.5) * 1.6 * loose + drift * (0.010 + loose * 0.10 + step(1.5, kind) * 0.05);
+
+  p = uRot * p;
+  float persp = 1.0 / (1.0 - p.z * 0.16);
+  vec2 s = p.xy * persp * uScale;
+  gl_Position = vec4(uCentre.x + s.x / uAspect, uCentre.y + s.y, 0.0, 1.0);
+  gl_PointSize = uPoint * persp * (kind < 0.5 ? 1.0 : kind < 1.5 ? 0.8 : 0.7) * (0.7 + aRand.x * 0.6);
+
+  float depth = clamp(0.62 + p.z * 0.55, 0.12, 1.25);               // nearer is brighter
+  float part = kind < 0.5 ? 1.0 : kind < 1.5 ? 0.42 : 0.30;         // the face leads, the cloud recedes
+  float wave = 0.5 + 0.5 * sin(length(aPos.xy - vec2(-0.3, 0.5)) * 7.0 - uTime * 5.0);
+  float twinkle = 0.85 + 0.15 * sin(uTime * (1.0 + aRand.z * 2.0) + aRand.x * 6.28);
+  vGlow = depth * part * uBright * twinkle * (1.0 + uLevel * 0.9 * step(kind, 0.5)) * mix(1.0, 0.45 + wave, uThink);
+}`;
 
 const FRAG = `
 precision mediump float;
-uniform vec2 uRes;
-uniform float uTime;
-uniform float uLevel;
-uniform vec4 uMix;    // idle, listening, thinking, speaking
-uniform float uAlert;
-uniform float uBlink; // 0 open .. 1 shut
-uniform vec2 uGaze;   // eye offset, in screen heights
-
-const float EYE_Y = 0.28;    // face coords: origin at screen centre, y up, 1.0 = screen height
-const float EYE_X = 0.17;
-const float MOUTH_Y = 0.06;
-const float MOUTH_W = 0.25;  // half width
-
-float sdRound(vec2 p, vec2 b) {
-  float r = min(b.x, b.y);
-  vec2 q = abs(p) - b + r;
-  return length(max(q, 0.)) + min(max(q.x, q.y), 0.) - r;
-}
-
-// Two solid phosphor pills. Height carries the expression: half-lidded when
-// idle, wide when listening, narrowed when thinking, round when alarmed.
-float eyes(vec2 p) {
-  float open = 0.050 * uMix.x + 0.078 * uMix.y + 0.034 * uMix.z + 0.062 * uMix.w;
-  open = mix(open, 0.068, uAlert);
-  float h = max(open * (1. - uBlink), 0.004);
-  float w = mix(0.034, 0.068, uAlert);
-  vec2 q = vec2(abs(p.x - uGaze.x) - EYE_X, p.y - EYE_Y - uGaze.y);
-  float d = sdRound(q, vec2(w, h));
-  return smoothstep(0.003, -0.003, d) * 0.9 + 0.004 / (max(d, 0.) + 0.02);
-}
-
-// The mouth is an oscilloscope trace: a faint smile at rest, the live speech
-// envelope when talking.
-float mouth(vec2 p, float t) {
-  float x = p.x / (2. * MOUTH_W) + 0.5;
-  float xc = clamp(x, 0., 1.);
-  float win = pow(sin(3.14159 * xc), 1.3);         // pinned at the corners
-  float u = 2. * xc - 1.;
-  float smile = 0.024 * u * u - 0.012;
-  float idle = smile + 0.004 * sin(xc * 6.283 + t * 0.5) * win;
-  float listen = (0.003 + 0.022 * uLevel) * sin(xc * 24. + t * 7.) * win;
-  float off = (xc - fract(t * 0.45)) * 6.;         // squared by hand: pow() of a negative base is undefined
-  float think = 0.03 * sin(xc * 18. - t * 10.) * exp(-off * off) * win;
-  float speak = smile * 0.4 + uLevel * win * (0.10 * sin(xc * 9. + t * 9.)
-                                            + 0.045 * sin(xc * 21. - t * 14.)
-                                            + 0.025 * sin(xc * 43. + t * 23.));
-  float y = idle * uMix.x + listen * uMix.y + think * uMix.z + speak * uMix.w;
-  float over = max(max(-x, x - 1.), 0.) * 2. * MOUTH_W;   // rounded ends past the corners
-  float d = length(vec2(over, p.y - MOUTH_Y - y));
-  return (0.0016 / (d + 0.0008) + 0.010 / (d * 6. + 0.05)) * (1. - uAlert); // no mouth under the alert text
-}
-
-float face(vec2 uv, float t) {
-  vec2 p = (uv - 0.5) * vec2(uRes.x / uRes.y, 1.);
-  return eyes(p) + mouth(p, t);
-}
+uniform vec3 uColour;
+uniform float uIsPoint, uLine;
+varying float vGlow;
 
 void main() {
-  vec2 uv = gl_FragCoord.xy / uRes;
-  vec2 c = uv - 0.5;
-  uv += c * dot(c, c) * 0.10;                 // barrel distortion
-
-  float breathe = 0.5 + 0.5 * sin(uTime * 0.7);
-  float gain = (0.34 + 0.18 * breathe) * uMix.x + 1.0 * uMix.y + 0.65 * uMix.z
-             + (0.75 + 0.4 * uLevel) * uMix.w;
-  gain = mix(gain, 0.8, uAlert);
-
-  float ab = 0.004 * length(c) * 2.;          // chromatic aberration grows to the edges
-  vec3 i = vec3(face(uv - vec2(ab, 0.), uTime), face(uv, uTime), face(uv + vec2(ab, 0.), uTime));
-
-  vec3 tint = mix(vec3(1.0, 0.69, 0.10), vec3(1.0, 0.25, 0.18), uAlert);
-  vec3 col = i * tint * gain + pow(i.g * gain, 3.) * 0.08;   // white-hot core
-  col = min(col, 1.);
-  gl_FragColor = vec4(col, max(col.r, max(col.g, col.b)));
+  float a = uLine;
+  if (uIsPoint > 0.5) {
+    float d = length(gl_PointCoord - 0.5) * 2.0;
+    a = smoothstep(1.0, 0.0, d);
+    a = a * a + smoothstep(0.35, 0.0, d) * 0.9;     // soft halo with a hot core
+  }
+  gl_FragColor = vec4(uColour * vGlow * a, 1.0);
 }`;
 
-const ORDER = ['idle', 'listening', 'thinking', 'speaking'];
+// What each state does to the face. Angles in radians.
+const POSE = {
+  idle:      { scatter: 0.13, bright: 0.62, line: 0.22, think: 0, yaw: 0,     pitch: 0 },
+  listening: { scatter: 0.02, bright: 1.00, line: 0.36, think: 0, yaw: 0,     pitch: 0.05 },
+  thinking:  { scatter: 0.05, bright: 0.85, line: 0.34, think: 1, yaw: -0.30, pitch: -0.13 },
+  speaking:  { scatter: 0.01, bright: 1.00, line: 0.36, think: 0, yaw: 0,     pitch: 0 },
+  alert:     { scatter: 0.00, bright: 1.15, line: 0.45, think: 0, yaw: 0,     pitch: 0 },
+};
+const CALM = [1.0, 0.80, 0.52];    // warm light, like the lamps in the flat
+const ALARM = [1.0, 0.22, 0.16];
 
 export function startAvatar(canvas, isDark) {
-  const gl = canvas.getContext('webgl', { premultipliedAlpha: true, antialias: false, powerPreference: 'low-power' });
-  if (!gl) return; // text UI still works without the trace
+  const gl = canvas.getContext('webgl', { alpha: false, antialias: true, powerPreference: 'low-power' });
+  if (!gl) return; // text UI still works without the face
 
   const prog = gl.createProgram();
   for (const [type, src] of [[gl.VERTEX_SHADER, VERT], [gl.FRAGMENT_SHADER, FRAG]]) {
@@ -98,70 +82,92 @@ export function startAvatar(canvas, isDark) {
     if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
     gl.attachShader(prog, sh);
   }
-  gl.bindAttribLocation(prog, 0, 'p');
+  ['aPos', 'aRand', 'aAnim'].forEach((name, i) => gl.bindAttribLocation(prog, i, name));
   gl.linkProgram(prog);
   gl.useProgram(prog);
-  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(0);
-  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-  const u = Object.fromEntries(['uRes', 'uTime', 'uLevel', 'uMix', 'uAlert', 'uBlink', 'uGaze'].map((n) => [n, gl.getUniformLocation(prog, n)]));
+  const u = {};
+  for (const name of ['uRot', 'uCentre', 'uScale', 'uAspect', 'uTime', 'uScatter', 'uOpen', 'uBlink', 'uLevel',
+    'uBright', 'uThink', 'uPoint', 'uColour', 'uIsPoint', 'uLine']) u[name] = gl.getUniformLocation(prog, name);
 
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, NODES, gl.STATIC_DRAW);
+  for (let i = 0; i < 3; i++) {
+    gl.enableVertexAttribArray(i);
+    gl.vertexAttribPointer(i, 3, gl.FLOAT, false, STRIDE * 4, i * 12);
+  }
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, LINKS, gl.STATIC_DRAW);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE);    // light adds up where nodes and lines overlap
+
+  let ratio = 1;
   const resize = () => {
-    canvas.width = canvas.clientWidth;   // 1:1 CSS pixels is plenty for a glow
-    canvas.height = canvas.clientHeight;
+    ratio = Math.min(2, devicePixelRatio || 1);
+    canvas.width = Math.round(canvas.clientWidth * ratio);
+    canvas.height = Math.round(canvas.clientHeight * ratio);
     gl.viewport(0, 0, canvas.width, canvas.height);
   };
   addEventListener('resize', resize);
   resize();
 
-  const mix = [1, 0, 0, 0];
-  let alert = 0;
-  let lvl = 0;
+  const pose = { ...POSE.idle, open: 0, alert: 0 };
+  let nextBlink = 2500;
+  const BLINK_MS = 190;
   let running = false;
-  const gaze = [0, 0];
-  let look = [0, 0];
-  let nextLook = 0;
-  let nextBlink = 2000;
-  const BLINK_MS = 170;
 
   const frame = (now) => {
     if (isDark()) {             // studio mode: one black frame, then stop the loop
-      gl.clearColor(0, 0, 0, 0);
+      gl.clearColor(0, 0, 0, 1);
       gl.clear(gl.COLOR_BUFFER_BIT);
       running = false;
       return;
     }
     const m = mode(store.get(), now);
-    ORDER.forEach((name, i) => { mix[i] += ((m === name ? 1 : 0) - mix[i]) * 0.08; });
-    alert += ((m === 'alert' ? 1 : 0) - alert) * 0.1;
-    lvl += (signal.level - lvl) * 0.35;
+    const target = POSE[m] || POSE.idle;
+    for (const k in target) pose[k] += (target[k] - pose[k]) * 0.06;
+    pose.alert += ((m === 'alert' ? 1 : 0) - pose.alert) * 0.1;
     if (m === 'listening') signal.level *= 0.94; // room level decays unless refreshed
+    pose.open += ((m === 'speaking' ? Math.min(1, signal.level * 1.2) : 0) - pose.open) * 0.4;
 
-    gl.uniform2f(u.uRes, canvas.width, canvas.height);
-    gl.uniform1f(u.uTime, now / 1000);
-    gl.uniform1f(u.uLevel, lvl);
-    gl.uniform4fv(u.uMix, mix);
-    gl.uniform1f(u.uAlert, alert);
-
-    // Blink every few seconds; stare during an alert.
-    if (now > nextBlink + BLINK_MS) nextBlink = now + 2500 + Math.random() * 4500;
+    if (now > nextBlink + BLINK_MS) nextBlink = now + 2600 + Math.random() * 4200;
     const b = (now - nextBlink) / BLINK_MS;
-    gl.uniform1f(u.uBlink, m !== 'alert' && b > 0 && b < 1 ? 1 - Math.abs(2 * b - 1) : 0);
+    const blink = m !== 'alert' && b > 0 && b < 1 ? 1 - Math.abs(2 * b - 1) : 0;
 
-    // Idle: occasional small glances. Thinking: eyes drift up and aside.
-    if (m === 'thinking') {
-      look = [-0.03 + 0.015 * Math.sin(now / 600), 0.02];
-    } else if (m !== 'idle') {
-      look = [0, 0];
-    } else if (now > nextLook) {
-      look = Math.random() < 0.5 ? [0, 0] : [(Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.02];
-      nextLook = now + 2000 + Math.random() * 5000;
-    }
-    gaze[0] += (look[0] - gaze[0]) * 0.12;
-    gaze[1] += (look[1] - gaze[1]) * 0.12;
-    gl.uniform2fv(u.uGaze, gaze);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    // A slow, small sway keeps him alive; thinking turns the head up and aside.
+    const t = now / 1000;
+    const yaw = pose.yaw + 0.13 * Math.sin(t * 0.31) + 0.04 * Math.sin(t * 0.83);
+    const pitch = pose.pitch + 0.05 * Math.sin(t * 0.43) + pose.open * 0.03;
+    const roll = 0.025 * Math.sin(t * 0.27);
+    const [cy, sy, cx, sx, cz, sz] = [Math.cos(yaw), Math.sin(yaw), Math.cos(pitch), Math.sin(pitch), Math.cos(roll), Math.sin(roll)];
+    // column-major: Rz * Rx * Ry
+    gl.uniformMatrix3fv(u.uRot, false, [
+      cz * cy + sz * sx * sy, sz * cx, -cz * sy + sz * sx * cy,
+      -sz * cy + cz * sx * sy, cz * cx, sz * sy + cz * sx * cy,
+      cx * sy, -sx, cx * cy,
+    ]);
+
+    const aspect = canvas.width / canvas.height;
+    const fit = Math.min(1, aspect * 0.95);                 // shrink on a narrow, upright screen
+    gl.uniform2f(u.uCentre, 0, 0.34 + (1 - fit) * 0.22);
+    gl.uniform1f(u.uScale, 0.43 * fit);
+    gl.uniform1f(u.uAspect, aspect);
+    gl.uniform1f(u.uTime, t);
+    gl.uniform1f(u.uScatter, pose.scatter);
+    gl.uniform1f(u.uOpen, pose.open);
+    gl.uniform1f(u.uBlink, blink);
+    gl.uniform1f(u.uLevel, signal.level);
+    gl.uniform1f(u.uBright, pose.bright * (m === 'alert' ? 0.75 + 0.25 * Math.sin(t * 6.28) : 1));
+    gl.uniform1f(u.uThink, pose.think);
+    gl.uniform1f(u.uPoint, canvas.height * 0.0085 * fit);
+    gl.uniform3f(u.uColour, ...CALM.map((c, i) => c + (ALARM[i] - c) * pose.alert));
+
+    gl.clearColor(0.016 + 0.10 * pose.alert, 0.020, 0.027, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.uniform1f(u.uIsPoint, 0);
+    gl.uniform1f(u.uLine, pose.line);
+    gl.drawElements(gl.LINES, LINKS.length, gl.UNSIGNED_SHORT, 0);
+    gl.uniform1f(u.uIsPoint, 1);
+    gl.drawArrays(gl.POINTS, 0, NODES.length / STRIDE);
     requestAnimationFrame(frame);
   };
 
