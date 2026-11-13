@@ -56,8 +56,8 @@ export const TOOLS: Anthropic.Tool[] = [
     "Tak pomagasz w zakupach i zamówieniach: znajdujesz w sieci, wybierasz, pokazujesz link. Jedzenie z dostawą domownicy zamawiają przez Uber Eats i Glovo: wyszukaj stronę restauracji w jednej z tych aplikacji i pokaż ją. Sam niczego nie kupujesz ani nie zamawiasz i nigdy nie mów, że to zrobiłeś. Adres bierz z wyników wyszukiwania, nie zmyślaj go.",
     { title: text("krótki opis, np. Filtr do ekspresu, 64 zł, Allegro"), url: text("pełny adres https://") }, ["title", "url"]),
   tool("ride_link", "Przygotowuje przejazd: pokazuje na ekranie link z kodem QR, który otwiera w telefonie aplikację Uber z wpisanym celem (odbiór z miejsca, gdzie jest telefon). " +
-    "Przejazd zamawia i potwierdza rozmówca w telefonie. W Tarnobrzegu domownicy jeżdżą Boltem, a Bolt nie ma takiego linku: tam powiedz, żeby otworzyli Bolta, i podaj cel, " +
-    "albo zaproponuj telefon po taksówkę. Tego narzędzia używaj w miastach, gdzie jeździ Uber.",
+    "Przejazd zamawia i potwierdza rozmówca w telefonie. W Tarnobrzegu Uber jeździ, ale aut jest mniej niż w Bolcie, a Bolt nie ma takiego linku: " +
+    "pokaż link do Ubera i dodaj, że w Bolcie będzie pewnie szybciej, albo zaproponuj telefon po taksówkę.",
     { destination: text("dokąd: adres albo nazwa miejsca z miastem, np. Lotnisko Rzeszów-Jasionka") }, ["destination"]),
   tool("phone_call", "Dzwoni w imieniu rozmówcy pod polski numer i załatwia jedną sprawę: zamawia taksówkę, jedzenie z dostawą (płatność przy odbiorze), rezerwuje stolik, pyta o godziny otwarcia. " +
     "Numer bierz od rozmówcy albo z wyszukiwania w sieci, nigdy go nie zmyślaj. Pierwsze użycie tylko przygotowuje rozmowę: powtórz wtedy rozmówcy, do kogo i z czym dzwonisz, i zapytaj, czy dzwonić. " +
