@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { generateKeyPairSync } from "node:crypto";
+import { eventBody } from "../lib/gcal.mts";
 import { cuesFromCharacters } from "../lib/voice.mts";
 import { passwordMatches, sessionCookie, signedIn } from "../lib/auth.mts";
 import { nudge, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
@@ -123,4 +125,24 @@ test("a streamed answer is handed over sentence by sentence, across tool rounds"
   assert.equal(seen.length, 2);
   assert.deepEqual(said, ["Chwila, zajrzę do notatek.", "Nic tam nie ma. Pusto jak w kasie po remoncie!", "Dr. Kowalski by się uśmiał."]);
   assert.match(out.reply, /Kowalski/);
+});
+
+test("he adds an event to the Google calendar as a service account", async () => {
+  const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const key = (privateKey.export({ type: "pkcs8", format: "pem" }) as string).replace(/\n/g, "\\n");   // as pasted from the key file
+  const calls: { url: string; init: any }[] = [];
+  const fetcher = (async (url: any, init: any) => {
+    calls.push({ url: String(url), init });
+    return String(url).includes("oauth2") ? Response.json({ access_token: "tok" }) : Response.json({ id: "1" });
+  }) as typeof fetch;
+  const ctx = { store: memoryStore(), ...at, calendars: [], fetcher, google: { email: "alan@x.iam.gserviceaccount.com", key, calendar: "ktos@example.com" } };
+  assert.match(await runTool("add_event", { title: "Dentysta", start: "2026-11-17 09:30", location: "Tarnobrzeg" }, ctx), /^Wykonano: dopisano do kalendarza „Dentysta”, 2026-11-17 09:30–10:30\./);
+  assert.match(calls[0].init.body.get("assertion"), /^[\w-]+\.[\w-]+\.[\w-]+$/);
+  assert.equal(calls[1].url, "https://www.googleapis.com/calendar/v3/calendars/ktos%40example.com/events");
+  assert.equal(calls[1].init.headers.Authorization, "Bearer tok");
+  assert.deepEqual(JSON.parse(calls[1].init.body), { summary: "Dentysta", location: "Tarnobrzeg",
+    start: { dateTime: "2026-11-17T09:30:00", timeZone: "Europe/Warsaw" }, end: { dateTime: "2026-11-17T10:30:00", timeZone: "Europe/Warsaw" } });
+  assert.deepEqual(eventBody({ title: "Sibos", start: "2026-11-20", end: "2026-11-22" }, "Europe/Warsaw"), { summary: "Sibos", start: { date: "2026-11-20" }, end: { date: "2026-11-23" } });
+  assert.match(await runTool("add_event", { title: "Coś", start: "w piątek" }, ctx), /^Błąd: początek podaj/);
+  assert.match(await runTool("add_event", { title: "Coś", start: "2026-11-17" }, { ...ctx, google: undefined }), /^Błąd: nie masz prawa pisać/);
 });

@@ -4,12 +4,13 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { DAYS, dmy, hm, instant, local, span } from "./clock.mts";
 import { describe, occurrences, readCalendars } from "./diary.mts";
+import { addEvent, type Google } from "./gcal.mts";
 import { parseMemories, recallPast } from "./past.mts";
 import { loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
 import { MEMORIES } from "./texts.gen.mjs";
 
-export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; fetcher?: typeof fetch };
+export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; fetcher?: typeof fetch };
 
 const text = (description: string) => ({ type: "string" as const, description });
 const tool = (name: string, description: string, properties: Record<string, unknown> = {}, required: string[] = []): Anthropic.Tool =>
@@ -37,6 +38,9 @@ export const TOOLS: Anthropic.Tool[] = [
   tool("weather", "Aktualna pogoda i prognoza na trzy dni tam, gdzie rozmówca teraz jest."),
   tool("calendar", "Odczytuje kalendarz domowników: wydarzenia danego dnia albo kilku kolejnych dni.",
     { day: text("dziś, jutro albo data RRRR-MM-DD; domyślnie dziś"), days: { type: "integer", description: "ile dni od tego dnia, domyślnie 1" } }),
+  tool("add_event", "Dopisuje wydarzenie do kalendarza Google rozmówcy. Tylko gdy rozmówca wyraźnie o to prosi i znasz dzień; gdy brakuje dnia albo godziny, najpierw dopytaj.",
+    { title: text("krótki tytuł wydarzenia"), start: text("RRRR-MM-DD GG:MM, a dla wydarzenia całodniowego sama data RRRR-MM-DD"),
+      end: text("koniec w tym samym formacie; domyślnie godzina później albo ten sam dzień"), location: text("miejsce, jeśli podano"), notes: text("opis, jeśli podano") }, ["title", "start"]),
   tool("briefing", "Odprawa na dziś: pogoda, kalendarz i przypomnienia naraz ('co dziś', 'plan dnia', 'co mnie czeka')."),
 ];
 
@@ -259,6 +263,16 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         return await weather(own, ctx);
       case "calendar":
         return await calendar(ctx, input.day, input.days);
+      case "add_event": {
+        if (!ctx.google) return "Błąd: nie masz prawa pisać do kalendarza, możesz go tylko czytać.";
+        try {
+          const made = await addEvent(ctx.google, input as any, ctx.tz, ctx.now, ctx.fetcher);
+          const when = "date" in made.start ? `${made.start.date}, cały dzień` : `${made.start.dateTime.slice(0, 10)} ${made.start.dateTime.slice(11, 16)}–${made.end.dateTime!.slice(11, 16)}`;
+          return `Wykonano: dopisano do kalendarza „${made.summary}”, ${when}.`;
+        } catch (err) {
+          return `Błąd: ${(err as Error).message}.`;
+        }
+      }
       case "briefing": {
         const parts = [(await weather(own, ctx)).split(/(?<=\.) (?=Jutro)/)[0]];
         if (ctx.calendars.length) parts.push(await calendar(ctx));
