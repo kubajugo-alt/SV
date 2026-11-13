@@ -7,6 +7,7 @@ import { describe, occurrences, readCalendars } from "./diary.mts";
 import { addEvent, changeEvent, type Google } from "./gcal.mts";
 import { callOutcome, CALLS_A_DAY, placeCall, polishNumber, type Phone } from "./phone.mts";
 import { parseMemories, recallPast } from "./past.mts";
+import { findPlaces, loadPlaces, TOWNS } from "./places.mts";
 import { loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
 import { MEMORIES } from "./texts.gen.mjs";
@@ -65,6 +66,14 @@ export const TOOLS: Anthropic.Tool[] = [
     { name: text("do kogo, np. Radio Taxi Tarnobrzeg"), number: text("numer telefonu, 9 cyfr"),
       task: text("co dokładnie załatwić, ze wszystkimi szczegółami: adres, godzina, na kogo, co zamówić, jak zapłacić") }, ["name", "number", "task"]),
   tool("call_result", "Podaje, jak poszły ostatnie rozmowy telefoniczne, które wykonałeś."),
+  tool("find_place", "Twoja baza miejsc w Tarnobrzegu i Sandomierzu: restauracje, bary, puby, kawiarnie, cukiernie, winnice, kina, teatry, muzea, galerie, domy kultury, zabytki. " +
+    "Podaje adres, telefon, godziny otwarcia, kuchnię i to, co domownicy sami o miejscu powiedzieli. Używaj, gdy pytają, gdzie zjeść, wypić, dokąd pójść, albo o konkretne miejsce. " +
+    "Godziny są zapisane skrótami (Mo-Fr 10:00-22:00); podawaj je po ludzku. O bieżący repertuar i wydarzenia pytaj wyszukiwarkę.",
+    { query: text("nazwa albo słowa kluczowe, np. pizza, zamek; puste = wszystko danego rodzaju"), town: text("Tarnobrzeg albo Sandomierz; puste = oba"),
+      kind: text("rodzaj: restauracja, bar, pub, kawiarnia, cukiernia, winnica, kino, teatr, muzeum, galeria, dom kultury, zabytek...") }),
+  tool("note_place", "Zapisuje, co rozmówca powiedział o miejscu w Tarnobrzegu albo Sandomierzu: opinię, co warto zamówić, że zamknięte, że nowe. Dopisuje też miejsce, którego w bazie nie ma. " +
+    "Tylko gdy rozmówca wyraźnie coś o miejscu mówi lub prosi o zapisanie.",
+    { name: text("nazwa miejsca, tak jak w bazie, jeśli tam jest"), town: text("Tarnobrzeg albo Sandomierz"), text: text("co zapisać, pełnym zdaniem") }, ["name", "town", "text"]),
   tool("briefing", "Odprawa na dziś: pogoda, kalendarz i przypomnienia naraz ('co dziś', 'plan dnia', 'co mnie czeka')."),
 ];
 
@@ -379,6 +388,22 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
           return `${c.name} (${hm(local(new Date(c.at), ctx.tz))}): ${outcome ?? "rozmowa jeszcze trwa"}.`;
         }));
         return "Rozmowy telefoniczne: " + lines.join(" ");
+      }
+      case "find_place": {
+        const places = await loadPlaces(store, ctx.now, ctx.fetcher);
+        if (!places && !own.placeNotes.length) return "Błąd: baza miejsc jeszcze się nie pobrała. Poszukaj w sieci.";
+        return findPlaces(places?.rows ?? [], own.placeNotes, { query: input.query, town: input.town, kind: input.kind });
+      }
+      case "note_place": {
+        const town = Object.keys(TOWNS).find((t) => stems(String(input.town ?? "")).some((s) => stems(t).includes(s)));
+        const name = String(input.name ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+        const note = String(input.text ?? "").replace(/\s+/g, " ").trim().slice(0, 400);
+        if (!town) return "Błąd: baza obejmuje Tarnobrzeg i Sandomierz; podaj jedno z tych miast.";
+        if (!name || note.length < 3) return "Błąd: podaj nazwę miejsca i co o nim zapisać.";
+        const known = (await loadPlaces(store, ctx.now, ctx.fetcher))?.rows.find((p) => p.town === town && p.name.toLowerCase() === name.toLowerCase());
+        own.placeNotes = [...own.placeNotes, { name: known?.name ?? name, town, text: note, who: capital(person), at: ctx.now.toISOString() }].slice(-400);
+        await save();
+        return `Wykonano: zapisano o miejscu ${known?.name ?? name} (${town})${known ? "" : ", którego nie było w bazie"}: ${note}`;
       }
       case "briefing": {
         const parts = [(await weather(own, ctx)).split(/(?<=\.) (?=Jutro)/)[0]];

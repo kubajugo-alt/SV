@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { generateKeyPairSync } from "node:crypto";
 import { eventBody } from "../lib/gcal.mts";
 import { approveProposal, listProposals } from "../lib/proposals.mts";
+import { loadPlaces, overpassQuery, TOWNS } from "../lib/places.mts";
 import { cuesFromCharacters } from "../lib/voice.mts";
 import { passwordMatches, sessionCookie, signedIn } from "../lib/auth.mts";
 import { nudge, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
@@ -257,4 +258,41 @@ test("a phone call is proposed first, placed only when confirmed in a later turn
   assert.deepEqual((await agenda(store, new Date(later2.now.getTime() + 120000), phone, fetcher)).say, []);           // said once
   assert.match(await runTool("call_result", {}, later2), /Radio Taxi \(09:00\): Taksówka przyjedzie za dziesięć minut\./);
   assert.match(await runTool("phone_call", ask, { ...ctx, phone: undefined }), /^Błąd: nie masz podłączonego telefonu/);
+});
+
+test("the places list comes from the map, is searched by town, kind and words, and carries the household's notes", async () => {
+  const sandomierz = [
+    { tags: { name: "Winnica Sandomierska", craft: "winery", "addr:street": "Zawichojska", "addr:housenumber": "2", phone: "+48 15 000 00 00" } },
+    { tags: { name: "Zamek Królewski", historic: "castle", tourism: "museum", opening_hours: "Tu-Su 10:00-17:00" } },
+    { tags: { name: "Sklep rybny", shop: "seafood" } }];
+  const tarnobrzeg = [
+    { tags: { name: "Pizzeria Roma", amenity: "restaurant", cuisine: "pizza;italian", "addr:street": "Sienkiewicza", "addr:housenumber": "10", opening_hours: "Mo-Su 12:00-22:00" } },
+    { tags: { name: "Pizzeria Roma", amenity: "restaurant", "addr:street": "Sienkiewicza", "addr:housenumber": "10" } },
+    { tags: { name: "Kino Wisła", amenity: "cinema" } }, { tags: { name: "Zamek Tarnowskich", historic: "castle" } }, { tags: { amenity: "bar" } }];
+  let down = false;
+  const asked: string[] = [];
+  const fetcher = (async (url: any, init: any) => {
+    if (down) throw new Error("offline");
+    const query = init.body.get("data") as string;
+    asked.push(query);
+    return Response.json({ elements: query.includes(TOWNS.Sandomierz.join(",")) ? sandomierz : tarnobrzeg });
+  }) as typeof fetch;
+  const store = memoryStore();
+  const ctx = { store, ...at, calendars: [], fetcher };
+  assert.match(overpassQuery("Tarnobrzeg"), /nwr\["amenity"~"\^\(restaurant\|bar\|pub\|cafe.*\]\["name"\]\(50\.5,21\.58,50\.645,21\.8\);/);
+  const pizza = await runTool("find_place", { query: "pizza", town: "w Tarnobrzegu" }, ctx);
+  assert.equal(pizza, "Miejsca (1): Pizzeria Roma (restauracja, Tarnobrzeg); adres: Sienkiewicza 10; kuchnia: pizza, italian; godziny: Mo-Su 12:00-22:00.");
+  assert.equal(asked.length, 2);
+  assert.equal((await store.get<any>("places")).rows.length, 5);                       // no fish shop, no nameless bar, the pizzeria once
+  assert.match(await runTool("find_place", { kind: "zamek" }, ctx), /^Miejsca \(2\): .*Zamek Królewski \(muzeum, Sandomierz\).*Zamek Tarnowskich \(zamek, Tarnobrzeg\)|^Miejsca \(1\)/);
+  assert.match(await runTool("note_place", { name: "pizzeria roma", town: "Tarnobrzeg", text: "Najlepsza capricciosa w mieście." }, ctx), /^Wykonano: zapisano o miejscu Pizzeria Roma \(Tarnobrzeg\): Najlepsza/);
+  assert.match(await runTool("note_place", { name: "Bar u Zdzicha", town: "Sandomierzu", text: "Nowy bar przy rynku, dobre piwo." }, ctx), /Bar u Zdzicha \(Sandomierz\), którego nie było w bazie/);
+  assert.match(await runTool("note_place", { name: "X", town: "Kraków", text: "Dobre." }, ctx), /^Błąd: baza obejmuje/);
+  assert.match(await runTool("find_place", { query: "capricciosa" }, ctx), /Pizzeria Roma.*notatka domowników \(Kuba\): Najlepsza capricciosa w mieście\./);
+  assert.match(await runTool("find_place", { query: "piwo", town: "Sandomierz" }, ctx), /Bar u Zdzicha \(miejsce dopisane przez domowników, Sandomierz\); notatka domowników/);
+  assert.equal(asked.length, 2);                                                         // the stored list is used
+  down = true;
+  assert.equal((await loadPlaces(store, at.now, fetcher, true))!.rows.length, 5);       // a failed refresh keeps the old list
+  assert.match(await runTool("find_place", { query: "sushi" }, ctx), /^W bazie miejsc nic takiego nie ma/);
+  assert.match(await runTool("find_place", {}, { ...ctx, store: memoryStore() }), /^Błąd: baza miejsc jeszcze się nie pobrała/);
 });
