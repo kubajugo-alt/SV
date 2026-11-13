@@ -15,6 +15,8 @@ export function mind(): Mind {
     effort: effort === "medium" || effort === "high" ? effort : "low",
     calendars: (Netlify.env.get("ALAN_CALENDARS") ?? "").split(/[\s,]+/).filter((u) => u.startsWith("https://")),
     google: google.email && google.key && google.calendar ? google : undefined,
+    builder: Netlify.env.get("ALAN_ROUTINE_ID") && Netlify.env.get("ALAN_ROUTINE_TOKEN")
+      ? { routine: Netlify.env.get("ALAN_ROUTINE_ID")!, token: Netlify.env.get("ALAN_ROUTINE_TOKEN")! } : undefined,
     webSearch: (Netlify.env.get("ALAN_WEB_SEARCH") ?? "on") !== "off",
   };
 }

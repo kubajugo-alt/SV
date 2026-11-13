@@ -170,3 +170,21 @@ test("he moves an event, keeping its length, and asks when several fit", async (
   assert.match(await runTool("change_event", { find: "fryzjer", day: "2026-11-17", title: "X" }, ctx), /^Błąd: tego dnia nie ma/);
   assert.match(await runTool("change_event", { find: "obiad", day: "2026-11-17" }, ctx), /^Błąd: nie podano, co zmienić/);
 });
+
+test("a feature request goes to the Claude Code routine and is noted", async () => {
+  const calls: { url: string; init: any }[] = [];
+  let status = 200;
+  const fetcher = (async (url: any, init: any) => {
+    calls.push({ url: String(url), init });
+    return Response.json({ type: "routine_fire", claude_code_session_url: "https://claude.ai/code/session_x" }, { status });
+  }) as typeof fetch;
+  const ctx = { store: memoryStore(), ...at, calendars: [], fetcher, builder: { routine: "trig_abc", token: "tok" } };
+  assert.match(await runTool("request_feature", { request: "Naucz się podawać kursy walut z NBP." }, ctx), /^Wykonano: zlecenie przekazane/);
+  assert.equal(calls[0].url, "https://api.anthropic.com/v1/claude_code/routines/trig_abc/fire");
+  assert.equal(calls[0].init.headers.Authorization, "Bearer tok");
+  assert.match(JSON.parse(calls[0].init.body).text, /Kuba\), przekazana przez Alana:\nNaucz się podawać kursy walut/);
+  assert.match(await runTool("find_notes", { query: "zlecenie" }, ctx), /kursy walut.*session_x/);
+  status = 401;
+  assert.match(await runTool("request_feature", { request: "Naucz się czegoś nowego." }, ctx), /^Błąd: programista nie przyjął zlecenia \(401\)/);
+  assert.match(await runTool("request_feature", { request: "Naucz się czegoś nowego." }, { ...ctx, builder: undefined }), /^Błąd: nie masz połączenia/);
+});

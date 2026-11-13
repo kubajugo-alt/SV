@@ -10,7 +10,9 @@ import { loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
 import { MEMORIES } from "./texts.gen.mjs";
 
-export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; fetcher?: typeof fetch };
+export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; fetcher?: typeof fetch };
+/** The Claude Code routine that changes his own code: its id (trig_...) and the token of its API trigger. */
+export type Builder = { routine: string; token: string };
 
 const text = (description: string) => ({ type: "string" as const, description });
 const tool = (name: string, description: string, properties: Record<string, unknown> = {}, required: string[] = []): Anthropic.Tool =>
@@ -46,6 +48,9 @@ export const TOOLS: Anthropic.Tool[] = [
     { find: text("słowa z obecnego tytułu wydarzenia"), day: text("dzień, w którym wydarzenie jest teraz: RRRR-MM-DD"),
       title: text("nowy tytuł, jeśli ma się zmienić"), start: text("nowy początek: RRRR-MM-DD GG:MM albo RRRR-MM-DD dla całodniowego; długość zostaje, jeśli nie podasz końca"),
       end: text("nowy koniec w tym samym formacie; wymaga podania start"), location: text("nowe miejsce"), notes: text("nowy opis") }, ["find", "day"]),
+  tool("request_feature", "Zleca programiście (Claude Code) dopisanie tobie nowej umiejętności albo zmianę w tym, jak działasz. " +
+    "Tylko gdy rozmówca wyraźnie prosi, żebyś się czegoś nauczył albo coś w sobie zmienił, i tylko raz na prośbę. Zmiana nie dzieje się od razu: powstaje propozycja, którą Kuba musi zatwierdzić.",
+    { request: text("co dokładnie ma zostać dodane lub zmienione, pełnymi zdaniami, ze szczegółami podanymi przez rozmówcę") }, ["request"]),
   tool("briefing", "Odprawa na dziś: pogoda, kalendarz i przypomnienia naraz ('co dziś', 'plan dnia', 'co mnie czeka')."),
 ];
 
@@ -293,6 +298,22 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         } catch (err) {
           return `Błąd: ${(err as Error).message}.`;
         }
+      }
+      case "request_feature": {
+        const request = String(input.request ?? "").trim();
+        if (!ctx.builder) return "Błąd: nie masz połączenia z programistą; nie możesz zlecać zmian w sobie.";
+        if (request.length < 10) return "Błąd: opisz dokładniej, co ma zostać dodane.";
+        const res = await (ctx.fetcher ?? fetch)(`https://api.anthropic.com/v1/claude_code/routines/${encodeURIComponent(ctx.builder.routine)}/fire`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${ctx.builder.token}`, "anthropic-version": "2023-06-01", "anthropic-beta": "experimental-cc-routine-2026-04-01", "Content-Type": "application/json" },
+          body: JSON.stringify({ text: `Prośba od domownika (${capital(person)}), przekazana przez Alana:\n${request.slice(0, 4000)}` }),
+        });
+        if (res.status === 429) return "Błąd: za dużo zleceń w ostatniej godzinie; spróbuj później.";
+        if (!res.ok) return `Błąd: programista nie przyjął zlecenia (${res.status}).`;
+        const made = await res.json().catch(() => ({}));
+        (own.jottings[person] ??= []).push({ at: ctx.now.toISOString(), text: `Zlecenie dla programisty: ${request}${made.claude_code_session_url ? ` (${made.claude_code_session_url})` : ""}` });
+        await save();
+        return "Wykonano: zlecenie przekazane programiście. Przygotuje propozycję zmiany; zacznie działać, gdy Kuba ją zatwierdzi.";
       }
       case "briefing": {
         const parts = [(await weather(own, ctx)).split(/(?<=\.) (?=Jutro)/)[0]];
