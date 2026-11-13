@@ -11,6 +11,7 @@ cd "$REPO"
 # With an Anthropic key on this machine he thinks with Claude (ALAN_MIND=local keeps the local model).
 if [ -z "${ALAN_MIND:-}" ] && [ -s "$REPO/data/anthropic.key" ]; then
   export ALAN_MIND=claude
+  export ALAN_STT_MODEL="${ALAN_STT_MODEL:-small}"      # the light recogniser is plenty beside a cloud mind
   "$REPO/.venv/bin/python" -c "import anthropic" 2>/dev/null || "$REPO/.venv/bin/pip" install --quiet anthropic
 fi
 

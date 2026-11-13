@@ -4,6 +4,7 @@
 #   ./install.sh                 install or update everything
 #   ./install.sh --autostart     also start ALAN and the full-screen page at login
 #   ./install.sh --no-autostart  remove the start-at-login setup
+#   ./install.sh --cloud         light install for Claude + ElevenLabs: no local model, no local voice
 #   ./install.sh --wiki          also download Polish Wikipedia for offline use (large; see below)
 #
 # Safe to run again: each step is skipped when it is already done.
@@ -14,6 +15,7 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")" && pwd)"
 MODEL="${ALAN_LLM_MODEL:-mistral-nemo}"
 STT_MODEL="${ALAN_STT_MODEL:-medium}"
+[ "${1:-}" = "--cloud" ] && STT_MODEL="${ALAN_STT_MODEL:-small}"
 AGENTS="$HOME/Library/LaunchAgents"
 LABELS=(pl.alan.server pl.alan.kiosk)
 
@@ -38,11 +40,15 @@ fi
 
 command -v brew >/dev/null || fail "brak Homebrew. Zainstaluj go ze strony https://brew.sh i uruchom skrypt ponownie."
 
-step "Narzędzia (Python 3.11, Ollama)"
+CLOUD=""
+[ "${1:-}" = "--cloud" ] && CLOUD=1
+
+step "Narzędzia (Python 3.11${CLOUD:+, bez lokalnego modelu})"
 brew list python@3.11 >/dev/null 2>&1 || brew install python@3.11
-command -v ollama >/dev/null || brew install ollama
+[ -n "$CLOUD" ] || command -v ollama >/dev/null || brew install ollama
 PYTHON="$(brew --prefix python@3.11)/bin/python3.11"
 
+if [ -z "$CLOUD" ]; then
 step "Model językowy ($MODEL)"
 if ! curl -fsS -m 3 http://127.0.0.1:11434/api/version >/dev/null 2>&1; then
   brew services start ollama
@@ -54,20 +60,29 @@ fi
 curl -fsS -m 3 http://127.0.0.1:11434/api/version >/dev/null || fail "Ollama nie odpowiada na porcie 11434."
 ollama list | grep -q "^$MODEL" || ollama pull "$MODEL"
 
+fi
+
 step "Środowisko Pythona (głos i słuch)"
 [ -x "$REPO/.venv/bin/python" ] || "$PYTHON" -m venv "$REPO/.venv"
 "$REPO/.venv/bin/pip" install --quiet --upgrade pip
-"$REPO/.venv/bin/pip" install --quiet chatterbox-tts faster-whisper libzim anthropic "setuptools<81"
+if [ -n "$CLOUD" ]; then
+  "$REPO/.venv/bin/pip" install --quiet faster-whisper libzim anthropic numpy
+else
+  "$REPO/.venv/bin/pip" install --quiet chatterbox-tts faster-whisper libzim anthropic "setuptools<81"
+fi
 
 step "Pobieranie i sprawdzenie modeli głosu i słuchu"
-(cd "$REPO" && ALAN_STT_MODEL="$STT_MODEL" "$REPO/.venv/bin/python" - <<'PY'
+(cd "$REPO" && ALAN_CLOUD="$CLOUD" ALAN_STT_MODEL="$STT_MODEL" "$REPO/.venv/bin/python" - <<'PY'
 import os
 import serve
 
 ears = serve.Whisper(os.environ["ALAN_STT_MODEL"], "pl")
 print("Słuch:", ears.name)
-voice = serve.Chatterbox("pl", "voices/alan.wav", "auto", 0.5, 0.5)
-print("Głos: ", voice.name)
+if os.environ.get("ALAN_CLOUD"):
+    print("Głos:  ElevenLabs (klucz w data/elevenlabs.key); umysł: Claude (klucz w data/anthropic.key)")
+else:
+    voice = serve.Chatterbox("pl", "voices/alan.wav", "auto", 0.5, 0.5)
+    print("Głos: ", voice.name)
 PY
 )
 
