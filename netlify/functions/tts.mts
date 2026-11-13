@@ -14,7 +14,7 @@ export default async (req: Request) => {
   const key = Netlify.env.get("ELEVENLABS_API_KEY");
   if (!key) return new Response("No voice: ELEVENLABS_API_KEY is not set", { status: 503 });
   const voice = Netlify.env.get("ALAN_ELEVEN_VOICE") ?? ROGER;
-  const model = Netlify.env.get("ALAN_ELEVEN_MODEL") ?? "eleven_v4";
+  const model = Netlify.env.get("ALAN_ELEVEN_MODEL") ?? "eleven_flash_v2_5"   // made for live conversation; eleven_v4 is the games' model;
   const call = (path: string) => fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}${path}?output_format=mp3_44100_128`, {
     method: "POST",
     headers: { "xi-api-key": key, "Content-Type": "application/json" },

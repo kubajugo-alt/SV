@@ -32,7 +32,8 @@ export type Mind = {
 type Request = { person: string; tz: string; now: Date };
 
 const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const clean = (text: string) => text.replace(/[*_#`]+/g, "").replace(/^\s*(ALAN|Alan)\s*:\s*/, "").replace(/\s+/g, " ").trim();
+/** The answer is spoken: drop markdown marks and a leading "Alan:". */
+export const clean = (text: string) => text.replace(/[*_#`]+/g, "").replace(/^\s*(ALAN|Alan)\s*:\s*/, "").replace(/\s+/g, " ").trim();
 const textOf = (message: Anthropic.Beta.BetaMessage) => message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
 
 async function system(mind: Mind, req: Request, talk: Talk): Promise<Anthropic.Beta.BetaTextBlockParam[]> {
@@ -52,27 +53,34 @@ async function system(mind: Mind, req: Request, talk: Talk): Promise<Anthropic.B
   return [{ type: "text", text: stable.join("\n"), cache_control: { type: "ephemeral" } }, { type: "text", text: changing.join("\n") }];
 }
 
-function ask(mind: Mind, sys: Anthropic.Beta.BetaTextBlockParam[] | string, messages: Anthropic.Beta.BetaMessageParam[], tools = false, maxTokens = 4000) {
-  return mind.client.beta.messages.create({
+async function ask(mind: Mind, sys: Anthropic.Beta.BetaTextBlockParam[] | string, messages: Anthropic.Beta.BetaMessageParam[], tools = false, maxTokens = 4000,
+  onText?: (delta: string) => void): Promise<Anthropic.Beta.BetaMessage> {
+  const params = {
     model: mind.model, max_tokens: maxTokens, system: sys, messages,
     output_config: { effort: mind.effort },
     // If a safety classifier declines the request, the API re-runs it on a fallback model in the same call.
     betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
     ...(tools ? { tools: [...TOOLS, ...(mind.webSearch ? [{ type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 3 }] : [])] } : {}),
-  });
+  } satisfies Anthropic.Beta.MessageCreateParamsNonStreaming;
+  if (!onText) return mind.client.beta.messages.create(params);
+  // Streaming: his words are handed over as they are written, so he can start speaking the first
+  // sentence while the rest is still coming. Tool inputs arrive whole (they are small), validated by the API.
+  const message = await mind.client.beta.messages.stream(params).on("text", onText).finalMessage();
+  onText("\n");                                   // a later round starts a new sentence
+  return message;
 }
 
-async function converse(mind: Mind, req: Request, talk: Talk, said: string) {
+async function converse(mind: Mind, req: Request, talk: Talk, said: string, onText?: (delta: string) => void) {
   const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, fetcher: mind.fetcher };
   const messages: Anthropic.Beta.BetaMessageParam[] = [...talk.turns.map((t) => ({ role: t.role, content: t.text })), { role: "user", content: said }];
   const sys = await system(mind, req, talk);
   const actions: { ok: boolean; text: string }[] = [];
-  let response = await ask(mind, sys, messages, true);
+  let response = await ask(mind, sys, messages, true, 4000, onText);
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     if (response.stop_reason === "refusal") return { reply: REFUSED, actions };
     if (response.stop_reason === "pause_turn") {                              // a web search still running: let it continue
       messages.push({ role: "assistant", content: response.content as Anthropic.Beta.BetaContentBlockParam[] });
-      response = await ask(mind, sys, messages, true);
+      response = await ask(mind, sys, messages, true, 4000, onText);
       continue;
     }
     const calls = response.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use");
@@ -86,7 +94,7 @@ async function converse(mind: Mind, req: Request, talk: Talk, said: string) {
       results.push({ type: "tool_result", tool_use_id: call.id, content: result, ...(result.startsWith("Błąd") ? { is_error: true } : {}) });
     }
     messages.push({ role: "user", content: results });                          // all results in one message
-    response = await ask(mind, sys, messages, true);
+    response = await ask(mind, sys, messages, true, 4000, onText);
   }
   return { reply: response.stop_reason === "refusal" ? REFUSED : clean(textOf(response)), actions };
 }
@@ -129,10 +137,10 @@ ZAKTUALIZOWANE NOTATKI:`;
   };
 }
 
-export async function respond(mind: Mind, req: Request, text: string) {
+export async function respond(mind: Mind, req: Request, text: string, onText?: (delta: string) => void) {
   const talk = await loadTalk(mind.store, req.person);
   const started = Date.now();
-  const { reply, actions } = await converse(mind, req, talk, text);
+  const { reply, actions } = await converse(mind, req, talk, text, onText);
   console.log(`Timing: Claude ${((Date.now() - started) / 1000).toFixed(1)} s`);
   if (!reply) throw new Error("the model returned an empty answer");
   const at = req.now.toISOString();
@@ -154,4 +162,20 @@ export async function nudge(mind: Mind, req: Request, kind: string) {
   const reply = response.stop_reason === "refusal" ? "" : clean(textOf(response));
   if (!reply) return { reply: "", after: async () => {} };
   return { reply, after: await remember(mind, req, talk, [{ role: "assistant", text: reply, at: req.now.toISOString() }]) };
+}
+
+/** Cuts text arriving in pieces into sentences worth speaking on their own. */
+export function sentenceCutter(emit: (sentence: string) => void) {
+  let pending = "";
+  const flush = (all: boolean) => {
+    for (;;) {
+      // A sentence ends at . ! ? … (with a closing quote or bracket) followed by a space; very short ones wait for company.
+      const match = /^([\s\S]{24,}?[.!?…]["”»)]?)\s+(?=\S)/.exec(pending);
+      if (!match) break;
+      emit(clean(match[1]));
+      pending = pending.slice(match[0].length);
+    }
+    if (all && clean(pending)) { emit(clean(pending)); pending = ""; }
+  };
+  return { add(delta: string) { pending += delta; flush(false); }, end() { flush(true); } };
 }

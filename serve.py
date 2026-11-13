@@ -512,8 +512,8 @@ def main():
     global engine, brain, ears, rhubarb, lipsync
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--engine", choices=["chatterbox", "elevenlabs", "piper", "none"], default=os.environ.get("ALAN_ENGINE", "chatterbox"))
-    ap.add_argument("--eleven-model", default=os.environ.get("ALAN_ELEVEN_MODEL", "eleven_v4"),
-                    help="elevenlabs: the model (default %(default)s, as in the games; eleven_flash_v2_5 is the fastest)")
+    ap.add_argument("--eleven-model", default=os.environ.get("ALAN_ELEVEN_MODEL", "eleven_flash_v2_5"),
+                    help="elevenlabs: the model (default %(default)s, made for live conversation; eleven_v4 is the games' model)")
     ap.add_argument("--no-local-voice", action="store_true",
                     help="elevenlabs: stay silent when the service cannot be reached instead of loading the local voice")
     ap.add_argument("--voice", default=os.environ.get("ALAN_VOICE"),

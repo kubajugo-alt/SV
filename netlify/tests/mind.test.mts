@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { cuesFromCharacters } from "../lib/voice.mts";
 import { passwordMatches, sessionCookie, signedIn } from "../lib/auth.mts";
-import { nudge, REFUSED, respond, type Mind } from "../lib/mind.mts";
+import { nudge, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
 import { memoryStore, type Talk } from "../lib/store.mts";
 import { agenda, runTool } from "../lib/tools.mts";
 
@@ -13,11 +13,21 @@ const call = (name: string, input: object) => ({ type: "tool_use", id: "toolu_" 
 function fakeMind(...responses: [object[], string][]) {
   const seen: any[] = [];
   const store = memoryStore({ household: "Hubert pije herbatę, nie kawę." });
-  const client = { beta: { messages: { create: async (request: any) => {
+  const create = async (request: any) => {
     seen.push(structuredClone(request));
     const [content, stop_reason] = responses.shift()!;
     return { content, stop_reason };
-  } } } };
+  };
+  const stream = (request: any) => {                       // text arrives a few characters at a time
+    const heard: ((delta: string) => void)[] = [];
+    const answer = { on: (_: "text", cb: (delta: string) => void) => (heard.push(cb), answer), finalMessage: async () => {
+      const message = await create(request);
+      for (const block of message.content as any[]) if (block.type === "text") for (const piece of block.text.match(/[\s\S]{1,7}/g) ?? []) heard.forEach((cb) => cb(piece));
+      return message;
+    } };
+    return answer;
+  };
+  const client = { beta: { messages: { create, stream } } };
   const mind = { client, store, model: "claude-opus-5-5", effort: "low", calendars: [], webSearch: true } as unknown as Mind;
   return { mind, seen, store };
 }
@@ -100,4 +110,17 @@ test("mouth shapes follow the letters and rest in pauses", () => {
   const chars = [..."Mam, o!"];
   const starts = chars.map((_, i) => i * 0.1), ends = starts.map((s, i) => (i === 3 ? s + 0.4 : s + 0.1));
   assert.deepEqual(cuesFromCharacters(chars, starts, ends), [[0, "X"], [0, "A"], [0.1, "D"], [0.2, "A"], [0.3, "X"], [0.5, "E"], [0.7, "X"]]);
+});
+
+test("a streamed answer is handed over sentence by sentence, across tool rounds", async () => {
+  const { mind, seen } = fakeMind(
+    [[text("Chwila, zajrzę do notatek."), call("find_notes", {})], "tool_use"],
+    [[text("Nic tam nie ma. **Pusto** jak w kasie po remoncie! Dr. Kowalski by się uśmiał.")], "end_turn"]);
+  const said: string[] = [];
+  const cutter = sentenceCutter((s) => said.push(s));
+  const out = await respond(mind, at, "Co mam w notatkach?", (delta) => cutter.add(delta));
+  cutter.end();
+  assert.equal(seen.length, 2);
+  assert.deepEqual(said, ["Chwila, zajrzę do notatek.", "Nic tam nie ma. Pusto jak w kasie po remoncie!", "Dr. Kowalski by się uśmiał."]);
+  assert.match(out.reply, /Kowalski/);
 });

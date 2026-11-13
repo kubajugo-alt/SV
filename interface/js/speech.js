@@ -14,6 +14,7 @@ let ctx = null;
 let source = null;
 let raf = 0;
 let current = 0;       // id of the latest utterance; older ones give way
+let onEnd = null;      // called once when the line being spoken stops, however it stops
 
 export function configureVoice(config) {
   ttsUrl = config.tts || '';
@@ -34,6 +35,9 @@ function stop() {
     try { source.stop(); } catch { /* already stopped */ }
     source = null;
   }
+  const done = onEnd;
+  onEnd = null;
+  done?.();
 }
 
 function begin(text, duration) {
@@ -118,7 +122,7 @@ function playEnvelope(text, env, rate) {
   begin(text, duration);
   const tick = (now) => {
     const pos = Math.max(0, ((now - start) / 1000) * rate); // rAF time can predate `start`
-    if (pos >= env.length - 1) return finish();
+    if (pos >= env.length - 1) { stop(); return finish(); }
     const i = Math.floor(pos);
     signal.level = env[i] + (env[i + 1] - env[i]) * (pos - i);
     raf = requestAnimationFrame(tick);
@@ -155,6 +159,43 @@ export async function say({ text = '', audio, envelope, rate = 50, radio = false
   }
   stop();
   return playEnvelope(text, envelope?.length ? envelope : synthEnvelope(text, rate), rate);
+}
+
+/**
+ * Speak an answer that arrives sentence by sentence: each sentence's audio is fetched the moment it
+ * is known, and they are played in order, so he starts talking before the whole answer is written.
+ * @returns {{push: (text: string) => void, end: () => Promise<void>}} end() resolves when he has finished (or was cut off)
+ */
+export function speakStream() {
+  const quiet = store.get().flat === 'studio' && !Object.keys(store.get().alerts).length;   // recording: not a word
+  const id = ++current;
+  let line = Promise.resolve();
+  let first = true;
+  return {
+    push(text) {
+      if (!text || quiet || id !== current) return;
+      if (first) { first = false; store.set({ preparing: true }); }
+      const url = ttsUrl ? ttsUrl + encodeURIComponent(text) : '';
+      const ready = !url ? Promise.resolve(null) : fetchAudio(url).catch((err) => {
+        console.warn('ALAN voice unavailable, mouthing silently:', err.message);
+        if (err.status === 404 || err.status === 503) ttsUrl = '';
+        return null;
+      });
+      line = line.then(async () => {
+        const audio = await ready;
+        if (id !== current) return;
+        stop();
+        await new Promise((resolve) => {
+          onEnd = resolve;
+          if (audio) playAudio(text, audio.buffer, false, audio.cues);
+          else playEnvelope(text, synthEnvelope(text, 50), 50);
+        });
+      });
+    },
+    end() {
+      return line.then(() => { if (id === current) store.set({ preparing: false }); });
+    },
+  };
 }
 
 /** Stop talking at once — someone is speaking to him. */
