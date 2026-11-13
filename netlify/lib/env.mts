@@ -1,5 +1,6 @@
 // What the functions read from the site's environment.
 import Anthropic from "@anthropic-ai/sdk";
+import { DEFAULT_CAMERAS, parseCameras } from "./cameras.mts";
 import { safeZone } from "./clock.mts";
 import type { Mind } from "./mind.mts";
 import { blobStore } from "./store.mts";
@@ -24,6 +25,8 @@ export function mind(): Mind {
     builder: Netlify.env.get("ALAN_ROUTINE_ID") && Netlify.env.get("ALAN_ROUTINE_TOKEN")
       ? { routine: Netlify.env.get("ALAN_ROUTINE_ID")!, token: Netlify.env.get("ALAN_ROUTINE_TOKEN")! } : undefined,
     phone: phone(),
+    cameras: Netlify.env.get("WINDY_API_KEY")
+      ? { key: Netlify.env.get("WINDY_API_KEY")!, list: parseCameras(Netlify.env.get("ALAN_WEBCAMS") ?? DEFAULT_CAMERAS) } : undefined,
     webSearch: (Netlify.env.get("ALAN_WEB_SEARCH") ?? "on") !== "off",
   };
 }

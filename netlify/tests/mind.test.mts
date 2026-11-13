@@ -4,6 +4,7 @@ import { generateKeyPairSync } from "node:crypto";
 import { eventBody } from "../lib/gcal.mts";
 import { approveProposal, listProposals } from "../lib/proposals.mts";
 import { loadPlaces, overpassQuery, TOWNS } from "../lib/places.mts";
+import { DEFAULT_CAMERAS, lookOutside, parseCameras } from "../lib/cameras.mts";
 import { cuesFromCharacters } from "../lib/voice.mts";
 import { passwordMatches, sessionCookie, signedIn } from "../lib/auth.mts";
 import { nudge, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
@@ -295,4 +296,27 @@ test("the places list comes from the map, is searched by town, kind and words, a
   assert.equal((await loadPlaces(store, at.now, fetcher, true))!.rows.length, 5);       // a failed refresh keeps the old list
   assert.match(await runTool("find_place", { query: "sushi" }, ctx), /^W bazie miejsc nic takiego nie ma/);
   assert.match(await runTool("find_place", {}, { ...ctx, store: memoryStore() }), /^Błąd: baza miejsc jeszcze się nie pobrała/);
+});
+
+test("he looks outside through a webcam: the picture goes to the model with its age", async () => {
+  const asked: string[] = [];
+  const fetcher = (async (url: any, init: any = {}) => {
+    asked.push(String(url));
+    if (String(url).includes("api.windy.com")) {
+      assert.equal(init.headers["x-windy-api-key"], "wk");
+      return Response.json({ title: "Sandomierz", lastUpdatedOn: "2026-11-13T07:48:00Z", images: { current: { preview: "https://images.example/s.jpg" } } });
+    }
+    return new Response(new Uint8Array([255, 216, 255, 224]), { headers: { "Content-Type": "image/jpeg" } });
+  }) as typeof fetch;
+  const { mind, seen } = fakeMind([[call("look_outside", { where: "Sandomierz" })], "tool_use"], [[text("Szaro, mokro, parasol się przyda.")], "end_turn"]);
+  Object.assign(mind, { fetcher, cameras: { key: "wk", list: parseCameras(DEFAULT_CAMERAS) } });
+  const out = await respond(mind, at, "Jak jest w Sandomierzu?");
+  assert.equal(out.reply, "Szaro, mokro, parasol się przyda.");
+  assert.deepEqual(asked, ["https://api.windy.com/webcams/api/v3/webcams/1306880639?include=images", "https://images.example/s.jpg"]);
+  const [picture, words] = seen[1].messages.at(-1).content[0].content;
+  assert.deepEqual(picture, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: "/9j/4A==" } });
+  assert.match(words.text, /^Kamera: Sandomierz\. Obraz sprzed 12 min\./);
+  assert.equal((await lookOutside({ key: "wk", list: parseCameras(DEFAULT_CAMERAS) }, "", at.now, (async () => new Response("", { status: 401 })) as typeof fetch)).text,
+    "Błąd: kamera Jezioro Tarnobrzeskie w Tarnobrzegu nie odpowiada (401).");
+  assert.match(await runTool("look_outside", {}, { store: memoryStore(), ...at, calendars: [] }), /^Błąd: nie masz podłączonych kamer/);
 });

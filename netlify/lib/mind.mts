@@ -7,6 +7,7 @@ import { loadOwn, loadTalk, type Store, type Talk, type Turn } from "./store.mts
 import { runTool, TOOLS, type Builder, type Ctx } from "./tools.mts";
 import type { Google } from "./gcal.mts";
 import type { Phone } from "./phone.mts";
+import { lookOutside, type Cameras } from "./cameras.mts";
 import { SYSTEM } from "./texts.gen.mjs";
 
 const MAX_TOOL_ROUNDS = 5;
@@ -29,7 +30,7 @@ const NUDGES: Record<string, string> = {
 
 export type Mind = {
   client: Anthropic; store: Store; model: string; effort: "low" | "medium" | "high";
-  calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; webSearch: boolean; fetcher?: typeof fetch;
+  calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; webSearch: boolean; fetcher?: typeof fetch;
 };
 type Request = { person: string; tz: string; now: Date };
 
@@ -90,6 +91,13 @@ async function converse(mind: Mind, req: Request, talk: Talk, said: string, onTe
     messages.push({ role: "assistant", content: response.content as Anthropic.Beta.BetaContentBlockParam[] });   // unchanged, thinking included
     const results: Anthropic.Beta.BetaToolResultBlockParam[] = [];
     for (const call of calls) {
+      if (call.name === "look_outside" && mind.cameras) {                       // the one tool whose result is a picture
+        const view = await lookOutside(mind.cameras, String((call.input as any)?.where ?? ""), req.now, mind.fetcher);
+        console.log(`Tool: look_outside -> ${view.text.slice(0, 120)}`);
+        results.push({ type: "tool_result", tool_use_id: call.id, ...(view.image ? {} : { is_error: true }),
+          content: [...(view.image ? [{ type: "image" as const, source: { type: "base64" as const, ...view.image } }] : []), { type: "text" as const, text: view.text }] });
+        continue;
+      }
       const result = await runTool(call.name, (call.input ?? {}) as Record<string, any>, ctx);
       console.log(`Tool: ${call.name}(${JSON.stringify(call.input)}) -> ${result.slice(0, 200)}`);
       if (/^(Wykonano|Błąd)/.test(result)) actions.push({ ok: result.startsWith("Wykonano"), text: result.split(": ").slice(1).join(": ").replace(/\.$/, "") || result });

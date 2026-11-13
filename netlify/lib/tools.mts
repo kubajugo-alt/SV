@@ -8,11 +8,12 @@ import { addEvent, changeEvent, type Google } from "./gcal.mts";
 import { callOutcome, CALLS_A_DAY, placeCall, polishNumber, type Phone } from "./phone.mts";
 import { parseMemories, recallPast } from "./past.mts";
 import { findPlaces, loadPlaces, TOWNS } from "./places.mts";
+import type { Cameras } from "./cameras.mts";
 import { loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
 import { MEMORIES } from "./texts.gen.mjs";
 
-export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; fetcher?: typeof fetch };
+export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; fetcher?: typeof fetch };
 /** The Claude Code routine that changes his own code: its id (trig_...) and the token of its API trigger. */
 export type Builder = { routine: string; token: string };
 
@@ -74,6 +75,9 @@ export const TOOLS: Anthropic.Tool[] = [
   tool("note_place", "Zapisuje, co rozmówca powiedział o miejscu w Tarnobrzegu albo Sandomierzu: opinię, co warto zamówić, że zamknięte, że nowe. Dopisuje też miejsce, którego w bazie nie ma. " +
     "Tylko gdy rozmówca wyraźnie coś o miejscu mówi lub prosi o zapisanie.",
     { name: text("nazwa miejsca, tak jak w bazie, jeśli tam jest"), town: text("Tarnobrzeg albo Sandomierz"), text: text("co zapisać, pełnym zdaniem") }, ["name", "town", "text"]),
+  tool("look_outside", "Patrzysz przez kamerę internetową, jak naprawdę wygląda teraz na dworze w Tarnobrzegu (nad jeziorem) albo w Sandomierzu: dostajesz zdjęcie. " +
+    "Używaj, gdy rozmówca pyta, jak jest na dworze, czy pada, czy trzeba parasol, czy jest mgła; dobrze łączyć z prognozą (weather).",
+    { where: text("Tarnobrzeg albo Sandomierz; domyślnie Tarnobrzeg") }),
   tool("briefing", "Odprawa na dziś: pogoda, kalendarz i przypomnienia naraz ('co dziś', 'plan dnia', 'co mnie czeka')."),
 ];
 
@@ -405,6 +409,8 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         await save();
         return `Wykonano: zapisano o miejscu ${known?.name ?? name} (${town})${known ? "" : ", którego nie było w bazie"}: ${note}`;
       }
+      case "look_outside":
+        return "Błąd: nie masz podłączonych kamer.";       // with cameras, the mind answers this one itself: the result is a picture
       case "briefing": {
         const parts = [(await weather(own, ctx)).split(/(?<=\.) (?=Jutro)/)[0]];
         if (ctx.calendars.length) parts.push(await calendar(ctx));
