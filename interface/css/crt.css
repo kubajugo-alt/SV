@@ -160,6 +160,15 @@ body[data-flat="dark"] > * { display: none !important; }
 .overlay.wide textarea { width: min(70em, 90vw); height: 60vh; line-height: 1.4; }
 .overlay button { text-transform: uppercase; cursor: pointer; }
 .overlay p { max-width: 40em; text-align: center; text-transform: none; }
+.overlay.proposals { outline: none; }
+.overlay.proposals #pr-list { width: min(60em, 90vw); max-height: 66vh; overflow-y: auto; }
+.overlay.proposals article { border: .08em solid var(--fg-dim); padding: .6em 1em; margin-bottom: .8em; text-transform: none; }
+.overlay.proposals h3 { margin: 0; font: inherit; color: var(--fg); }
+.overlay.proposals article p { text-align: left; margin: .4em 0; max-width: none; }
+.overlay.proposals pre { font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 16em; overflow-y: auto; margin: .4em 0; opacity: .85; }
+.overlay.proposals a { color: var(--fg); }
+.overlay.proposals button:disabled { opacity: .4; cursor: not-allowed; }
+.overlay.proposals .pr-state { letter-spacing: .08em; }
 
 /* In a window beside your work (not full screen) the pointer stays visible. */
 @media not (display-mode: fullscreen) {

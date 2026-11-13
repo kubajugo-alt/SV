@@ -2,7 +2,7 @@
 // is no /session and nothing here gets in the way.
 // Also: the household notes, edited in place (key U), which he reads every turn.
 
-const overlay = (html) => {
+export const overlay = (html) => {
   const el = document.createElement('form');
   el.className = 'overlay';
   el.innerHTML = html;

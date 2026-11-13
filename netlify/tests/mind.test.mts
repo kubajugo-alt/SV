@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { generateKeyPairSync } from "node:crypto";
 import { eventBody } from "../lib/gcal.mts";
+import { approveProposal, listProposals } from "../lib/proposals.mts";
 import { cuesFromCharacters } from "../lib/voice.mts";
 import { passwordMatches, sessionCookie, signedIn } from "../lib/auth.mts";
 import { nudge, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
@@ -187,4 +188,32 @@ test("a feature request goes to the Claude Code routine and is noted", async () 
   status = 401;
   assert.match(await runTool("request_feature", { request: "Naucz się czegoś nowego." }, ctx), /^Błąd: programista nie przyjął zlecenia \(401\)/);
   assert.match(await runTool("request_feature", { request: "Naucz się czegoś nowego." }, { ...ctx, builder: undefined }), /^Błąd: nie masz połączenia/);
+});
+
+test("his proposals are listed with their tests, and only a ready one of his own is merged", async () => {
+  const pull = (number: number, ref: string, extra: object = {}) => ({ number, title: "Kursy walut", body: "Opis", html_url: `https://github.com/o/r/pull/${number}`, draft: true, state: "open",
+    node_id: "PR_" + number, head: { ref, sha: "sha" + number, repo: { full_name: "o/r" } }, ...extra });
+  const pulls = [pull(7, "alan/kursy"), pull(8, "claude/other"), pull(9, "alan/zly", { head: { ref: "alan/zly", sha: "sha9", repo: { full_name: "evil/r" } } }), pull(10, "alan/czerwony")];
+  const runs: Record<string, object[]> = { sha7: [{ status: "completed", conclusion: "success" }], sha10: [{ status: "completed", conclusion: "failure" }] };
+  const calls: string[] = [];
+  const fetcher = (async (url: any, init: any = {}) => {
+    const path = String(url).replace("https://api.github.com", "");
+    calls.push(`${init.method ?? "GET"} ${path}`);
+    assert.equal(init.headers.Authorization, "Bearer t");
+    if (path.startsWith("/repos/o/r/pulls?")) return Response.json(pulls);
+    if (path.includes("/actions/runs")) return Response.json({ workflow_runs: runs[/head_sha=(\w+)/.exec(path)![1]] ?? [] });
+    if (path === "/graphql") return Response.json({ data: {} });
+    if (path.endsWith("/merge")) { assert.deepEqual(JSON.parse(init.body), { merge_method: "squash", sha: "sha7" }); return Response.json({ merged: true }); }
+    const found = pulls.find((p) => path === `/repos/o/r/pulls/${p.number}`);
+    return found ? Response.json(found) : Response.json({}, { status: 404 });
+  }) as typeof fetch;
+  const gh = { token: "t", repo: "o/r" };
+  assert.deepEqual((await listProposals(gh, fetcher)).map((p) => [p.number, p.state]), [[7, "ready"], [10, "failing"]]);
+  assert.equal(await approveProposal(gh, 7, fetcher), "Kursy walut");
+  assert.deepEqual(calls.slice(-3), ["GET /repos/o/r/actions/runs?head_sha=sha7&per_page=20", "POST /graphql", "PUT /repos/o/r/pulls/7/merge"]);
+  await assert.rejects(approveProposal(gh, 8, fetcher), /nie jest otwarta propozycja Alana/);
+  await assert.rejects(approveProposal(gh, 9, fetcher), /nie jest otwarta propozycja Alana/);
+  await assert.rejects(approveProposal(gh, 10, fetcher), /testy tej propozycji nie przechodzą/);
+  await assert.rejects(approveProposal(gh, 99, fetcher), /nie ma takiej propozycji/);
+  assert.equal(calls.filter((c) => c.startsWith("PUT")).length, 1);
 });

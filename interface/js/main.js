@@ -8,6 +8,7 @@ import { startAgenda } from './agenda.js';
 import { startAvatar } from './avatar.js';
 import { startUI, boot } from './ui.js';
 import { signIn, startHousehold } from './login.js';
+import { startProposals } from './proposals.js';
 import { startDemo } from './feeds/demo.js';
 import { startSolo } from './feeds/solo.js';
 import { startInitiative } from './initiative.js';
@@ -38,6 +39,7 @@ startAvatar(document.getElementById('entity'), () => isDark(config));
 ({ ha: startHA, demo: startDemo }[config.feed] || startSolo)(config);
 startInitiative(config);
 startHousehold(config);
+startProposals(config);
 
 // Keys that work everywhere (not while typing to him): S studio, P person.
 store.set({ person: config.person });
