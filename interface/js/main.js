@@ -7,12 +7,14 @@ import { startHome } from './home.js';
 import { startAgenda } from './agenda.js';
 import { startAvatar } from './avatar.js';
 import { startUI, boot } from './ui.js';
+import { signIn, startHousehold } from './login.js';
 import { startDemo } from './feeds/demo.js';
 import { startSolo } from './feeds/solo.js';
 import { startInitiative } from './initiative.js';
 import { store } from './store.js';
 import { startHA } from './feeds/ha.js';
 
+await signIn();     // in the cloud: the household's password first
 const local = (await import('./config.local.js').catch(() => ({}))).default || {};
 const params = new URLSearchParams(location.search);
 
@@ -35,11 +37,12 @@ startAgenda(config);
 startAvatar(document.getElementById('entity'), () => isDark(config));
 ({ ha: startHA, demo: startDemo }[config.feed] || startSolo)(config);
 startInitiative(config);
+startHousehold(config);
 
 // Keys that work everywhere (not while typing to him): S studio, P person.
 store.set({ person: config.person });
 addEventListener('keydown', (e) => {
-  if (e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.metaKey || e.ctrlKey || e.altKey) return;
   const s = store.get();
   if (e.code === 'KeyS') store.set({ flat: s.flat === 'studio' ? 'normal' : 'studio' });   // black screen, silence
   if (e.code === 'KeyP') {

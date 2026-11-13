@@ -28,7 +28,7 @@ export function startAgenda(config) {
     store.set(patch);
   }
 
-  polling = setInterval(poll, 2000);
+  polling = setInterval(poll, config.agendaEvery || 2000);
   // The countdown ticks every second between polls.
   setInterval(() => { if (store.get().timers.length) store.set({}); }, 1000);
   poll();

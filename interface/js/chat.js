@@ -29,7 +29,7 @@ export function startChat(config) {
       const res = await fetch(config.chat, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, person: store.get().person }),
+        body: JSON.stringify({ text, person: store.get().person, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }),
       });
       if (!res.ok) throw new Error(`${res.status}`);
       ({ reply, actions = [] } = await res.json());
@@ -44,6 +44,7 @@ export function startChat(config) {
   }
 
   addEventListener('keydown', (e) => {
+    if (e.target instanceof HTMLTextAreaElement || (e.target instanceof HTMLInputElement && e.target !== input)) return;   // another field has the keyboard
     if (e.key === 'Enter' && document.activeElement !== input) { e.preventDefault(); input.focus(); }
     if (e.key === 'Escape') input.blur();
   });

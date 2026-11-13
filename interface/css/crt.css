@@ -146,6 +146,21 @@ body[data-flat="dark"] > * { display: none !important; }
   background: linear-gradient(to bottom, rgba(8, 4, 2, .78) 0, rgba(8, 4, 2, 0) 15%, rgba(8, 4, 2, 0) 62%, rgba(8, 4, 2, .5) 74%, rgba(8, 4, 2, .86) 100%);
 }
 
+/* --- sign-in and the household notes (cloud) ----------------------------- */
+.overlay {
+  position: fixed; inset: 0; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8em;
+  background: rgba(8, 4, 2, .88);
+}
+.overlay input, .overlay textarea, .overlay button {
+  font: inherit; color: var(--fg); background: rgba(0, 0, 0, .35);
+  border: .08em solid var(--fg-dim); padding: .4em .7em; text-transform: none; letter-spacing: .02em; cursor: auto;
+}
+.overlay input { width: min(24em, 80vw); text-align: center; }
+.overlay.wide textarea { width: min(70em, 90vw); height: 60vh; line-height: 1.4; }
+.overlay button { text-transform: uppercase; cursor: pointer; }
+.overlay p { max-width: 40em; text-align: center; text-transform: none; }
+
 /* In a window beside your work (not full screen) the pointer stays visible. */
 @media not (display-mode: fullscreen) {
   html, body, #ask-input { cursor: auto; }

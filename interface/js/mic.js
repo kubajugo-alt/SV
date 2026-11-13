@@ -223,7 +223,7 @@ export function startMic(config, ask) {
   // A browser outside kiosk mode keeps audio asleep until the first key or click.
   for (const type of ['keydown', 'pointerdown']) addEventListener(type, () => { if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); });
 
-  const typing = (e) => e.target instanceof HTMLInputElement;
+  const typing = (e) => e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
   addEventListener('keydown', (e) => {
     if (e.code !== 'Space' || e.repeat || typing(e)) return;
     e.preventDefault();

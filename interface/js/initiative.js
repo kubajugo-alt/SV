@@ -27,7 +27,7 @@ export function startInitiative(config) {
   for (const type of ['keydown', 'pointerdown', 'pointermove']) addEventListener(type, () => { seenToday = true; }, { passive: true });
 
   addEventListener('keydown', (e) => {
-    if (e.code !== 'KeyI' || e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.code !== 'KeyI' || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.metaKey || e.ctrlKey || e.altKey) return;
     const on = !store.get().initiative;
     keep('alan.initiative', on ? 'on' : 'off');
     store.set({ initiative: on });
@@ -40,7 +40,7 @@ export function startInitiative(config) {
       const res = await fetch(config.chat, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nudge: kind, person: store.get().person }),
+        body: JSON.stringify({ nudge: kind, person: store.get().person, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }),
       });
       if (res.ok) ({ reply = '' } = await res.json());
     } catch { /* no model behind the server: he stays quiet */ }
