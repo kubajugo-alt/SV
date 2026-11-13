@@ -146,3 +146,27 @@ test("he adds an event to the Google calendar as a service account", async () =>
   assert.match(await runTool("add_event", { title: "Coś", start: "w piątek" }, ctx), /^Błąd: początek podaj/);
   assert.match(await runTool("add_event", { title: "Coś", start: "2026-11-17" }, { ...ctx, google: undefined }), /^Błąd: nie masz prawa pisać/);
 });
+
+test("he moves an event, keeping its length, and asks when several fit", async () => {
+  const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const key = privateKey.export({ type: "pkcs8", format: "pem" }) as string;
+  const calls: { url: string; init: any }[] = [];
+  let items: object[] = [
+    { id: "a1", summary: "Dentysta", start: { dateTime: "2026-11-17T09:30:00+01:00" }, end: { dateTime: "2026-11-17T10:15:00+01:00" } },
+    { id: "b2", summary: "Obiad z mamą", start: { dateTime: "2026-11-17T14:00:00+01:00" }, end: { dateTime: "2026-11-17T15:00:00+01:00" } }];
+  const fetcher = (async (url: any, init: any) => {
+    calls.push({ url: String(url), init });
+    return String(url).includes("oauth2") ? Response.json({ access_token: "tok" }) : Response.json(init.method === "PATCH" ? {} : { items });
+  }) as typeof fetch;
+  const ctx = { store: memoryStore(), ...at, calendars: [], fetcher, google: { email: "alan@x.iam.gserviceaccount.com", key, calendar: "primary" } };
+  assert.match(await runTool("change_event", { find: "dentysta", day: "2026-11-17", start: "2026-11-18 11:00" }, ctx), /^Wykonano: zmieniono w kalendarzu „Dentysta”, teraz 2026-11-18 11:00–11:45\./);
+  assert.match(calls[1].url, /timeMin=2026-11-16T23%3A00%3A00\.000Z&timeMax=2026-11-17T23%3A00%3A00\.000Z&singleEvents=true/);
+  assert.equal(calls[2].url, "https://www.googleapis.com/calendar/v3/calendars/primary/events/a1");
+  assert.deepEqual(JSON.parse(calls[2].init.body), { start: { dateTime: "2026-11-18T11:00:00", timeZone: "Europe/Warsaw" }, end: { dateTime: "2026-11-18T11:45:00", timeZone: "Europe/Warsaw" } });
+  assert.match(await runTool("change_event", { find: "obiad", day: "2026-11-17", title: "Obiad u mamy", location: "Miechocin" }, ctx), /zmieniono w kalendarzu „Obiad z mamą” na „Obiad u mamy”\.$/);
+  assert.deepEqual(JSON.parse(calls.at(-1)!.init.body), { summary: "Obiad u mamy", location: "Miechocin" });
+  items = [...items, { id: "c3", summary: "Dentysta kontrola", start: { dateTime: "2026-11-17T16:00:00+01:00" }, end: { dateTime: "2026-11-17T16:30:00+01:00" } }];
+  assert.match(await runTool("change_event", { find: "dentysta", day: "2026-11-17", start: "2026-11-19 10:00" }, ctx), /^Błąd: tego dnia pasuje kilka wydarzeń: Dentysta, Dentysta kontrola/);
+  assert.match(await runTool("change_event", { find: "fryzjer", day: "2026-11-17", title: "X" }, ctx), /^Błąd: tego dnia nie ma/);
+  assert.match(await runTool("change_event", { find: "obiad", day: "2026-11-17" }, ctx), /^Błąd: nie podano, co zmienić/);
+});

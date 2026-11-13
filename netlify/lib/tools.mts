@@ -4,7 +4,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { DAYS, dmy, hm, instant, local, span } from "./clock.mts";
 import { describe, occurrences, readCalendars } from "./diary.mts";
-import { addEvent, type Google } from "./gcal.mts";
+import { addEvent, changeEvent, type Google } from "./gcal.mts";
 import { parseMemories, recallPast } from "./past.mts";
 import { loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
@@ -41,6 +41,11 @@ export const TOOLS: Anthropic.Tool[] = [
   tool("add_event", "Dopisuje wydarzenie do kalendarza Google rozmówcy. Tylko gdy rozmówca wyraźnie o to prosi i znasz dzień; gdy brakuje dnia albo godziny, najpierw dopytaj.",
     { title: text("krótki tytuł wydarzenia"), start: text("RRRR-MM-DD GG:MM, a dla wydarzenia całodniowego sama data RRRR-MM-DD"),
       end: text("koniec w tym samym formacie; domyślnie godzina później albo ten sam dzień"), location: text("miejsce, jeśli podano"), notes: text("opis, jeśli podano") }, ["title", "start"]),
+  tool("change_event", "Zmienia istniejące wydarzenie w kalendarzu Google rozmówcy: przesuwa je, zmienia tytuł, miejsce albo opis. Tylko gdy rozmówca wyraźnie o to prosi. " +
+    "Wydarzenie cykliczne zmienia się tylko w tym jednym dniu.",
+    { find: text("słowa z obecnego tytułu wydarzenia"), day: text("dzień, w którym wydarzenie jest teraz: RRRR-MM-DD"),
+      title: text("nowy tytuł, jeśli ma się zmienić"), start: text("nowy początek: RRRR-MM-DD GG:MM albo RRRR-MM-DD dla całodniowego; długość zostaje, jeśli nie podasz końca"),
+      end: text("nowy koniec w tym samym formacie; wymaga podania start"), location: text("nowe miejsce"), notes: text("nowy opis") }, ["find", "day"]),
   tool("briefing", "Odprawa na dziś: pogoda, kalendarz i przypomnienia naraz ('co dziś', 'plan dnia', 'co mnie czeka')."),
 ];
 
@@ -269,6 +274,22 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
           const made = await addEvent(ctx.google, input as any, ctx.tz, ctx.now, ctx.fetcher);
           const when = "date" in made.start ? `${made.start.date}, cały dzień` : `${made.start.dateTime.slice(0, 10)} ${made.start.dateTime.slice(11, 16)}–${made.end.dateTime!.slice(11, 16)}`;
           return `Wykonano: dopisano do kalendarza „${made.summary}”, ${when}.`;
+        } catch (err) {
+          return `Błąd: ${(err as Error).message}.`;
+        }
+      }
+      case "change_event": {
+        if (!ctx.google) return "Błąd: nie masz prawa pisać do kalendarza, możesz go tylko czytać.";
+        const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(input.day ?? "").trim());
+        const wanted = stems(String(input.find ?? ""));
+        if (!day || !wanted.length) return "Błąd: podaj słowa z tytułu wydarzenia i dzień RRRR-MM-DD, w którym ono teraz jest.";
+        try {
+          const from = instant(+day[1], +day[2], +day[3], 0, 0, ctx.tz);
+          const done = await changeEvent(ctx.google, { from, to: new Date(from.getTime() + 86400000), matches: (title) => { const has = new Set(stems(title)); return wanted.every((w) => has.has(w)); } },
+            { title: input.title, start: input.start, end: input.end, location: input.location, notes: input.notes }, ctx.tz, ctx.now, ctx.fetcher);
+          const s = done.patch.start, e = done.patch.end;
+          const when = !s ? "" : s.date ? `, teraz ${s.date}, cały dzień` : `, teraz ${s.dateTime!.slice(0, 10)} ${s.dateTime!.slice(11, 16)}–${e!.dateTime!.slice(11, 16)}`;
+          return `Wykonano: zmieniono w kalendarzu „${done.was}”${done.patch.summary ? ` na „${done.patch.summary}”` : ""}${when}.`;
         } catch (err) {
           return `Błąd: ${(err as Error).message}.`;
         }
