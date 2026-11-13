@@ -46,6 +46,38 @@ head".
 Static files, no build step, no dependencies, no internet access needed
 (the typeface, IBM Plex Mono, is vendored).
 
+## On Netlify: reachable from any machine
+
+`netlify.toml` publishes `interface/` and `netlify/functions/`, which stand in
+for `serve.py` under the same paths, so the page is unchanged:
+
+| Path | Function | Does |
+|---|---|---|
+| `/chat` | `chat.mts` | Claude (official SDK): one call per turn with his tools, cached instructions, web search, refusal fallback |
+| `/tts` | `tts.mts` | ElevenLabs in the games' voice (MP3), mouth cues from its character timing |
+| `/stt` | `stt.mts` | ElevenLabs Scribe speech recognition |
+| `/agenda` | `agenda.mts` | timers and reminders coming due |
+| `/session` | `session.mts` | sign-in with the household password, a signed cookie for 60 days |
+| `/household` | `household.mts` | what he is told about the people (key `U` on the page edits it) |
+| `/js/config.local.js` | `config.mts` | the page's cloud settings (push-to-talk by default, slower timer polling) |
+
+Memory, notes, reminders and lists are JSON documents in Netlify Blobs (store
+`alan`); his memories of the games are bundled at build time
+(`scripts/netlify-texts.mjs`). Environment variables, all scoped to Functions:
+
+- `ALAN_PASSWORD` — the household's password; without it every function answers 503
+- `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`
+- optional: `ALAN_CLAUDE_MODEL` (default `claude-opus-5-5`), `ALAN_CLAUDE_EFFORT`
+  (`low`), `ALAN_ELEVEN_MODEL` (`eleven_v4`), `ALAN_ELEVEN_VOICE`,
+  `ALAN_CALENDARS` (https addresses of .ics calendars, comma-separated),
+  `ALAN_WEB_SEARCH=off`
+
+Values are read at deploy time: change one, then deploy again. `npm test` runs
+the functions' tests against stand-in clients; `npx tsc -p .` checks types.
+Differences from the local version: no Rhubarb (the mouth uses ElevenLabs'
+timing), no offline Wikipedia (web search instead), no calendar heads-up before
+meetings yet, and the memory starts empty (it is not copied from `data/alan.db`).
+
 ## In the cloud: Claude and ElevenLabs
 
 The quick way to a natural conversation: he thinks with Claude and speaks with

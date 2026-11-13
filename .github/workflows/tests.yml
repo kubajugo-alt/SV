@@ -27,5 +27,13 @@ jobs:
             node --check "$f"
           done
           cp interface/js/main.js /tmp/main.mjs && node --check /tmp/main.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Netlify functions (types and tests)
+        run: |
+          npm ci
+          npm test
+          npx tsc -p .
       - name: Shell scripts
         run: shellcheck install.sh scripts/*.sh
