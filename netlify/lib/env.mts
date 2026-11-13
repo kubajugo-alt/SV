@@ -4,6 +4,12 @@ import { safeZone } from "./clock.mts";
 import type { Mind } from "./mind.mts";
 import { blobStore } from "./store.mts";
 
+/** The phone: an ElevenLabs agent and the number it calls from. */
+export function phone() {
+  const p = { key: Netlify.env.get("ELEVENLABS_API_KEY") ?? "", agent: Netlify.env.get("ALAN_CALL_AGENT_ID") ?? "", number: Netlify.env.get("ALAN_CALL_NUMBER_ID") ?? "" };
+  return p.key && p.agent && p.number ? p : undefined;
+}
+
 export function mind(): Mind {
   // Writing to the calendar: a Google service account the calendar was shared with.
   const google = { email: Netlify.env.get("GOOGLE_CLIENT_EMAIL") ?? "", key: Netlify.env.get("GOOGLE_PRIVATE_KEY") ?? "", calendar: Netlify.env.get("ALAN_CALENDAR_ID") ?? "" };
@@ -17,6 +23,7 @@ export function mind(): Mind {
     google: google.email && google.key && google.calendar ? google : undefined,
     builder: Netlify.env.get("ALAN_ROUTINE_ID") && Netlify.env.get("ALAN_ROUTINE_TOKEN")
       ? { routine: Netlify.env.get("ALAN_ROUTINE_ID")!, token: Netlify.env.get("ALAN_ROUTINE_TOKEN")! } : undefined,
+    phone: phone(),
     webSearch: (Netlify.env.get("ALAN_WEB_SEARCH") ?? "on") !== "off",
   };
 }

@@ -5,6 +5,7 @@
 //   log/<person>/<YYYY-MM>   every turn, for searching old conversations
 //   own                      reminders, lists, remembered facts, notes, place
 //   household                what he is told about the people (private text)
+import type { Call, PendingCall } from "./phone.mts";
 import { getStore } from "@netlify/blobs";
 
 export interface Store {
@@ -43,8 +44,10 @@ export type Own = {
   facts: Record<string, string[]>;
   jottings: Record<string, { text: string; at: string }[]>;
   place: { name: string; where: string; lat: number; lon: number; tz: string } | null;
+  calls: Call[];                       // phone calls he made, newest last
+  pendingCall: PendingCall | null;     // a call he proposed and waits to have confirmed
 };
 
-export const emptyOwn = (): Own => ({ seq: 0, reminders: [], lists: {}, facts: {}, jottings: {}, place: null });
+export const emptyOwn = (): Own => ({ seq: 0, reminders: [], lists: {}, facts: {}, jottings: {}, place: null, calls: [], pendingCall: null });
 export const loadOwn = async (store: Store): Promise<Own> => ({ ...emptyOwn(), ...((await store.get<Own>("own")) ?? {}) });
 export const loadTalk = async (store: Store, person: string): Promise<Talk> => (await store.get<Talk>(`talk/${person}`)) ?? { notes: "", turns: [] };

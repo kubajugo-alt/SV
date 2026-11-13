@@ -1,6 +1,25 @@
 // DOM layer: instrument-panel readouts, typed-in speech, alert takeover, boot.
 
 import { store, mode, isDark } from './store.js';
+import qrcode from './vendor/qrcode.js';
+
+const codes = new Map();   // address -> image source, so a redraw does not compute the code again
+
+function qr(url) {
+  const img = document.createElement('img');
+  img.className = 'qr';
+  img.alt = 'Kod QR';
+  try {
+    if (!codes.has(url)) {
+      const code = qrcode(0, 'M');
+      code.addData(url);
+      code.make();
+      codes.set(url, code.createDataURL(4, 8));
+    }
+    img.src = codes.get(url);
+  } catch { img.hidden = true; }           // an address too long for a code: the link alone
+  return img;
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -87,7 +106,16 @@ function render(s, config) {
   $('actions').replaceChildren(...s.actions.map((a) => {
     const li = document.createElement('li');
     li.className = a.ok ? 'ok' : 'failed';
-    li.textContent = `${a.ok ? '[ OK ]' : '[ !! ]'} ${a.text}`;
+    // A link he prepared (an offer, a ride): shown with a QR code, to be opened on a phone.
+    const parts = a.ok ? a.text.split(/(https:\/\/\S+)/) : [a.text];
+    li.append(`${a.ok ? '[ OK ]' : '[ !! ]'} `);
+    for (const part of parts) {
+      if (!part.startsWith('https://')) { li.append(part); continue; }
+      const link = document.createElement('a');
+      link.href = part; link.target = '_blank'; link.rel = 'noopener noreferrer';
+      link.textContent = new URL(part).hostname.replace(/^www\./, '');
+      li.append(link, qr(part));
+    }
     return li;
   }));
 

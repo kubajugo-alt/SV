@@ -89,6 +89,8 @@ html, body {
 #actions li { padding-left: 3.6em; text-indent: -3.6em; margin-bottom: .3em; }
 body[data-alan="alert"] #actions { display: none; }
 #actions .failed { color: var(--fg-dim); }
+#actions a { color: var(--fg); pointer-events: auto; }
+#actions .qr { display: block; width: min(9em, 100%); margin: .5em 0 .6em; image-rendering: pixelated; text-indent: 0; }
 .cell.changed { animation: changed 6s ease-out forwards; }
 @keyframes changed {
   0%, 60% { background: var(--fg); color: var(--bg); text-shadow: none; }

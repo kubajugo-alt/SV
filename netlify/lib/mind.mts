@@ -6,6 +6,7 @@ import { DAYS, dmy, hm, local } from "./clock.mts";
 import { loadOwn, loadTalk, type Store, type Talk, type Turn } from "./store.mts";
 import { runTool, TOOLS, type Builder, type Ctx } from "./tools.mts";
 import type { Google } from "./gcal.mts";
+import type { Phone } from "./phone.mts";
 import { SYSTEM } from "./texts.gen.mjs";
 
 const MAX_TOOL_ROUNDS = 5;
@@ -28,7 +29,7 @@ const NUDGES: Record<string, string> = {
 
 export type Mind = {
   client: Anthropic; store: Store; model: string; effort: "low" | "medium" | "high";
-  calendars: string[]; google?: Google; builder?: Builder; webSearch: boolean; fetcher?: typeof fetch;
+  calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; webSearch: boolean; fetcher?: typeof fetch;
 };
 type Request = { person: string; tz: string; now: Date };
 
@@ -72,7 +73,7 @@ async function ask(mind: Mind, sys: Anthropic.Beta.BetaTextBlockParam[] | string
 }
 
 async function converse(mind: Mind, req: Request, talk: Talk, said: string, onText?: (delta: string) => void) {
-  const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, fetcher: mind.fetcher };
+  const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, fetcher: mind.fetcher };
   const messages: Anthropic.Beta.BetaMessageParam[] = [...talk.turns.map((t) => ({ role: t.role, content: t.text })), { role: "user", content: said }];
   const sys = await system(mind, req, talk);
   const actions: { ok: boolean; text: string }[] = [];
@@ -155,7 +156,7 @@ export async function nudge(mind: Mind, req: Request, kind: string) {
   const talk = await loadTalk(mind.store, req.person);
   let said = `[To nie jest wiadomość od domownika. ${NUDGES[kind].replace("{person}", capital(req.person))}`;
   if (kind === "morning") {
-    const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, fetcher: mind.fetcher };
+    const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, fetcher: mind.fetcher };
     said += ` Dane do odprawy: ${await runTool("briefing", {}, ctx)}`;
   }
   const messages: Anthropic.Beta.BetaMessageParam[] = [...talk.turns.map((t) => ({ role: t.role, content: t.text })), { role: "user", content: said + "]" }];

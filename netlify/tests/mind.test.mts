@@ -217,3 +217,44 @@ test("his proposals are listed with their tests, and only a ready one of his own
   await assert.rejects(approveProposal(gh, 99, fetcher), /nie ma takiej propozycji/);
   assert.equal(calls.filter((c) => c.startsWith("PUT")).length, 1);
 });
+
+test("links for shopping and rides are shown, never made up into purchases", async () => {
+  const ctx = { store: memoryStore(), ...at, calendars: [] };
+  assert.equal(await runTool("show_link", { title: "Filtr do ekspresu, 64 zł", url: "https://allegro.pl/oferta/filtr-123" }, ctx), "Wykonano: link na ekranie: Filtr do ekspresu, 64 zł https://allegro.pl/oferta/filtr-123");
+  for (const url of ["http://allegro.pl/x", "javascript:alert(1)", "https://user@evil.example/x", "nie adres"]) assert.match(await runTool("show_link", { title: "X", url }, ctx), /^Błąd/);
+  const ride = await runTool("ride_link", { destination: "Lotnisko Rzeszów-Jasionka" }, ctx);
+  assert.match(ride, /https:\/\/m\.uber\.com\/ul\/\?action=setPickup&pickup=my_location&dropoff%5Bformatted_address%5D=Lotnisko%20Rzesz%C3%B3w-Jasionka$/);
+});
+
+test("a phone call is proposed first, placed only when confirmed in a later turn, and reported once", async () => {
+  const calls: { url: string; init: any }[] = [];
+  let status = "in-progress";
+  const fetcher = (async (url: any, init: any = {}) => {
+    calls.push({ url: String(url), init });
+    if (String(url).endsWith("/outbound-call")) return Response.json({ success: true, message: "ok", conversation_id: "conv_1", callSid: "CA1" });
+    return Response.json({ status, transcript: [{ role: "agent", message: "Dzień dobry" }, { role: "user", message: "Będzie za dziesięć minut." }],
+      analysis: { call_successful: "success", transcript_summary: "Taksówka przyjedzie za dziesięć minut." } });
+  }) as typeof fetch;
+  const store = memoryStore();
+  const phone = { key: "k", agent: "agent_1", number: "phnum_1" };
+  const ctx = { store, ...at, calendars: [], fetcher, phone };
+  const ask = { name: "Radio Taxi", number: "15 822 12 34", task: "Taksówka na Waryńskiego 6, jak najszybciej, na nazwisko Jugo." };
+  assert.match(await runTool("phone_call", ask, ctx), /^Rozmowa przygotowana, jeszcze nie dzwonisz\. .*\+48158221234/);
+  assert.match(await runTool("phone_call", ask, ctx), /^Rozmowa przygotowana/);                       // the same turn cannot confirm itself
+  assert.equal(calls.length, 0);
+  const later = { ...ctx, now: new Date(at.now.getTime() + 20000) };
+  assert.match(await runTool("phone_call", { ...ask, number: "158221299" }, later), /^Rozmowa przygotowana/);   // another number starts over
+  const later2 = { ...ctx, now: new Date(at.now.getTime() + 40000) };
+  assert.match(await runTool("phone_call", { ...ask, number: "158221299" }, later2), /^Wykonano: dzwonię do Radio Taxi/);
+  const sent = JSON.parse(calls[0].init.body);
+  assert.deepEqual([sent.agent_id, sent.agent_phone_number_id, sent.to_number], ["agent_1", "phnum_1", "+48158221299"]);
+  assert.equal(sent.conversation_initiation_client_data.dynamic_variables.task, ask.task);
+  assert.equal(calls[0].init.headers["xi-api-key"], "k");
+  for (const bad of ["112", "+44 20 7946 0958", "700 123 456", "801 123 456", "abc"]) assert.match(await runTool("phone_call", { ...ask, number: bad }, later2), /^Błąd: dzwonisz tylko/);
+  assert.deepEqual((await agenda(store, new Date(later2.now.getTime() + 60000), phone, fetcher)).say, []);            // still talking
+  status = "done";
+  assert.deepEqual((await agenda(store, new Date(later2.now.getTime() + 90000), phone, fetcher)).say, ["Kuba, rozmowa z Radio Taxi: Taksówka przyjedzie za dziesięć minut."]);
+  assert.deepEqual((await agenda(store, new Date(later2.now.getTime() + 120000), phone, fetcher)).say, []);           // said once
+  assert.match(await runTool("call_result", {}, later2), /Radio Taxi \(09:00\): Taksówka przyjedzie za dziesięć minut\./);
+  assert.match(await runTool("phone_call", ask, { ...ctx, phone: undefined }), /^Błąd: nie masz podłączonego telefonu/);
+});

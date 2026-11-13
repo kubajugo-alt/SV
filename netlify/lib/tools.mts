@@ -5,12 +5,13 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { DAYS, dmy, hm, instant, local, span } from "./clock.mts";
 import { describe, occurrences, readCalendars } from "./diary.mts";
 import { addEvent, changeEvent, type Google } from "./gcal.mts";
+import { callOutcome, CALLS_A_DAY, placeCall, polishNumber, type Phone } from "./phone.mts";
 import { parseMemories, recallPast } from "./past.mts";
 import { loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
 import { MEMORIES } from "./texts.gen.mjs";
 
-export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; fetcher?: typeof fetch };
+export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; fetcher?: typeof fetch };
 /** The Claude Code routine that changes his own code: its id (trig_...) and the token of its API trigger. */
 export type Builder = { routine: string; token: string };
 
@@ -51,6 +52,18 @@ export const TOOLS: Anthropic.Tool[] = [
   tool("request_feature", "Zleca programiście (Claude Code) dopisanie tobie nowej umiejętności albo zmianę w tym, jak działasz. " +
     "Tylko gdy rozmówca wyraźnie prosi, żebyś się czegoś nauczył albo coś w sobie zmienił, i tylko raz na prośbę. Zmiana nie dzieje się od razu: powstaje propozycja, którą Kuba musi zatwierdzić.",
     { request: text("co dokładnie ma zostać dodane lub zmienione, pełnymi zdaniami, ze szczegółami podanymi przez rozmówcę") }, ["request"]),
+  tool("show_link", "Pokazuje rozmówcy na ekranie link z kodem QR do zeskanowania telefonem: ofertę w sklepie (np. Allegro), restaurację w aplikacji z jedzeniem, stronę rezerwacji. " +
+    "Tak pomagasz w zakupach i zamówieniach: znajdujesz w sieci, wybierasz, pokazujesz link. Sam niczego nie kupujesz ani nie zamawiasz i nigdy nie mów, że to zrobiłeś. Adres bierz z wyników wyszukiwania, nie zmyślaj go.",
+    { title: text("krótki opis, np. Filtr do ekspresu, 64 zł, Allegro"), url: text("pełny adres https://") }, ["title", "url"]),
+  tool("ride_link", "Przygotowuje przejazd: pokazuje na ekranie link z kodem QR, który otwiera w telefonie aplikację Uber z wpisanym celem (odbiór z miejsca, gdzie jest telefon). " +
+    "Przejazd zamawia i potwierdza rozmówca w telefonie.",
+    { destination: text("dokąd: adres albo nazwa miejsca z miastem, np. Lotnisko Rzeszów-Jasionka") }, ["destination"]),
+  tool("phone_call", "Dzwoni w imieniu rozmówcy pod polski numer i załatwia jedną sprawę: zamawia taksówkę, jedzenie z dostawą (płatność przy odbiorze), rezerwuje stolik, pyta o godziny otwarcia. " +
+    "Numer bierz od rozmówcy albo z wyszukiwania w sieci, nigdy go nie zmyślaj. Pierwsze użycie tylko przygotowuje rozmowę: powtórz wtedy rozmówcy, do kogo i z czym dzwonisz, i zapytaj, czy dzwonić. " +
+    "Dopiero gdy w następnej wypowiedzi potwierdzi, użyj narzędzia drugi raz z tymi samymi danymi. Wynik rozmowy poznasz później (call_result).",
+    { name: text("do kogo, np. Radio Taxi Tarnobrzeg"), number: text("numer telefonu, 9 cyfr"),
+      task: text("co dokładnie załatwić, ze wszystkimi szczegółami: adres, godzina, na kogo, co zamówić, jak zapłacić") }, ["name", "number", "task"]),
+  tool("call_result", "Podaje, jak poszły ostatnie rozmowy telefoniczne, które wykonałeś."),
   tool("briefing", "Odprawa na dziś: pogoda, kalendarz i przypomnienia naraz ('co dziś', 'plan dnia', 'co mnie czeka')."),
 ];
 
@@ -315,6 +328,57 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         await save();
         return "Wykonano: zlecenie przekazane programiście. Przygotuje propozycję zmiany; zacznie działać, gdy Kuba ją zatwierdzi.";
       }
+      case "show_link": {
+        const title = String(input.title ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+        let url: URL;
+        try { url = new URL(String(input.url ?? "").trim()); } catch { return "Błąd: to nie jest poprawny adres."; }
+        if (url.protocol !== "https:" || url.username || url.href.length > 600 || !title) return "Błąd: podaj tytuł i adres zaczynający się od https://.";
+        return `Wykonano: link na ekranie: ${title} ${url.href}`;
+      }
+      case "ride_link": {
+        const to = String(input.destination ?? "").replace(/\s+/g, " ").trim().slice(0, 160);
+        if (to.length < 3) return "Błąd: podaj, dokąd ma być przejazd.";
+        const uber = `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff%5Bformatted_address%5D=${encodeURIComponent(to)}`;
+        return `Wykonano: link na ekranie: Uber do: ${to} ${uber}`;
+      }
+      case "phone_call": {
+        if (!ctx.phone) return "Błąd: nie masz podłączonego telefonu; możesz podać numer, żeby rozmówca zadzwonił sam.";
+        const number = polishNumber(input.number);
+        const to = String(input.name ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+        const task = String(input.task ?? "").replace(/\s+/g, " ").trim().slice(0, 800);
+        if (!number) return "Błąd: dzwonisz tylko pod zwykłe polskie numery (9 cyfr), nie pod numery specjalne, płatne ani zagraniczne.";
+        if (!to || task.length < 10) return "Błąd: podaj, do kogo dzwonisz i co dokładnie masz załatwić.";
+        const day = ctx.now.getTime() - 86400000;
+        if (own.calls.filter((c) => new Date(c.at).getTime() > day).length >= CALLS_A_DAY) return `Błąd: wykonałeś już ${CALLS_A_DAY} rozmów w ciągu doby; to limit.`;
+        const waiting = own.pendingCall;
+        const confirmed = waiting && waiting.number === number && waiting.person === person && waiting.at !== ctx.now.toISOString()
+          && ctx.now.getTime() - new Date(waiting.at).getTime() < 10 * 60000;
+        if (!confirmed) {
+          own.pendingCall = { at: ctx.now.toISOString(), person, name: to, number, task };
+          await save();
+          return `Rozmowa przygotowana, jeszcze nie dzwonisz. Powtórz rozmówcy: dzwonisz do ${to} (${number}) w sprawie: ${task}. Zapytaj, czy dzwonić; po potwierdzeniu użyj narzędzia ponownie.`;
+        }
+        const call = { ...waiting!, task };          // the number and the name are the ones that were read back
+        try {
+          const id = await placeCall(ctx.phone, call, ctx.fetcher);
+          own.calls = [...own.calls, { id, at: ctx.now.toISOString(), person, name: call.name, number, task, told: false }].slice(-30);
+          own.pendingCall = null;
+          await save();
+          return `Wykonano: dzwonię do ${call.name}. Wynik rozmowy podam, gdy się skończy.`;
+        } catch (err) {
+          return `Błąd: nie udało się zadzwonić (${(err as Error).message}).`;
+        }
+      }
+      case "call_result": {
+        if (!ctx.phone) return "Błąd: nie masz podłączonego telefonu.";
+        const recent = own.calls.slice(-3).reverse();
+        if (!recent.length) return "Nie wykonałeś jeszcze żadnej rozmowy.";
+        const lines = await Promise.all(recent.map(async (c) => {
+          const outcome = await callOutcome(ctx.phone!, c.id, ctx.fetcher).catch(() => "nie udało się sprawdzić wyniku");
+          return `${c.name} (${hm(local(new Date(c.at), ctx.tz))}): ${outcome ?? "rozmowa jeszcze trwa"}.`;
+        }));
+        return "Rozmowy telefoniczne: " + lines.join(" ");
+      }
       case "briefing": {
         const parts = [(await weather(own, ctx)).split(/(?<=\.) (?=Jutro)/)[0]];
         if (ctx.calendars.length) parts.push(await calendar(ctx));
@@ -330,7 +394,7 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
 }
 
 /** For the page: what to say now (handed out once) and which timers are running. */
-export async function agenda(store: Store, now: Date) {
+export async function agenda(store: Store, now: Date, phone?: Phone, fetcher?: typeof fetch) {
   const own = await loadOwn(store);
   const say: string[] = [];
   const timers: { number: number; label: string; seconds: number }[] = [];
@@ -343,6 +407,16 @@ export async function agenda(store: Store, now: Date) {
       r.done = true;
       changed = true;
     } else if (r.kind === "timer") timers.push({ number: r.id, label: r.text, seconds: Math.round((due.getTime() - now.getTime()) / 1000) });
+  }
+  // A phone call he made has ended: he reports how it went, once.
+  for (const call of phone ? own.calls.filter((c) => !c.told) : []) {
+    const age = now.getTime() - new Date(call.at).getTime();
+    if (age < 20000) continue;
+    const outcome = await callOutcome(phone!, call.id, fetcher).catch(() => null);
+    if (outcome === null && age < 15 * 60000) continue;
+    say.push(`${capital(call.person)}, rozmowa z ${call.name}: ${outcome ?? "nie wiem, jak się skończyła"}${/[.!?]$/.test(outcome ?? "") ? "" : "."}`);
+    call.told = true;
+    changed = true;
   }
   if (changed) {
     own.reminders = own.reminders.filter((r) => !r.done || now.getTime() - new Date(r.due).getTime() < 7 * 86400000);
