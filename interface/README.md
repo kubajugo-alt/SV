@@ -46,6 +46,33 @@ head".
 Static files, no build step, no dependencies, no internet access needed
 (the typeface, IBM Plex Mono, is vendored).
 
+## In the cloud: Claude and ElevenLabs
+
+The quick way to a natural conversation: he thinks with Claude and speaks with
+the games' ElevenLabs voice, while hearing, memory, notes and the page stay on
+this machine.
+
+```sh
+pbpaste > data/anthropic.key     # with an Anthropic API key in the clipboard
+pbpaste > data/elevenlabs.key    # with an ElevenLabs API key in the clipboard
+chmod 600 data/*.key
+scripts/start.sh --stt-model small
+```
+
+`scripts/start.sh` picks each cloud part when its key file is there
+(`ALAN_MIND=local` / `ALAN_ENGINE=chatterbox` switch back). `claude_mind.py`
+uses the official `anthropic` SDK: one call per turn does the talking and the
+tool use, the unchanging part of his instructions is cached, and a request a
+safety classifier declines is re-run on a fallback model (`fallbacks`).
+`--claude-model` (default `claude-opus-5-5`; `claude-haiku-5-5` is the fastest
+and cheapest) and `--claude-effort` (default `low`) tune speed against depth.
+
+What leaves the machine with the Claude mind: his instructions including
+`data/domownicy.md`, the recent conversation and notes, and tool results (your
+notes, calendar entries, his memories when he looks them up). With the
+ElevenLabs voice: the text of each line he speaks. Tested here against stand-in
+clients only; not yet run against the real services.
+
 ## On a laptop
 
 Until the flat is wired, ALAN lives on a laptop: the page starts with the feed

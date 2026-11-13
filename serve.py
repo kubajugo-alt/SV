@@ -532,6 +532,13 @@ def main():
                     help="path of the Rhubarb Lip Sync binary for mouth shapes (default: vendor/rhubarb/rhubarb or PATH; without it the mouth follows loudness)")
     ap.add_argument("--stt-model", default=os.environ.get("ALAN_STT_MODEL", "medium"),
                     help="faster-whisper model for the microphone: tiny, base, small, medium, large-v3; 'none' disables (default %(default)s)")
+    ap.add_argument("--mind", choices=["local", "claude"], default=os.environ.get("ALAN_MIND", "local"),
+                    help="where he thinks: a local model (default) or Claude through the Anthropic API; with claude, "
+                         "his instructions, the conversation and tool results leave the machine")
+    ap.add_argument("--claude-model", default=os.environ.get("ALAN_CLAUDE_MODEL", "claude-opus-5-5"),
+                    help="claude: the model (default %(default)s; claude-haiku-5-5 is the fastest and cheapest)")
+    ap.add_argument("--claude-effort", default=os.environ.get("ALAN_CLAUDE_EFFORT", "low"), choices=["low", "medium", "high"],
+                    help="claude: how much it thinks before answering (default %(default)s, for quick spoken replies)")
     ap.add_argument("--llm-url", default=os.environ.get("ALAN_LLM_URL", "http://127.0.0.1:11434"),
                     help="OpenAI-compatible server for conversation; Ollama's default address. '' disables /chat")
     ap.add_argument("--llm-model", default=os.environ.get("ALAN_LLM_MODEL", "mistral-nemo"))
@@ -616,8 +623,19 @@ def main():
             from diary import Diary
 
             diary = Diary(calendars)
-        brain = Brain(args.llm_url, args.llm_model, os.path.join(HERE, "prompts", "system.pl.txt"),
-                      os.path.join(args.data, "alan.db"), args.llm_inline_system, home, online, wiki, diary)
+        prompt, memory = os.path.join(HERE, "prompts", "system.pl.txt"), os.path.join(args.data, "alan.db")
+        if args.mind == "claude":
+            from claude_mind import ClaudeBrain
+
+            key = None
+            try:
+                with open(os.path.join(args.data, "anthropic.key"), encoding="utf-8") as f:
+                    key = f.read().strip() or None
+            except OSError:
+                pass                      # the SDK then looks in ANTHROPIC_API_KEY and `ant auth login`
+            brain = ClaudeBrain(args.claude_model, prompt, memory, home, online, wiki, diary, key, args.claude_effort)
+        else:
+            brain = Brain(args.llm_url, args.llm_model, prompt, memory, args.llm_inline_system, home, online, wiki, diary)
         print(f"Calendar: {diary.name if diary else 'none (no kalendarze.txt in the data folder)'}", flush=True)
         print(f"Mind: {brain.name}", flush=True)
         brain.keep_warm()

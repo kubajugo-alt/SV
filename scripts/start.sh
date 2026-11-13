@@ -8,8 +8,14 @@ cd "$REPO"
 # Ollama gives a model a small context window by default, and ALAN's instructions
 # alone are longer: the start of them (who he is) would be cut off and he would
 # answer like a stock assistant. "alan-nemo" is mistral-nemo with a window that fits.
+# With an Anthropic key on this machine he thinks with Claude (ALAN_MIND=local keeps the local model).
+if [ -z "${ALAN_MIND:-}" ] && [ -s "$REPO/data/anthropic.key" ]; then
+  export ALAN_MIND=claude
+  "$REPO/.venv/bin/python" -c "import anthropic" 2>/dev/null || "$REPO/.venv/bin/pip" install --quiet anthropic
+fi
+
 BASE="${ALAN_LLM_BASE:-mistral-nemo}"
-if [ -z "${ALAN_LLM_MODEL:-}" ] && command -v ollama >/dev/null; then
+if [ "${ALAN_MIND:-local}" = "local" ] && [ -z "${ALAN_LLM_MODEL:-}" ] && command -v ollama >/dev/null; then
   MODELS="$(ollama list 2>/dev/null || true)"     # read once: piping it into grep -q can fail under pipefail
   if grep -q "^$BASE" <<<"$MODELS"; then
     if ! grep -q "^alan-nemo" <<<"$MODELS"; then

@@ -224,6 +224,11 @@ class Brain:
                 for i in items]
 
     def run_tool(self, person, name, arguments):
+        if isinstance(arguments, str):          # a local model hands the arguments over as JSON text
+            try:
+                arguments = json.loads(arguments or "{}")
+            except ValueError:
+                return "Błąd: niepoprawne parametry narzędzia."
         if name in OWN_NAMES:
             return self.own.call(person, name, arguments)
         if name == "check_online" and self.online:

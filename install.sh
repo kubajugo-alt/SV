@@ -57,7 +57,7 @@ ollama list | grep -q "^$MODEL" || ollama pull "$MODEL"
 step "Środowisko Pythona (głos i słuch)"
 [ -x "$REPO/.venv/bin/python" ] || "$PYTHON" -m venv "$REPO/.venv"
 "$REPO/.venv/bin/pip" install --quiet --upgrade pip
-"$REPO/.venv/bin/pip" install --quiet chatterbox-tts faster-whisper libzim "setuptools<81"
+"$REPO/.venv/bin/pip" install --quiet chatterbox-tts faster-whisper libzim anthropic "setuptools<81"
 
 step "Pobieranie i sprawdzenie modeli głosu i słuchu"
 (cd "$REPO" && ALAN_STT_MODEL="$STT_MODEL" "$REPO/.venv/bin/python" - <<'PY'
