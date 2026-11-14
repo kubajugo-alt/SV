@@ -363,3 +363,17 @@ test("without a routine, a feature request becomes an [ALAN] issue on GitHub", a
   assert.match(sent.body, /Kuba\), przekazana przez Alana:\n\nNaucz się/);
   assert.match(await runTool("find_notes", { query: "zlecenie" }, ctx), /issues\/5/);
 });
+
+test("favourite orders are saved, found by words and shown as links to order on the phone", async () => {
+  const ctx = { store: memoryStore(), ...at, calendars: [] };
+  assert.match(await runTool("favourite_food", { action: "find" }, ctx), /^Nie ma jeszcze ulubionych/);
+  assert.equal(await runTool("favourite_food", { action: "save", name: "pizza z Romy", place: "Pizzeria Roma", what: "capricciosa duża, podwójny ser",
+    url: "https://glovoapp.com/pl/pl/tarnobrzeg/pizzeria-roma/" }, ctx), "Wykonano: zapisano w ulubionych „pizza z Romy” (Pizzeria Roma: capricciosa duża, podwójny ser).");
+  await runTool("favourite_food", { action: "save", name: "sushi", place: "Sushi Bar", what: "zestaw dla dwojga", url: "https://glovoapp.com/pl/pl/tarnobrzeg/sushi-bar/" }, ctx);
+  assert.match(await runTool("favourite_food", { action: "save", name: "x", what: "y", url: "http://glovoapp.com/x" }, ctx), /^Błąd: adres musi/);
+  assert.equal(await runTool("favourite_food", { action: "find", query: "pizzę z Romy" }, ctx),
+    "Wykonano: link na ekranie: pizza z Romy, capricciosa duża, podwójny ser https://glovoapp.com/pl/pl/tarnobrzeg/pizzeria-roma/");
+  assert.match(await runTool("favourite_food", { action: "find" }, ctx), /^Ulubione: pizza z Romy .*sushi/);
+  assert.match(await runTool("favourite_food", { action: "find", query: "burger" }, ctx), /nic takiego nie ma\. Są: pizza z Romy, sushi\./);
+  assert.match(await runTool("favourite_food", { action: "forget", query: "sushi" }, ctx), /^Wykonano: usunięto z ulubionych: sushi\./);
+});

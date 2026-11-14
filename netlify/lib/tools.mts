@@ -59,8 +59,15 @@ export const TOOLS: Anthropic.Tool[] = [
     "Tylko gdy rozmówca wyraźnie prosi, żebyś się czegoś nauczył albo coś w sobie zmienił, i tylko raz na prośbę. Zmiana nie dzieje się od razu: powstaje propozycja, którą Kuba musi zatwierdzić.",
     { request: text("co dokładnie ma zostać dodane lub zmienione, pełnymi zdaniami, ze szczegółami podanymi przez rozmówcę") }, ["request"]),
   tool("show_link", "Pokazuje rozmówcy na ekranie link z kodem QR do zeskanowania telefonem: ofertę w sklepie (np. Allegro), restaurację w aplikacji z jedzeniem, stronę rezerwacji. " +
-    "Tak pomagasz w zakupach i zamówieniach: znajdujesz w sieci, wybierasz, pokazujesz link. Jedzenie z dostawą domownicy zamawiają przez Uber Eats i Glovo: wyszukaj stronę restauracji w jednej z tych aplikacji i pokaż ją. Sam niczego nie kupujesz ani nie zamawiasz i nigdy nie mów, że to zrobiłeś. Adres bierz z wyników wyszukiwania, nie zmyślaj go.",
+    "Tak pomagasz w zakupach i zamówieniach: znajdujesz w sieci, wybierasz, pokazujesz link. Jedzenie z dostawą domownicy zamawiają przez Glovo i Uber Eats: gdy chcą coś zamówić, najpierw sprawdź ulubione (favourite_food); gdy tam nie ma, wyszukaj w sieci stronę restauracji albo dania na glovoapp.com (np. „Glovo Tarnobrzeg pizza”) i pokaż ją, a gdy się spodoba, zaproponuj zapisanie jej w ulubionych. Sam niczego nie kupujesz ani nie zamawiasz i nigdy nie mów, że to zrobiłeś. Adres bierz z wyników wyszukiwania, nie zmyślaj go.",
     { title: text("krótki opis, np. Filtr do ekspresu, 64 zł, Allegro"), url: text("pełny adres https://") }, ["title", "url"]),
+  tool("favourite_food", "Ulubione zamówienia domowników (jedzenie z Glovo, Uber Eats albo z restauracji): szuka ich i pokazuje link z kodem QR do zamówienia jednym ruchem w telefonie, " +
+    "albo zapisuje nowe, gdy rozmówca prosi, żeby zapamiętać zamówienie, albo zgodzi się, gdy to zaproponujesz. Sam niczego nie zamawiasz.",
+    { action: { type: "string", enum: ["find", "save", "forget"], description: "find: szukaj i pokaż; save: zapisz nowe; forget: usuń" },
+      query: text("find/forget: słowa, np. pizza, Roma, to co zawsze; puste = lista wszystkich"),
+      name: text("save: krótka nazwa, którą domownicy będą tego szukać, np. pizza z Romy"),
+      place: text("save: restauracja albo sklep"), what: text("save: co dokładnie zamawiają, z dodatkami"),
+      url: text("save: pełny adres https:// strony z tym daniem albo restauracją w Glovo lub Uber Eats, wzięty z wyszukiwania lub od rozmówcy") }, ["action"]),
   tool("ride_link", "Przygotowuje przejazd: pokazuje na ekranie link z kodem QR, który otwiera w telefonie aplikację Uber z wpisanym celem (odbiór z miejsca, gdzie jest telefon). " +
     "Przejazd zamawia i potwierdza rozmówca w telefonie. W Tarnobrzegu Uber jeździ, ale aut jest mniej niż w Bolcie, a Bolt nie ma takiego linku: " +
     "pokaż link do Ubera i dodaj, że w Bolcie będzie pewnie szybciej, albo zaproponuj telefon po taksówkę.",
@@ -401,6 +408,40 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         try { url = new URL(String(input.url ?? "").trim()); } catch { return "Błąd: to nie jest poprawny adres."; }
         if (url.protocol !== "https:" || url.username || url.href.length > 600 || !title) return "Błąd: podaj tytuł i adres zaczynający się od https://.";
         return `Wykonano: link na ekranie: ${title} ${url.href}`;
+      }
+      case "favourite_food": {
+        const action = String(input.action ?? "find");
+        if (action === "save") {
+          const name = String(input.name ?? "").replace(/\s+/g, " ").trim().slice(0, 60);
+          const place = String(input.place ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+          const what = String(input.what ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
+          let url: URL;
+          try { url = new URL(String(input.url ?? "").trim()); } catch { return "Błąd: podaj pełny adres strony z zamówieniem (https://)."; }
+          if (url.protocol !== "https:" || url.username || url.href.length > 600) return "Błąd: adres musi zaczynać się od https://.";
+          if (!name || !what) return "Błąd: podaj nazwę ulubionego i co dokładnie zamawiacie.";
+          own.favourites = [...own.favourites.filter((f) => f.name.toLowerCase() !== name.toLowerCase()),
+            { name, place, what, url: url.href, who: capital(person), at: ctx.now.toISOString() }].slice(-100);
+          await save();
+          return `Wykonano: zapisano w ulubionych „${name}” (${place ? `${place}: ` : ""}${what}).`;
+        }
+        const words = stems(String(input.query ?? ""));
+        const hits = own.favourites.filter((f) => {
+          if (!words.length) return true;
+          const has = new Set(stems(`${f.name} ${f.place} ${f.what}`));
+          return words.some((w) => has.has(w));
+        }).sort((a, b) => (b.used ?? b.at).localeCompare(a.used ?? a.at));
+        if (action === "forget") {
+          if (!words.length || !hits.length) return "Błąd: nie ma takiego ulubionego.";
+          own.favourites = own.favourites.filter((f) => !hits.includes(f));
+          await save();
+          return `Wykonano: usunięto z ulubionych: ${hits.map((f) => f.name).join(", ")}.`;
+        }
+        if (!own.favourites.length) return "Nie ma jeszcze ulubionych zamówień. Wyszukaj w sieci i zaproponuj zapisanie.";
+        if (!hits.length) return `Wśród ulubionych nic takiego nie ma. Są: ${own.favourites.map((f) => f.name).join(", ")}.`;
+        if (!words.length || hits.length > 2) return `Ulubione: ${hits.slice(0, 10).map((f) => `${f.name} (${f.place}: ${f.what})`).join("; ")}. Zapytaj, które pokazać.`;
+        for (const f of hits) f.used = ctx.now.toISOString();
+        await save();
+        return `Wykonano: link na ekranie: ${hits.map((f) => `${f.name}, ${f.what} ${f.url}`).join(" oraz ")}`;
       }
       case "ride_link": {
         const to = String(input.destination ?? "").replace(/\s+/g, " ").trim().slice(0, 160);
