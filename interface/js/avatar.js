@@ -57,6 +57,10 @@ const TOWN = [[578, 348, 255, 170, 60], [733, 328, 60, 230, 170], [420, 292, 255
 // The record on the player (centre and radii as seen from the side) and the clock's face (centre, radius):
 // the three room paintings are not quite alike, so each has its own.
 const RECORD = { night: [1415, 403, 66, 9], day: [1407, 406, 66, 9], dusk: [1407, 406, 66, 9] };
+// The old television's glass, [x, y, w, h], in each painting: he puts maps and pictures on it.
+const SCREEN = { night: [238, 393, 137, 116], day: [251, 396, 139, 113], dusk: [251, 398, 136, 111] };
+/** What the television in the room shows: set by the page (a canvas or an image), with when it came on and goes off. */
+export const tv = { picture: null, on: 0, off: 0 };
 const CLOCK = { night: [1542, 157, 30], day: [1531, 166, 30], dusk: [1531, 167, 30] };
 // What he has just said can leave a look on his face for a moment.
 const AFTER = [
@@ -482,6 +486,49 @@ export async function startAvatar(canvas, isDark) {
     g.fill();
   }
 
+  /** The television: switched on with a bright line opening up, a cool flickering picture, its light on the room. */
+  function television(now, t) {
+    const pic = tv.picture;
+    if (!pic || now > tv.off + 400 || !(pic.naturalWidth || pic.width)) return;
+    const [x, y, w, h] = SCREEN[roomNow];
+    const open = Math.min(1, (now - tv.on) / 450), close = Math.max(0, Math.min(1, (tv.off - now) / 400));
+    const k = Math.min(open, close);
+    const lineH = Math.max(1.5, h * (k < 1 ? k * k : 1));         // the picture opens out of a line, and folds back into one
+    g.save();
+    g.beginPath();
+    g.roundRect(x, y, w, h, 14);
+    g.clip();
+    g.fillStyle = '#0d1210';
+    g.fillRect(x, y, w, h);
+    const pw = pic.naturalWidth || pic.width, ph = pic.naturalHeight || pic.height;
+    const s = Math.max(w / pw, h / ph);                             // fill the glass, cut what is over
+    const top = y + (h - lineH) / 2;
+    g.beginPath();
+    g.rect(x, top, w, lineH);
+    g.clip();
+    g.filter = `saturate(0.75) contrast(1.08) brightness(${(1.05 + 0.04 * Math.sin(t * 50)).toFixed(3)})`;
+    g.drawImage(pic, x + (w - pw * s) / 2, y + (h - ph * s) / 2, pw * s, ph * s);
+    g.filter = 'none';
+    g.fillStyle = 'rgba(0, 0, 0, .18)';                              // the lines of an old tube
+    for (let ly = y + ((t * 30) % 3); ly < y + h; ly += 3) g.fillRect(x, ly, w, 1);
+    const shade = g.createRadialGradient(x + w / 2, y + h / 2, h * 0.3, x + w / 2, y + h / 2, w * 0.68);
+    shade.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    shade.addColorStop(1, 'rgba(0, 0, 0, .55)');                     // the curved glass is darker at its edges
+    g.fillStyle = shade;
+    g.fillRect(x, y, w, h);
+    g.fillStyle = 'rgba(255, 255, 255, .07)';                        // the window's reflection on the glass
+    g.beginPath(); g.ellipse(x + w * 0.32, y + h * 0.22, w * 0.3, h * 0.12, -0.2, 0, Math.PI * 2); g.fill();
+    if (k < 1) { g.fillStyle = `rgba(230, 245, 255, ${(1 - k) * 0.8})`; g.fillRect(x, top, w, lineH); }
+    g.restore();
+    g.globalCompositeOperation = 'lighter';                          // its cool light on the wall and the floor
+    const r = 260, glow = g.createRadialGradient(x + w / 2, y + h / 2, 0, x + w / 2, y + h / 2, r);
+    glow.addColorStop(0, `rgba(150, 190, 255, ${(roomNow === 'day' ? 0.05 : 0.13) * k * (0.9 + 0.1 * Math.sin(t * 9))})`);
+    glow.addColorStop(1, 'rgba(150, 190, 255, 0)');
+    g.fillStyle = glow;
+    g.fillRect(x + w / 2 - r, y + h / 2 - r, r * 2, r * 2);
+    g.globalCompositeOperation = 'source-over';
+  }
+
   function frame(now) {
     if (isDark()) {             // studio mode: one black frame, then stop the loop
       g.setTransform(1, 0, 0, 1, 0, 0);
@@ -508,6 +555,7 @@ export async function startAvatar(canvas, isDark) {
     const lit = roomNow === 'day' ? 0.15 : 1;              // by day the lamps are off; only the radio dial glows
     outside(now, t);
     inside(now, t);
+    television(now, t);
 
     // Lamps and the radio dial: slow breathing; the radio also follows his voice.
     g.globalCompositeOperation = 'lighter';
