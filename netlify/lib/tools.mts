@@ -14,7 +14,7 @@ import { loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
 import { MEMORIES } from "./texts.gen.mjs";
 
-export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; fetcher?: typeof fetch };
+export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; youtube?: string; fetcher?: typeof fetch };
 /**
  * Who changes his own code. Either a Claude Code routine (its id, trig_..., and the token of its API trigger),
  * or the repository on GitHub: he opens an issue titled [ALAN] and a GitHub Actions workflow runs Claude Code on it.
@@ -73,6 +73,12 @@ export const TOOLS: Anthropic.Tool[] = [
   tool("show_picture", "Pokazuje na ekranie zdjęcie: gdy pytają, jak coś albo ktoś wygląda (budynek, zwierzę, potrawa, dzieło, miejsce, postać). " +
     "Szuka zdjęcia w Wikipedii; jeśli masz z wyszukiwania bezpośredni adres obrazka (.jpg, .png, .webp), możesz go podać. Opisz krótko, co widać.",
     { query: text("czego zdjęcie, np. Zamek Krzyżtopór, pierogi ruskie, kot syjamski"), url: text("opcjonalnie: bezpośredni adres https:// obrazka") }, ["query"]),
+  tool("music", "Muzyka z YouTube (i YouTube Music), grana na ekranie w domu: puszcza utwór, album, wykonawcę albo zapamiętaną playlistę domowników, zatrzymuje ją, " +
+    "zapamiętuje playlistę lub utwór pod nazwą, gdy rozmówca poda link (music.youtube.com albo youtube.com), i zapomina. Zapamiętane szukaj najpierw: „moja playlista do gotowania”.",
+    { action: { type: "string", enum: ["play", "stop", "save", "forget", "list"], description: "play: graj; stop: wyłącz; save: zapamiętaj link; forget: zapomnij; list: co zapamiętane" },
+      query: text("play/forget: co grać, np. Dawid Podsiadło Małomiasteczkowy, jazz do pracy, moja playlista na wieczór"),
+      kind: { type: "string", enum: ["song", "playlist"], description: "play: song = jeden utwór; playlist = album, składanka, wykonawca na dłużej" },
+      name: text("save: nazwa, pod którą domownicy będą o to prosić"), url: text("save: link do playlisty albo utworu na YouTube lub YouTube Music") }, ["action"]),
   tool("ride_link", "Przygotowuje przejazd: pokazuje na ekranie link z kodem QR, który otwiera w telefonie aplikację Uber z wpisanym celem (odbiór z miejsca, gdzie jest telefon). " +
     "Przejazd zamawia i potwierdza rozmówca w telefonie. W Tarnobrzegu Uber jeździ, ale aut jest mniej niż w Bolcie, a Bolt nie ma takiego linku: " +
     "pokaż link do Ubera i dodaj, że w Bolcie będzie pewnie szybciej, albo zaproponuj telefon po taksówkę.",
@@ -124,6 +130,16 @@ const WMO: Record<number, string> = {
 };
 const num = (value: number, digits = 0) => value.toFixed(digits).replace(".", ",");
 const memories = parseMemories(MEMORIES);
+/** A song or playlist from a YouTube or YouTube Music link. */
+export function youtubeId(link: string): { kind: "video" | "list"; id: string } | undefined {
+  let url: URL;
+  try { url = new URL(link.trim()); } catch { return undefined; }
+  if (!/(^|\.)(youtube\.com|youtu\.be)$/.test(url.hostname)) return undefined;
+  const list = url.searchParams.get("list"), video = url.hostname === "youtu.be" ? url.pathname.slice(1) : url.searchParams.get("v");
+  if (list && /^[\w-]{10,64}$/.test(list)) return { kind: "list", id: list };
+  if (video && /^[\w-]{11}$/.test(video)) return { kind: "video", id: video };
+  return undefined;
+}
 const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function parseWhen(value: string, ctx: Ctx): Date | null {
@@ -447,6 +463,48 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         for (const f of hits) f.used = ctx.now.toISOString();
         await save();
         return `Wykonano: link na ekranie: ${hits.map((f) => `${f.name}, ${f.what} ${f.url}`).join(" oraz ")}`;
+      }
+      case "music": {
+        const action = String(input.action ?? "play");
+        if (action === "stop") return "Wykonano: muzyka: stop";
+        if (action === "list") return own.music.length ? `Zapamiętana muzyka: ${own.music.map((t) => t.name).join(", ")}.` : "Nie ma jeszcze zapamiętanej muzyki.";
+        if (action === "save") {
+          const name = String(input.name ?? "").replace(/\s+/g, " ").trim().slice(0, 60);
+          const found = youtubeId(String(input.url ?? ""));
+          if (!found) return "Błąd: podaj link do playlisty albo utworu z YouTube lub YouTube Music.";
+          if (!name) return "Błąd: podaj nazwę, pod którą to zapamiętać.";
+          own.music = [...own.music.filter((t) => t.name.toLowerCase() !== name.toLowerCase()), { name, ...found, who: capital(person), at: ctx.now.toISOString() }].slice(-100);
+          await save();
+          return `Wykonano: zapamiętano muzykę „${name}”.`;
+        }
+        const query = String(input.query ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+        const words = stems(query);
+        const saved = words.length ? own.music.filter((t) => { const has = new Set(stems(t.name)); return words.filter((w) => has.has(w)).length >= Math.min(2, stems(t.name).length); }) : [];
+        if (action === "forget") {
+          if (!saved.length) return "Błąd: nie ma takiej zapamiętanej muzyki.";
+          own.music = own.music.filter((t) => !saved.includes(t));
+          await save();
+          return `Wykonano: zapomniano: ${saved.map((t) => t.name).join(", ")}.`;
+        }
+        if (saved.length) {
+          const t = saved.sort((a, b) => (b.used ?? b.at).localeCompare(a.used ?? a.at))[0];
+          t.used = ctx.now.toISOString();
+          await save();
+          return `Wykonano: muzyka: ${t.name} yt:${t.kind}:${t.id}`;
+        }
+        const direct = youtubeId(query);
+        if (direct) return `Wykonano: muzyka: z linku yt:${direct.kind}:${direct.id}`;
+        if (!query) return "Błąd: powiedz, co zagrać.";
+        if (!ctx.youtube) return "Błąd: nie mam dostępu do wyszukiwania w YouTube (brak klucza YOUTUBE_API_KEY). Zapamiętane playlisty mogę grać.";
+        const list = input.kind === "playlist";
+        const res = await (ctx.fetcher ?? fetch)(`https://www.googleapis.com/youtube/v3/search?${new URLSearchParams({ part: "snippet", q: query, maxResults: "1", regionCode: "PL",
+          type: list ? "playlist" : "video", ...(list ? {} : { videoCategoryId: "10", videoEmbeddable: "true" }), key: ctx.youtube })}`, { signal: AbortSignal.timeout(6000) });
+        if (!res.ok) return `Błąd: YouTube nie odpowiedział (${res.status}).`;
+        const item = ((await res.json()) as any).items?.[0];
+        const id = list ? item?.id?.playlistId : item?.id?.videoId;
+        if (!id) return `Błąd: nie znalazłem w YouTube „${query}”.`;
+        const title = String(item.snippet?.title ?? query).replace(/&amp;/g, "&").replace(/&quot;/g, "\"").replace(/&#39;/g, "'");
+        return `Wykonano: muzyka: ${title} yt:${list ? "list" : "video"}:${id}`;
       }
       case "show_map": {
         const place = String(input.place ?? "").replace(/\s+/g, " ").trim().slice(0, 200);

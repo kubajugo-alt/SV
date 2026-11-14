@@ -60,7 +60,7 @@ const RECORD = { night: [1415, 403, 66, 9], day: [1407, 406, 66, 9], dusk: [1407
 // The old television's glass, [x, y, w, h], in each painting: he puts maps and pictures on it.
 const SCREEN = { night: [238, 393, 137, 116], day: [251, 396, 139, 113], dusk: [251, 398, 136, 111] };
 /** What the television in the room shows: set by the page (a canvas or an image), with when it came on and goes off. */
-export const tv = { picture: null, on: 0, off: 0 };
+export const tv = { picture: null, on: 0, off: 0, music: null, musicOn: 0 };   // music: the cover of what is playing, under any picture
 const CLOCK = { night: [1542, 157, 30], day: [1531, 166, 30], dusk: [1531, 167, 30] };
 // What he has just said can leave a look on his face for a moment.
 const AFTER = [
@@ -488,10 +488,11 @@ export async function startAvatar(canvas, isDark) {
 
   /** The television: switched on with a bright line opening up, a cool flickering picture, its light on the room. */
   function television(now, t) {
-    const pic = tv.picture;
-    if (!pic || now > tv.off + 400 || !(pic.naturalWidth || pic.width)) return;
+    const shows = tv.picture && now < tv.off + 400;
+    const pic = shows ? tv.picture : tv.music;
+    if (!pic || !(pic.naturalWidth || pic.width)) return;
     const [x, y, w, h] = SCREEN[roomNow];
-    const open = Math.min(1, (now - tv.on) / 450), close = Math.max(0, Math.min(1, (tv.off - now) / 400));
+    const open = Math.min(1, (now - (shows ? tv.on : tv.musicOn)) / 450), close = shows && !tv.music ? Math.max(0, Math.min(1, (tv.off - now) / 400)) : 1;
     const k = Math.min(open, close);
     const lineH = Math.max(1.5, h * (k < 1 ? k * k : 1));         // the picture opens out of a line, and folds back into one
     g.save();

@@ -392,3 +392,16 @@ test("a map of a place and a picture of a thing are put on the screen", async ()
   assert.equal(await runTool("show_picture", { query: "pierogi", url: "https://example.org/p.webp" }, ctx), "Wykonano: obraz na ekranie: pierogi https://example.org/p.webp");
   assert.match(asked[1], /generator=search&gsrsearch=Zamek\+Krzy%C5%BCtop%C3%B3r/);
 });
+
+test("music: remembered playlists play without a key, others are found on YouTube", async () => {
+  const asked: string[] = [];
+  const fetcher = (async (url: any) => { asked.push(String(url)); return Response.json({ items: [{ id: { videoId: "abcdefghijk" }, snippet: { title: "Dawid Podsiadło - Małomiasteczkowy" } }] }); }) as typeof fetch;
+  const ctx = { store: memoryStore(), ...at, calendars: [], fetcher };
+  assert.equal(await runTool("music", { action: "save", name: "do gotowania", url: "https://music.youtube.com/playlist?list=PLabcdefghij123" }, ctx), "Wykonano: zapamiętano muzykę „do gotowania”.");
+  assert.equal(await runTool("music", { action: "play", query: "moja playlista do gotowania" }, ctx), "Wykonano: muzyka: do gotowania yt:list:PLabcdefghij123");
+  assert.match(await runTool("music", { action: "play", query: "Podsiadło" }, ctx), /YOUTUBE_API_KEY/);
+  assert.equal(await runTool("music", { action: "play", query: "Podsiadło Małomiasteczkowy" }, { ...ctx, youtube: "k" }), "Wykonano: muzyka: Dawid Podsiadło - Małomiasteczkowy yt:video:abcdefghijk");
+  assert.match(asked[0], /videoCategoryId=10/);
+  assert.equal(await runTool("music", { action: "stop" }, ctx), "Wykonano: muzyka: stop");
+  assert.equal(await runTool("music", { action: "save", name: "x", url: "https://example.com/?list=PLabcdefghij123" }, ctx), "Błąd: podaj link do playlisty albo utworu z YouTube lub YouTube Music.");
+});

@@ -96,6 +96,17 @@ html, body {
   max-height: 60%; overflow: hidden;
 }
 body[data-alan="alert"] #actions { display: none; }
+/* Music: its own card at the top of the column; the notes move down under it. */
+#music {
+  position: fixed; z-index: 2; top: 13%; right: calc(var(--u) * 3.5); width: min(30%, 26em);
+  animation: note-in .5s ease-out both;
+}
+#music .player { position: relative; height: 120px; border-radius: .35em; overflow: hidden; border: 1px solid rgba(214, 173, 108, .45); background: #000; }
+#music .player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+#music .title { margin: .45em 0 0; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#music button.when { background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 0 .2em; }
+body.music-on #actions { top: calc(13% + 120px + 6em); max-height: calc(var(--desk-top, 68%) - 13% - 120px - 7em); }
+body[data-alan="alert"] #music { visibility: hidden; }
 /* A card in the room's own materials: dark walnut glass, a thin brass rule, cream type. */
 .note, .overlay .card {
   background: linear-gradient(160deg, rgba(46, 26, 14, .86), rgba(20, 11, 6, .9));
@@ -243,3 +254,5 @@ body[data-flat="dark"] > * { display: none !important; }
   .note, .overlay, .overlay .card { animation: none; }
   body[data-alan="alert"], #alert-kind { animation: none; }
 }
+/* With music playing, a map or picture card is lower: it must fit above the desk. */
+body.music-on .note .map canvas, body.music-on .note .picture img { aspect-ratio: auto; height: 6em; max-height: 6em; object-fit: cover; }
