@@ -205,7 +205,8 @@ function drawNotes(actions) {
   const live = actions.filter((a) => {
     if (!noteSeen.has(a.text)) noteSeen.set(a.text, now);
     return now - noteSeen.get(a.text) < NOTE_MS[kindOf(a)];
-  }).filter((a, i, all) => !/^(mapa|obraz) na ekranie:/i.test(a.text)            // one map or picture at a time: the newest
+  }).filter((a) => !/^muzyka:/i.test(a.text))                                 // music has its own card (music.js)
+    .filter((a, i, all) => !/^(mapa|obraz) na ekranie:/i.test(a.text)            // one map or picture at a time: the newest
     || !all.slice(i + 1).some((b) => /^(mapa|obraz) na ekranie:/i.test(b.text)));
   $('actions').replaceChildren(...live.slice(-3).reverse().map((a) => {   // the newest three, newest on top
     const kind = kindOf(a);

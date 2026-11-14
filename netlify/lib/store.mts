@@ -37,6 +37,7 @@ export function memoryStore(seed: Record<string, unknown> = {}): Store & { data:
 }
 
 /** An order the household likes: what, from where, and the page (Glovo, Uber Eats...) where it is ordered. */
+export type Tune = { name: string; id: string; kind: "video" | "list"; who: string; at: string; used?: string };
 export type Favourite = { name: string; place: string; what: string; url: string; who: string; at: string; used?: string };
 
 export type Turn = { role: "user" | "assistant"; text: string; at: string };
@@ -52,10 +53,11 @@ export type Own = {
   calls: Call[];                       // phone calls he made, newest last
   pendingCall: PendingCall | null;     // a call he proposed and waits to have confirmed
   placeNotes: PlaceNote[];             // what the household said about places
-  favourites: Favourite[];             // food the household orders again and again, with the link to order it
+  favourites: Favourite[];
+  music: Tune[];                       // playlists and songs the household asked him to remember, by name             // food the household orders again and again, with the link to order it
   events: OwnEvent[];                  // his own calendar
 };
 
-export const emptyOwn = (): Own => ({ seq: 0, reminders: [], lists: {}, facts: {}, jottings: {}, place: null, calls: [], pendingCall: null, placeNotes: [], events: [], favourites: [] });
+export const emptyOwn = (): Own => ({ seq: 0, reminders: [], lists: {}, facts: {}, jottings: {}, place: null, calls: [], pendingCall: null, placeNotes: [], events: [], favourites: [], music: [] });
 export const loadOwn = async (store: Store): Promise<Own> => ({ ...emptyOwn(), ...((await store.get<Own>("own")) ?? {}) });
 export const loadTalk = async (store: Store, person: string): Promise<Talk> => (await store.get<Talk>(`talk/${person}`)) ?? { notes: "", turns: [] };

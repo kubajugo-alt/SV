@@ -34,6 +34,7 @@ export function mind(): Mind {
     phone: phone(),
     cameras: Netlify.env.get("WINDY_API_KEY")
       ? { key: Netlify.env.get("WINDY_API_KEY")!, list: parseCameras(Netlify.env.get("ALAN_WEBCAMS") ?? DEFAULT_CAMERAS) } : undefined,
+    youtube: Netlify.env.get("YOUTUBE_API_KEY") || undefined,
     webSearch: (Netlify.env.get("ALAN_WEB_SEARCH") ?? "on") !== "off",
   };
 }
