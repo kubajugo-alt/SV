@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:      # ALAN's own proposals are opened by a workflow, which starts their tests this way
 
 permissions:
   contents: read

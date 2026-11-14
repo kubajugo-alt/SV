@@ -342,3 +342,16 @@ test("without Google he keeps a calendar of his own, publishes it as a feed and 
   assert.equal(feedKey("haslo").length, 32);
   assert.notEqual(feedKey("haslo"), feedKey("inne"));
 });
+
+test("without a routine, a feature request becomes an [ALAN] issue on GitHub", async () => {
+  const calls: { url: string; init: any }[] = [];
+  const fetcher = (async (url: any, init: any) => { calls.push({ url: String(url), init }); return Response.json({ html_url: "https://github.com/o/r/issues/5" }, { status: 201 }); }) as typeof fetch;
+  const ctx = { store: memoryStore(), ...at, calendars: [], fetcher, builder: { token: "ghp", repo: "o/r" } };
+  assert.match(await runTool("request_feature", { request: "Naucz się podawać kursy walut z NBP." }, ctx), /^Wykonano: zlecenie przekazane/);
+  assert.equal(calls[0].url, "https://api.github.com/repos/o/r/issues");
+  assert.equal(calls[0].init.headers.Authorization, "Bearer ghp");
+  const sent = JSON.parse(calls[0].init.body);
+  assert.equal(sent.title, "[ALAN] Naucz się podawać kursy walut z NBP.");
+  assert.match(sent.body, /Kuba\), przekazana przez Alana:\n\nNaucz się/);
+  assert.match(await runTool("find_notes", { query: "zlecenie" }, ctx), /issues\/5/);
+});

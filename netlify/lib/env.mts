@@ -11,6 +11,14 @@ export function phone() {
   return p.key && p.agent && p.number ? p : undefined;
 }
 
+/** Who changes his code: a Claude Code routine when its token is set, else the GitHub repository (issues picked up by a workflow). */
+function builder() {
+  const routine = Netlify.env.get("ALAN_ROUTINE_ID"), token = Netlify.env.get("ALAN_ROUTINE_TOKEN");
+  if (routine && token) return { routine, token };
+  const github = Netlify.env.get("ALAN_GITHUB_TOKEN");
+  return github ? { token: github, repo: Netlify.env.get("ALAN_GITHUB_REPO") ?? "kubajugo-alt/SV" } : undefined;
+}
+
 export function mind(): Mind {
   // Writing to the calendar: a Google service account the calendar was shared with.
   const google = { email: Netlify.env.get("GOOGLE_CLIENT_EMAIL") ?? "", key: Netlify.env.get("GOOGLE_PRIVATE_KEY") ?? "", calendar: Netlify.env.get("ALAN_CALENDAR_ID") ?? "" };
@@ -22,8 +30,7 @@ export function mind(): Mind {
     effort: effort === "medium" || effort === "high" ? effort : "low",
     calendars: (Netlify.env.get("ALAN_CALENDARS") ?? "").split(/[\s,]+/).filter((u) => u.startsWith("https://")),
     google: google.email && google.key && google.calendar ? google : undefined,
-    builder: Netlify.env.get("ALAN_ROUTINE_ID") && Netlify.env.get("ALAN_ROUTINE_TOKEN")
-      ? { routine: Netlify.env.get("ALAN_ROUTINE_ID")!, token: Netlify.env.get("ALAN_ROUTINE_TOKEN")! } : undefined,
+    builder: builder(),
     phone: phone(),
     cameras: Netlify.env.get("WINDY_API_KEY")
       ? { key: Netlify.env.get("WINDY_API_KEY")!, list: parseCameras(Netlify.env.get("ALAN_WEBCAMS") ?? DEFAULT_CAMERAS) } : undefined,
