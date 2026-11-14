@@ -66,3 +66,29 @@ export function steady(cues: [number, string][]): [number, string][] {
   }
   return out;
 }
+
+const TAGS = /\[(sighs|laughs|chuckles|whispers|pause)\]/i;
+const isExpressive = (model: string) => /eleven_v[3-9]/.test(model);
+
+/** His line as a model that does not perform voice tags must get it: the tags out, a pause as "…". */
+export const untagged = (text: string) => text.replace(/([.!?…])?\s*\[pause\]\s*/gi, (_, end) => (end ? `${end} ` : "… "))
+  .replace(/\s*\[(sighs|laughs|chuckles|whispers)\]\s*/gi, " ").replace(/\s+([,.!?…])/g, "$1").replace(/\s+/g, " ").trim();
+
+/**
+ * Which model speaks a line, and in what words, in order of preference. Mixed voice: a line with a
+ * voice tag ([sighs], [laughs], [pause]…) goes to the expressive model (v3), which performs it; every
+ * other line to the fast one. If the expressive model fails, the fast one says it without the tags.
+ */
+export function voicePlan(raw: string, fast: string, expressive: string): { model: string; text: string }[] {
+  if (isExpressive(fast)) return [{ model: fast, text: raw.replace(/\[pause\]/gi, "[short pause]") }];
+  if (!TAGS.test(raw) || !expressive) return [{ model: fast, text: untagged(raw) }];
+  return [{ model: expressive, text: raw.replace(/\[pause\]/gi, "[short pause]") }, { model: fast, text: untagged(raw) }];
+}
+
+/** The timing ElevenLabs returns, without the characters of the tags, which are not spoken. */
+export function spokenOnly(chars: string[], starts: number[], ends: number[]) {
+  const keep: number[] = [];
+  let inside = false;
+  chars.forEach((c, i) => { if (c === "[") inside = true; if (!inside) keep.push(i); if (c === "]") inside = false; });
+  return { chars: keep.map((i) => chars[i]), starts: keep.map((i) => starts[i]), ends: keep.map((i) => ends[i]) };
+}
