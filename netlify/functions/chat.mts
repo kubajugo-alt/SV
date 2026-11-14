@@ -13,6 +13,7 @@ export default async (req: Request, context: Context) => {
   try { body = await req.json(); } catch { return Response.json({ error: "expected JSON" }, { status: 400 }); }
   const kind = String(body.nudge ?? "");
   const text = kind ? "" : String(body.text ?? "").trim();
+  const interrupted = typeof body.interrupted === "string" ? body.interrupted : undefined;   // he was cut off mid-reply: what he had said by then
   if ((!text && !kind) || text.length > 2000) return Response.json({ error: "text must be 1-2000 characters" }, { status: 400 });
   const whom = who(body.person, body.tz);
   const failed = (err: unknown) => {
@@ -29,7 +30,7 @@ export default async (req: Request, context: Context) => {
         const send = (data: object) => controller.enqueue(encoder.encode(JSON.stringify(data) + "\n"));
         const cutter = sentenceCutter((say) => send({ say }));
         try {
-          const result = await respond(mind(), whom, text, (delta) => cutter.add(delta));
+          const result = await respond(mind(), whom, text, (delta) => cutter.add(delta), interrupted);
           cutter.end();
           send({ reply: result.reply, actions: result.actions });
           context.waitUntil(result.after());
@@ -43,7 +44,7 @@ export default async (req: Request, context: Context) => {
     return new Response(lines, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" } });
   }
   try {
-    const result = kind ? await nudge(mind(), whom, kind) : await respond(mind(), whom, text);
+    const result = kind ? await nudge(mind(), whom, kind) : await respond(mind(), whom, text, undefined, interrupted);
     context.waitUntil(result.after());          // folding old turns into notes need not hold the answer up
     return Response.json({ reply: result.reply, actions: "actions" in result ? result.actions : [] });
   } catch (err) {

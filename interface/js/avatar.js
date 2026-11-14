@@ -221,7 +221,11 @@ export async function startAvatar(canvas, isDark) {
     }
     lastMode = m;
     if (m === 'idle' && !doing && doings.length && now > nextDoing && now - idleSince > 40000) {
-      doing = doings[Math.floor(Math.random() * doings.length)];
+      // His mood (from the server, via the agenda) tips the odds: low spirits, more cigarettes; tired, more coffee.
+      const { energy = 0, cheer = 0 } = window.alanMood || {};
+      const weight = { smoke: 1 + Math.max(0, -cheer) * 1.2, coffee: 1 + Math.max(0, -energy) * 1.2, stretch: 1 + Math.max(0, -energy) * 0.4, read: 1 + Math.max(0, cheer) * 0.4, write: 1 };
+      let roll = Math.random() * doings.reduce((sum, d) => sum + (weight[d] ?? 1), 0);
+      doing = doings.find((d) => (roll -= weight[d] ?? 1) < 0) ?? doings[0];
       doingSince = now;
       doingUntil = now + lengthOf(doing) - 50;
     }

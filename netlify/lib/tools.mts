@@ -315,8 +315,11 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         const need = Math.max(1, Math.min(2, wanted.size));
         const hits = turns.map((t) => ({ t, n: new Set(stems(t.text).filter((s) => wanted.has(s))).size }))
           .filter((h) => h.n >= need).sort((a, b) => b.n - a.n).slice(0, 5).map((h) => h.t).sort((a, b) => a.at.localeCompare(b.at));
-        if (!hits.length) return "W dawnych rozmowach nic o tym nie ma.";
-        return "Z dawnych rozmów: " + hits.map((t) => `[${dmy(local(new Date(t.at), ctx.tz))}] ${t.role === "user" ? capital(person) : "ty"}: ${t.text.slice(0, 300)}`).join(" ");
+        const digest = (await store.get<{ at: string; text: string }[]>(`digest/${person}`)) ?? [];
+        const near = digest.filter((d) => stems(d.text).some((s) => wanted.has(s)));
+        const about = (near.length ? near : digest).slice(-30).map((d) => `[${dmy(local(new Date(d.at), ctx.tz))}] ${d.text}`).join(" ");
+        if (!hits.length) return digest.length ? `Słowami nic nie pasuje; streszczenia dawnych rozmów, szukaj w nich po sensie: ${about}` : "W dawnych rozmowach nic o tym nie ma.";
+        return (about ? `Streszczenia: ${about} ` : "") + "Z dawnych rozmów: " + hits.map((t) => `[${dmy(local(new Date(t.at), ctx.tz))}] ${t.role === "user" ? capital(person) : "ty"}: ${t.text.slice(0, 300)}`).join(" ");
       }
       case "set_place": {
         const key = plain(String(input.place ?? ""));

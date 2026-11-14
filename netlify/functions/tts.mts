@@ -9,12 +9,14 @@ const ROGER = "CwhRBWXzGAHq8TQ4Fs17";       // Alan's voice in the games
 export default async (req: Request) => {
   const denied = guard(req);
   if (denied) return denied;
-  const text = (new URL(req.url).searchParams.get("text") ?? "").trim().replace(/\bALAN\b/g, "Alan");
-  if (!text || text.length > 1000) return new Response("text must be 1-1000 characters", { status: 400 });
+  const raw = (new URL(req.url).searchParams.get("text") ?? "").trim().replace(/\bALAN\b/g, "Alan");
+  if (!raw || raw.length > 1000) return new Response("text must be 1-1000 characters", { status: 400 });
   const key = Netlify.env.get("ELEVENLABS_API_KEY");
   if (!key) return new Response("No voice: ELEVENLABS_API_KEY is not set", { status: 503 });
   const voice = Netlify.env.get("ALAN_ELEVEN_VOICE") ?? ROGER;
   const model = Netlify.env.get("ALAN_ELEVEN_MODEL") ?? "eleven_flash_v2_5"   // made for live conversation; eleven_v4 is the games' model;
+  // His voice tags ([sighs], [laughs], [pause]…) are performed by the v3-style models; any other model would read them out, so they go.
+  const text = /eleven_v[3-9]/.test(model) ? raw : raw.replace(/\s*\[pause\]\s*/gi, "… ").replace(/\s*\[(sighs|laughs|chuckles|whispers)\]\s*/gi, " ").replace(/\s+/g, " ").trim();
   const call = (path: string) => fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}${path}?output_format=mp3_44100_128`, {
     method: "POST",
     headers: { "xi-api-key": key, "Content-Type": "application/json" },
