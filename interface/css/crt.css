@@ -63,20 +63,25 @@ html, body {
   position: fixed; inset: 0;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr);   /* never wider than the screen, whatever a line holds */
   padding: calc(var(--u) * 3.2) calc(var(--u) * 4.5);
 }
 
 .dim { color: var(--fg-dim); }
 
-.bar { display: flex; justify-content: space-between; gap: 2em; }
-#clock { font-variant-numeric: tabular-nums; }
+.bar { display: flex; justify-content: space-between; align-items: baseline; gap: 2em; min-width: 0; }
+.bar .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#clock { font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
 
 /* --- spoken text + state line ------------------------------------------ */
-#speech { grid-row: 3; min-height: calc(var(--u) * 8.5); padding-bottom: calc(var(--u) * 1.5); }
-/* His words sit centred on the front of his desk. */
-#speech { text-align: center; }
-#status { color: var(--fg-dim); margin-bottom: .3em; }
-#text { font-size: 1.75em; line-height: 1.3; letter-spacing: .01em; text-transform: none; max-width: 44ch; margin-inline: auto; overflow-wrap: break-word; }
+/* His words fill the front of the desk and the space below it: large, wide, up to five lines. */
+#speech { grid-row: 3; min-height: calc(var(--u) * 15); padding-bottom: calc(var(--u) * .8); text-align: center; }
+#status { color: var(--fg-dim); margin-bottom: .35em; }
+#text {
+  font-size: 2.15em; line-height: 1.28; letter-spacing: .005em; text-transform: none;
+  max-width: 58ch; margin-inline: auto; overflow-wrap: break-word; text-wrap: pretty;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; line-clamp: 5; overflow: hidden;
+}
 .cursor { animation: blink 1s steps(1) infinite; }
 
 /* --- what ALAN changed -------------------------------------------------- */
@@ -99,7 +104,7 @@ body[data-alan="alert"] #actions { display: none; }
 .cell.changed b { color: inherit; }
 
 /* --- typing to ALAN ---------------------------------------------------- */
-#ask { display: flex; gap: .6em; margin: .5em auto 0; max-width: 60%; color: var(--fg-dim); }
+#ask { display: flex; gap: .6em; margin: .7em auto 0; max-width: 70%; color: var(--fg-dim); font-size: 1.15em; }
 #ask[hidden] { display: none; }
 #ask-input {
   flex: 1; min-width: 0;
@@ -111,6 +116,7 @@ body[data-alan="alert"] #actions { display: none; }
 #ask-input::placeholder { color: var(--fg-dim); opacity: 1; }
 
 /* --- instrument panel -------------------------------------------------- */
+.panel[hidden] { display: none; }
 .panel {
   grid-row: 4;
   display: flex; flex-direction: column; gap: .1em;   /* two short rows, so the desk front stays free for his words */
@@ -145,7 +151,7 @@ body[data-flat="dark"] > * { display: none !important; }
 /* --- the room darkens towards the top and bottom edges, where the type sits */
 .tube {
   position: fixed; inset: 0; pointer-events: none; z-index: 1;
-  background: linear-gradient(to bottom, rgba(8, 4, 2, .78) 0, rgba(8, 4, 2, 0) 15%, rgba(8, 4, 2, 0) 62%, rgba(8, 4, 2, .5) 74%, rgba(8, 4, 2, .86) 100%);
+  background: linear-gradient(to bottom, rgba(8, 4, 2, .78) 0, rgba(8, 4, 2, 0) 15%, rgba(8, 4, 2, 0) 60%, rgba(8, 4, 2, .55) 72%, rgba(8, 4, 2, .9) 100%);
 }
 
 /* --- sign-in and the household notes (cloud) ----------------------------- */
@@ -162,6 +168,9 @@ body[data-flat="dark"] > * { display: none !important; }
 .overlay.wide textarea { width: min(70em, 90vw); height: 60vh; line-height: 1.4; }
 .overlay button { text-transform: uppercase; cursor: pointer; }
 .overlay p { max-width: 40em; text-align: center; text-transform: none; }
+.overlay .keys { display: grid; grid-template-columns: auto auto; gap: .35em 1.6em; text-align: left; }
+.overlay .keys dt { color: var(--fg); }
+.overlay .keys dd { color: var(--fg-dim); text-transform: none; }
 .overlay.proposals { outline: none; }
 .overlay.proposals #pr-list { width: min(60em, 90vw); max-height: 66vh; overflow-y: auto; }
 .overlay.proposals article { border: .08em solid var(--fg-dim); padding: .6em 1em; margin-bottom: .8em; text-transform: none; }
