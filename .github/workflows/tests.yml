@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install numpy libzim anthropic
+      - name: Python tests
+        run: python -m unittest discover -s tests -t . -v
+      - name: JavaScript syntax
+        run: |
+          for f in interface/js/*.js interface/js/feeds/*.js; do
+            [ "$f" = interface/js/main.js ] && continue  # top-level await: checked as a module below
+            node --check "$f"
+          done
+          cp interface/js/main.js /tmp/main.mjs && node --check /tmp/main.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Netlify functions (types and tests)
+        run: |
+          npm ci
+          npm test
+          npx tsc -p .
+      - name: Shell scripts
+        run: shellcheck install.sh scripts/*.sh

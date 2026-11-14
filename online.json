@@ -1,0 +1,9 @@
+{
+  "_comment": "What ALAN may look up outside the flat, and where. He contacts only the hosts used here.",
+  "place": { "name": "Tarnobrzeg", "where": "Tarnobrzegu", "lat": 50.573, "lon": 21.679, "teryt": ["1864", "1820"] },
+  "air_station": { "id": 684, "name": "ul. Dąbrowskiej" },
+  "news": {
+    "feeds": ["https://echodnia.eu/rss"],
+    "prefer": ["tarnobrze", "sandomierz", "stalow", "podkarpac", "nowa dęba", "gorzyce"]
+  }
+}

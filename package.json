@@ -1,0 +1,19 @@
+{
+  "name": "alan",
+  "private": true,
+  "type": "module",
+  "description": "ALAN in the cloud: Netlify functions behind the kiosk page",
+  "scripts": {
+    "build": "node scripts/netlify-texts.mjs",
+    "test": "node scripts/netlify-texts.mjs && node --experimental-strip-types --no-warnings --test netlify/tests/*.test.mts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
+    "@netlify/blobs": "^11.1.9",
+    "@netlify/functions": "^6.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
+}

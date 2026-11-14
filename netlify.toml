@@ -1,0 +1,9 @@
+# ALAN in the cloud. The page is interface/; the functions in netlify/functions
+# stand in for serve.py (conversation, voice, hearing, timers) with the same paths.
+[build]
+  command = "node scripts/netlify-texts.mjs"
+  publish = "interface"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

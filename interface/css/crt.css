@@ -1,0 +1,187 @@
+/* ALAN kiosk — captions and readings laid over the painting of his living room: warm cream type, dark edges. */
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 300;
+  src: url('../fonts/ibm-plex-mono-latin-ext-300-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 300;
+  src: url('../fonts/ibm-plex-mono-latin-300-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 400;
+  src: url('../fonts/ibm-plex-mono-latin-ext-400-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 400;
+  src: url('../fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+:root {
+  --bg: #0b0705;
+  --fg: #f8ead0;
+  --fg-dim: #d2b184;
+  --glow: rgba(0, 0, 0, .95);
+  --u: min(1vw, 1.78vh); /* one unit = 1% of a 16:9 frame */
+}
+body[data-alan="alert"] {
+  --bg: #1c0406;
+  --fg: #ffe3da;
+  --fg-dim: #ffb3a4;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'IBM Plex Mono', 'Menlo', 'Consolas', monospace;
+  font-weight: 300;
+  font-size: calc(var(--u) * 1.35);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-shadow: 0 0 .5em var(--glow), 0 .08em .16em var(--glow);
+  cursor: none;
+  transition: background .4s;
+}
+
+#entity { position: fixed; inset: 0; width: 100%; height: 100%; }
+#screen, #actions { z-index: 2; }
+#boot { z-index: 3; }
+
+#screen {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  padding: calc(var(--u) * 3.2) calc(var(--u) * 4.5);
+}
+
+.dim { color: var(--fg-dim); }
+
+.bar { display: flex; justify-content: space-between; gap: 2em; }
+#clock { font-variant-numeric: tabular-nums; }
+
+/* --- spoken text + state line ------------------------------------------ */
+#speech { grid-row: 3; min-height: calc(var(--u) * 8.5); padding-bottom: calc(var(--u) * 1.5); }
+/* His words sit centred on the front of his desk. */
+#speech { text-align: center; }
+#status { color: var(--fg-dim); margin-bottom: .3em; }
+#text { font-size: 1.75em; line-height: 1.3; letter-spacing: .01em; text-transform: none; max-width: 44ch; margin-inline: auto; overflow-wrap: break-word; }
+.cursor { animation: blink 1s steps(1) infinite; }
+
+/* --- what ALAN changed -------------------------------------------------- */
+/* A short log beside the face, clear of the transcript. */
+#actions {
+  position: fixed; top: 16%; right: calc(var(--u) * 4.5); width: 27%;
+  list-style: none;
+}
+#actions:not(:empty) { background: rgba(8, 4, 2, .62); padding: .6em .9em .3em; }
+#actions li { padding-left: 3.6em; text-indent: -3.6em; margin-bottom: .3em; }
+body[data-alan="alert"] #actions { display: none; }
+#actions .failed { color: var(--fg-dim); }
+#actions a { color: var(--fg); pointer-events: auto; }
+#actions .qr { display: block; width: min(9em, 100%); margin: .5em 0 .6em; image-rendering: pixelated; text-indent: 0; }
+.cell.changed { animation: changed 6s ease-out forwards; }
+@keyframes changed {
+  0%, 60% { background: var(--fg); color: var(--bg); text-shadow: none; }
+  100% { background: transparent; }
+}
+.cell.changed b { color: inherit; }
+
+/* --- typing to ALAN ---------------------------------------------------- */
+#ask { display: flex; gap: .6em; margin: .5em auto 0; max-width: 60%; color: var(--fg-dim); }
+#ask[hidden] { display: none; }
+#ask-input {
+  flex: 1; min-width: 0;
+  background: none; border: 0; outline: 0;
+  color: var(--fg); font: inherit; text-transform: none; text-shadow: inherit;
+  caret-color: var(--fg); caret-shape: block; cursor: none;
+}
+
+#ask-input::placeholder { color: var(--fg-dim); opacity: 1; }
+
+/* --- instrument panel -------------------------------------------------- */
+.panel {
+  grid-row: 4;
+  display: flex; flex-direction: column; gap: .1em;   /* two short rows, so the desk front stays free for his words */
+  border-top: .08em solid var(--fg-dim);
+  padding-top: .6em;
+}
+.group { display: flex; flex-wrap: wrap; gap: .1em 2.2em; align-content: flex-start; }
+.cell { white-space: nowrap; }
+.cell b { font-weight: normal; color: var(--fg-dim); margin-right: .5em; }
+.cell.warn { animation: blink 1s steps(1) infinite; }
+
+/* --- alert: whole screen is the message -------------------------------- */
+#alert { grid-row: 2; align-self: center; text-align: center; }
+#alert-kind { font-size: 5.5em; font-weight: 400; letter-spacing: .12em; line-height: 1.1; animation: pulse 1s ease-in-out infinite; }
+#alert-where { font-size: 2em; letter-spacing: .2em; }
+body[data-alan="alert"] #speech,
+body[data-alan="alert"] .panel { display: none; }
+body[data-alan="alert"] { animation: alarm 1s ease-in-out infinite; }
+
+/* --- boot sequence ----------------------------------------------------- */
+#boot {
+  position: fixed; inset: 0;
+  padding: calc(var(--u) * 3.2) calc(var(--u) * 4.5);
+  background: var(--bg);
+  font: inherit; white-space: pre-wrap;
+}
+
+/* --- studio / dark: no light spill ------------------------------------- */
+body[data-flat="dark"] { background: #000; }
+body[data-flat="dark"] > * { display: none !important; }
+
+/* --- the room darkens towards the top and bottom edges, where the type sits */
+.tube {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background: linear-gradient(to bottom, rgba(8, 4, 2, .78) 0, rgba(8, 4, 2, 0) 15%, rgba(8, 4, 2, 0) 62%, rgba(8, 4, 2, .5) 74%, rgba(8, 4, 2, .86) 100%);
+}
+
+/* --- sign-in and the household notes (cloud) ----------------------------- */
+.overlay {
+  position: fixed; inset: 0; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8em;
+  background: rgba(8, 4, 2, .88);
+}
+.overlay input, .overlay textarea, .overlay button {
+  font: inherit; color: var(--fg); background: rgba(0, 0, 0, .35);
+  border: .08em solid var(--fg-dim); padding: .4em .7em; text-transform: none; letter-spacing: .02em; cursor: auto;
+}
+.overlay input { width: min(24em, 80vw); text-align: center; }
+.overlay.wide textarea { width: min(70em, 90vw); height: 60vh; line-height: 1.4; }
+.overlay button { text-transform: uppercase; cursor: pointer; }
+.overlay p { max-width: 40em; text-align: center; text-transform: none; }
+.overlay.proposals { outline: none; }
+.overlay.proposals #pr-list { width: min(60em, 90vw); max-height: 66vh; overflow-y: auto; }
+.overlay.proposals article { border: .08em solid var(--fg-dim); padding: .6em 1em; margin-bottom: .8em; text-transform: none; }
+.overlay.proposals h3 { margin: 0; font: inherit; color: var(--fg); }
+.overlay.proposals article p { text-align: left; margin: .4em 0; max-width: none; }
+.overlay.proposals pre { font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 16em; overflow-y: auto; margin: .4em 0; opacity: .85; }
+.overlay.proposals a { color: var(--fg); }
+.overlay.proposals button:disabled { opacity: .4; cursor: not-allowed; }
+.overlay.proposals .pr-state { letter-spacing: .08em; }
+
+/* In a window beside your work (not full screen) the pointer stays visible. */
+@media not (display-mode: fullscreen) {
+  html, body, #ask-input { cursor: auto; }
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes pulse { 50% { opacity: .45; } }
+/* 1 Hz — well under the 3 Hz photosensitivity threshold. */
+@keyframes alarm { 50% { background: #4a080b; } }
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-alan="alert"], #alert-kind { animation: none; }
+}
