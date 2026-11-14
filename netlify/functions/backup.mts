@@ -11,7 +11,7 @@ import { offsite, passphrase } from "../lib/backupenv.mts";
 import { blobStore } from "../lib/store.mts";
 
 const NAME = /^(daily|weekly|monthly|manual)\/[\w.-]+$/;
-const ONLY = /^(|own|household|talk\/[a-ząćęłńóśźż]+|log\/[a-ząćęłńóśźż]+)$/;
+const ONLY = /^(|own|household|talk\/[a-ząćęłńóśźż]+|log\/[a-ząćęłńóśźż]+)$/;   // his journal and growth are his: only a whole restore brings them back
 
 export default async (req: Request) => {
   const denied = guard(req);
