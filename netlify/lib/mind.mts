@@ -248,10 +248,11 @@ export async function live(mind: Mind, now: Date, tz = "Europe/Warsaw"): Promise
 }
 
 /** He speaks first. -> reply "" when he should stay quiet. */
-export async function nudge(mind: Mind, req: Request, kind: string) {
+export async function nudge(mind: Mind, req: Request, kind: string, away = 0) {
   if (!NUDGES[kind]) return { reply: "", after: async () => {} };
   const talk = await loadTalk(mind.store, req.person);
   let said = `[To nie jest wiadomość od domownika. ${NUDGES[kind].replace("{person}", capital(req.person))}`;
+  if (kind === "arrived" && away >= 10) said += ` Przed chwilą nikogo nie było przed ekranem przez ${away >= 120 ? `${Math.round(away / 60)} godz.` : `${Math.round(away)} min`}.`;
   if (kind === "morning") {
     const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, youtube: mind.youtube, fetcher: mind.fetcher };
     said += ` Dane do odprawy: ${await runTool("briefing", {}, ctx)}`;

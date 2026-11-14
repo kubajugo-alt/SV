@@ -44,7 +44,7 @@ export default async (req: Request, context: Context) => {
     return new Response(lines, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" } });
   }
   try {
-    const result = kind ? await nudge(mind(), whom, kind) : await respond(mind(), whom, text, undefined, interrupted);
+    const result = kind ? await nudge(mind(), whom, kind, Math.max(0, Math.min(100000, Number(body.away) || 0))) : await respond(mind(), whom, text, undefined, interrupted);
     context.waitUntil(result.after());          // folding old turns into notes need not hold the answer up
     return Response.json({ reply: result.reply, actions: "actions" in result ? result.actions : [] });
   } catch (err) {
