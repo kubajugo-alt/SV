@@ -98,13 +98,13 @@ for name in ('half', 'left', 'right', 'brows'):
     patch(f'kit/eyes_{name}.png', EYES_WIDE, eyes_soft, f'e_{name}')
 
 # Whole figures for what he does when nobody is talking to him.
-for name in ('read', 'coffee', 'sip', 'smoke', 'drag', 'light', 'stretch', 'write'):
+for name in ('read', 'coffee', 'cup_up', 'sip', 'smoke', 'drag', 'light', 'stretch', 'write'):
     if not os.path.exists(f'kit/{name}.png'): continue
     cut(f'kit/{name}.png').save(f'{OUT}/{name}.webp', quality=92, alpha_quality=100, method=6)
 # Animated steps: frames generated with Ludo (animateSpriteKeyframes, True Size, margin "none") from a crop
 # of the scene's paintings, laid back over the base painting at the crop's place. Their edges fade where the
 # crop cut through the figure, so they melt into the painting around them.
-ANIMS = {'sip': ((60, 0, 1084, 976), 'kit/sip_frames')}
+ANIMS = {}   # e.g. {'sip': ((60, 0, 1084, 976), 'kit/sip_frames')}
 for name, (box, folder) in ANIMS.items():
     if not os.path.isdir(folder): continue
     os.makedirs(f'{OUT}/{name}', exist_ok=True)

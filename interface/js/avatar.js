@@ -39,13 +39,14 @@ const POSES = {
   read: [['read', 45]],
   write: [['write', 28]],
   stretch: [['stretch', 6]],
-  coffee: [['coffee', 5], ['~sip', 3.875], ['coffee', 9], ['~sip', 3.875], ['coffee', 10], ['~sip', 3.875], ['coffee', 4]],
+  // Up to the lips and down again through in-between paintings (cup_up: halfway); a step is left out if not painted.
+  coffee: [['coffee', 5], ['cup_up', 0.4], ['sip', 2.2], ['cup_up', 0.4], ['coffee', 9], ['cup_up', 0.4], ['sip', 2.4], ['cup_up', 0.4], ['coffee', 10], ['cup_up', 0.4], ['sip', 2.2], ['cup_up', 0.4], ['coffee', 4]],
   smoke: [['light', 2.8], ['drag', 1.6], ['smoke', 8], ['drag', 2.2], ['smoke', 9], ['drag', 2.2], ['smoke', 8], ['drag', 2.4], ['smoke', 5]],
 };
 // Animated steps ('~name'): frames laid over a base painting at `at` (painting px), played once through.
 // Made with Ludo from the scene's paintings; loaded in the background, and until they are there the
 // still painting of the same name stands in.
-const ANIMS = { sip: { base: 'coffee', at: [60, 0], count: 49 } };
+const ANIMS = {};
 const NEEDS = { read: ['read'], write: ['write'], stretch: ['stretch'], coffee: ['coffee'], smoke: ['smoke', 'drag'] };
 // Where the cigarette's tip is in each painting, and his lips (painting px): for the smoke and the glow.
 const TIP = { smoke: [1272, 318], drag: [800, 346], light: [754, 398] };
@@ -91,7 +92,7 @@ export async function startAvatar(canvas, isDark) {
   const [, body] = await Promise.all([
     Promise.all([['night', 'room.jpg'], ['day', 'room_day.jpg'], ['dusk', 'room_dusk.jpg']].map(([k, src]) => load(src).then((img) => { rooms[k] = img; }))),
     load('alan/body.webp'),
-    ...['read', 'coffee', 'sip', 'smoke', 'drag', 'light', 'stretch', 'write'].map((d) => keep(d, `alan/${d}.webp`).catch(() => {})),   // a pose not painted yet is simply never struck
+    ...['read', 'coffee', 'cup_up', 'sip', 'smoke', 'drag', 'light', 'stretch', 'write'].map((d) => keep(d, `alan/${d}.webp`).catch(() => {})),   // a pose not painted yet is simply never struck
     keep('blink', 'alan/blink.webp'),
     ...MOUTHS.map((m) => keep(m, `alan/m_${m}.webp`).catch(() => {})),
     ...EYES.map((e) => keep('e_' + e, `alan/e_${e}.webp`).catch(() => {})),
