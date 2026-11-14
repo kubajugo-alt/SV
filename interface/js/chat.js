@@ -3,7 +3,12 @@
 // you type, thinks while the model answers, then speaks the reply.
 
 import { store } from './store.js';
-import { speakStream } from './speech.js';
+import { prepare, prepared, speakStream } from './speech.js';
+
+// What he mutters while the answer is on its way, so the pause is his and not the machine's.
+// Recorded once per visit, then said from memory.
+const FILLERS = ['Hmm.', 'Chwileczkę.', 'Niech pomyślę.', 'Momencik.', 'Zaraz, zaraz.', 'Dobre pytanie.', 'No dobrze.'];
+const FILLER_AFTER = 900;   // ms of silence before he says one
 
 /** @returns {((text: string) => Promise<void>) | undefined} ask — send a line to ALAN */
 export function startChat(config) {
@@ -14,6 +19,9 @@ export function startChat(config) {
 
   let waiting = false;
   let exchange = 0;
+  let lastFiller = '';
+  // The first click or key unlocks the sound; a moment later his mutters are recorded, ready for the first question.
+  for (const type of ['pointerdown', 'keydown']) addEventListener(type, () => setTimeout(() => prepare(FILLERS), 600), { once: true });
 
   async function ask(text) {
     text = text.trim();
@@ -29,9 +37,18 @@ export function startChat(config) {
     const speaker = speakStream();    // whatever he was saying gives way
     let spoken = 0;
     const speak = (line) => {
+      clearTimeout(filler);
       if (!spoken++) store.set({ alan: 'idle' });   // the voice shows "thinking" itself while a line is prepared
       speaker.push(line);
     };
+    // If the answer is slow to start, he fills the silence with one of his recorded mutters (never the same twice running).
+    const recorded = FILLERS.filter((line) => prepared(line) && line !== lastFiller);
+    const filler = setTimeout(() => {
+      if (spoken || !recorded.length) return;
+      lastFiller = recorded[Math.floor(Math.random() * recorded.length)];
+      speaker.push(lastFiller);
+    }, FILLER_AFTER);
+    prepare(FILLERS);
     try {
       const res = await fetch(config.chat, {
         method: 'POST',
@@ -60,6 +77,7 @@ export function startChat(config) {
       } else take(await res.json());   // the server at home answers in one piece
     } catch (err) {
       console.warn('ALAN chat failed:', err.message);
+      clearTimeout(filler);
       speak(spoken ? 'I tu zgubiłem wątek. Połączenie się urwało.' : 'Nie mam teraz połączenia z modelem językowym.');
     }
     waiting = false;

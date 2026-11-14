@@ -161,6 +161,32 @@ export async function say({ text = '', audio, envelope, rate = 50, radio = false
   return playEnvelope(text, envelope?.length ? envelope : synthEnvelope(text, rate), rate);
 }
 
+// Lines kept ready to say at once: fetched once, then played from memory.
+const ready = new Map();   // text -> Promise<{buffer, cues} | null>
+
+function voiced(text) {
+  if (ready.has(text)) return ready.get(text);
+  const url = ttsUrl ? ttsUrl + encodeURIComponent(text) : '';
+  return !url ? Promise.resolve(null) : fetchAudio(url).catch((err) => {
+    console.warn('ALAN voice unavailable, mouthing silently:', err.message);
+    if (err.status === 404 || err.status === 503) ttsUrl = '';
+    return null;
+  });
+}
+
+/** Have these lines recorded ahead of need (the little things he says while he thinks). */
+export function prepare(lines) {
+  for (const line of lines) {
+    if (ready.has(line)) continue;
+    const audio = voiced(line);
+    ready.set(line, audio);
+    audio.then((got) => { if (!got) ready.delete(line); });      // not recorded this time: try again later
+  }
+}
+
+/** Whether a line is recorded and can be said without a wait. */
+export const prepared = (line) => ready.has(line);
+
 /**
  * Speak an answer that arrives sentence by sentence: each sentence's audio is fetched the moment it
  * is known, and they are played in order, so he starts talking before the whole answer is written.
@@ -175,14 +201,9 @@ export function speakStream() {
     push(text) {
       if (!text || quiet || id !== current) return;
       if (first) { first = false; store.set({ preparing: true }); }
-      const url = ttsUrl ? ttsUrl + encodeURIComponent(text) : '';
-      const ready = !url ? Promise.resolve(null) : fetchAudio(url).catch((err) => {
-        console.warn('ALAN voice unavailable, mouthing silently:', err.message);
-        if (err.status === 404 || err.status === 503) ttsUrl = '';
-        return null;
-      });
+      const coming = voiced(text);
       line = line.then(async () => {
-        const audio = await ready;
+        const audio = await coming;
         if (id !== current) return;
         stop();
         await new Promise((resolve) => {

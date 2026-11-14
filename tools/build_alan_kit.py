@@ -1,10 +1,12 @@
 # Cuts ALAN's seated painting and its face frames (Canva exports, grey background) into the kit the page uses.
+import os
 import sys
 from collections import deque
 from PIL import Image, ImageFilter, ImageDraw
 import numpy as np
 OUT = sys.argv[1]
-HEAD = (540, 20, 1000, 470)      # replaced whole for mouth shapes and expressions; fades out over the last 50 px
+HEAD = (540, 20, 1000, 470)      # replaced whole for expressions; fades out over the last 50 px
+MOUTH = (640, 236, 900, 440)     # mouth, lower cheeks and chin: all that changes while he speaks
 EYES = (640, 160, 900, 262)      # laid over any face for a blink
 
 def cut(path):
@@ -40,7 +42,7 @@ def cut(path):
 body = cut('seated.png'); body.save(f'{OUT}/body.webp', quality=92, alpha_quality=100, method=6)
 w, h = HEAD[2] - HEAD[0], HEAD[3] - HEAD[1]
 fade = np.ones((h, w)); fade[h - 50:] = np.linspace(1, 0, 50)[:, None]
-frames = {'A': 'seated.png', **{n: f'kit/{n}.png' for n in ['B', 'C', 'D', 'E', 'F', 'think', 'listen', 'alarm', 'smirk', 'laugh', 'shy']}}
+frames = {n: f'kit/{n}.png' for n in ['think', 'listen', 'alarm', 'smirk', 'laugh', 'shy']}
 for name, path in frames.items():
     p = cut(path).crop(HEAD); a = np.asarray(p).copy()
     a[..., 3] = (a[..., 3] * fade).astype(np.uint8)
@@ -49,11 +51,18 @@ e = Image.open('kit/blink.png').convert('RGBA').crop(EYES)
 mask = Image.new('L', e.size, 0); ImageDraw.Draw(mask).ellipse((14, 12, e.width - 14, e.height - 12), fill=255)
 e.putalpha(mask.filter(ImageFilter.GaussianBlur(9))); e.save(f'{OUT}/blink.webp', quality=92, alpha_quality=100, method=6)
 
+# Mouth shapes (Rhubarb's A-H; A is the painting itself): only the mouth is cut out, with a soft edge,
+# so the eyes, brows and hair of the one neutral face stay perfectly still while he speaks.
+mw, mh = MOUTH[2] - MOUTH[0], MOUTH[3] - MOUTH[1]
+soft = Image.new('L', (mw, mh), 0); ImageDraw.Draw(soft).ellipse((22, 18, mw - 22, mh - 14), fill=255)
+soft = soft.filter(ImageFilter.GaussianBlur(14))
+for shape, source in {'B': 'B2', 'C': 'C2', 'D': 'D2', 'E': 'E', 'F': 'F', 'G': 'G', 'H': 'H'}.items():
+    m = Image.open(f'kit/{source}.png').convert('RGBA').crop(MOUTH); m.putalpha(soft)
+    m.save(f'{OUT}/m_{shape}.webp', quality=94, alpha_quality=100, method=6)
+
 # Whole figures for what he does when nobody is talking to him.
-for name in ('read', 'coffee'):
+for name in ('read', 'coffee', 'sip', 'smoke', 'drag', 'light', 'stretch', 'write'):
+    if not os.path.exists(f'kit/{name}.png'): continue
     cut(f'kit/{name}.png').save(f'{OUT}/{name}.webp', quality=92, alpha_quality=100, method=6)
-# Pessoa, cropped to the cat.
-cat = cut('kit/cat.png')
-cat.crop(cat.getchannel('A').point(lambda v: 255 if v > 40 else 0).getbbox()).save(f'{OUT}/../cat.webp', quality=92, alpha_quality=100, method=6)
 for name in ('room_day', 'room_dusk'):
     Image.open(f'kit/{name}.png').convert('RGB').save(f'{OUT}/../{name}.jpg', quality=88)
