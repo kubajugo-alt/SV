@@ -262,10 +262,3 @@ body.music-on .note .map canvas, body.music-on .note .picture img { aspect-ratio
 .overlay.backups .bk-item a { margin-right: .6em; }
 .overlay.backups .bk-error { color: #e7a184; }
 .overlay.backups select { font: inherit; background: rgba(0, 0, 0, .3); color: var(--fg); border: 1px solid rgba(214, 173, 108, .55); border-radius: .3em; padding: .2em .4em; }
-
-/* Key J: his journal. */
-.overlay.journal .jr-self { white-space: pre-wrap; line-height: 1.5; font-style: italic; }
-.overlay.journal .jr-moment { display: grid; grid-template-columns: 11em 1fr auto; gap: 1em; align-items: baseline; margin: .3em 0; }
-.overlay.journal .jr-day { color: var(--fg-dim); }
-.overlay.journal .jr-moment button { background: none; border: 0; color: var(--fg-dim); cursor: pointer; font: inherit; padding: 0 .3em; }
-.overlay.journal .jr-moment button:hover { color: #e7a184; }

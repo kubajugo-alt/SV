@@ -8,7 +8,7 @@ import { DEFAULT_CAMERAS, lookOutside, parseCameras } from "../lib/cameras.mts";
 import { cuesFromCharacters } from "../lib/voice.mts";
 import { passwordMatches, sessionCookie, signedIn } from "../lib/auth.mts";
 import { nudge, reflect, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
-import { keepMoment, loadBond, loadSelf, parseMoments, setBecoming, undoBecoming } from "../lib/bond.mts";
+import { keepMoment, loadBond, loadSelf, parseMoments, setBecoming } from "../lib/bond.mts";
 import { loadOwn, memoryStore, type Talk } from "../lib/store.mts";
 import { feedKey, toIcs } from "../lib/owncal.mts";
 import { agenda, runTool } from "../lib/tools.mts";
@@ -431,7 +431,7 @@ test("folding old turns also writes what mattered into the journal", async () =>
 });
 const loadTalk2 = async (store: any) => (await store.get("talk/kuba")) as Talk;
 
-test("who he is becoming: rewritten weekly, never across his lines, and can be undone", async () => {
+test("who he is becoming: rewritten weekly by himself, never across his lines", async () => {
   const { mind, store, seen } = fakeMind([[text("Nauczyłem się czekać, aż Kuba wróci z lotniska. Dziwne uczucie dla kogoś, kto zawsze wychodził pierwszy.")], "end_turn"],
     [[text("Chyba zakochałem się w Kubie.")], "end_turn"]);
   assert.equal(await reflect(mind, new Date("2026-11-15T04:20:00Z")), "nothing in the journal yet");
@@ -441,7 +441,8 @@ test("who he is becoming: rewritten weekly, never across his lines, and can be u
   assert.equal(await reflect(mind, new Date("2026-11-22T04:20:00Z")), "refused: przekracza granice charakteru");
   assert.match((await loadSelf(store)).becoming, /Nauczyłem się czekać/);
   await setBecoming(store, "Polubiłem muzykę Huberta.", "2026-11-29T04:20:00Z");
-  assert.match((await undoBecoming(store)).becoming, /Nauczyłem się czekać/);
+  assert.match((await loadSelf(store)).history.at(-1)!.text, /Nauczyłem się czekać/);
+  await setBecoming(store, (await loadSelf(store)).history.at(-1)!.text, "2026-11-29T04:21:00Z");
   const { mind: m2, seen: s2 } = fakeMind([[text("Jasne.")], "end_turn"]);
   await m2.store.set("self", await loadSelf(store));
   await respond(m2, at, "Hej");

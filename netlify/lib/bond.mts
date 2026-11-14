@@ -3,8 +3,8 @@
 //                   that mattered. Written by him in the first person, as they happen (the
 //                   keep_moment tool) and when old turns are folded into notes.
 //   self            "kim się staję": a few sentences he rewrites once a week from the journal,
-//                   about who he is becoming through living with them. Every earlier version is
-//                   kept, so one can be undone from the J window.
+//                   about who he is becoming through living with them. It is his alone: nobody
+//                   reviews, edits or vetoes it (earlier versions are kept only as his history).
 // His past, Vasco as his only love, the platonic nature of his love for the household and the
 // safety rules never move: a new version that touches them is not taken.
 import type { Store } from "./store.mts";
@@ -33,14 +33,6 @@ export async function keepMoment(store: Store, person: string, text: string, at:
   return true;
 }
 
-export async function forgetMoment(store: Store, person: string, at: string, text: string) {
-  const bond = await loadBond(store, person);
-  const before = bond.moments.length;
-  bond.moments = bond.moments.filter((m) => !(m.at === at && m.text === text));
-  await store.set(`bond/${person}`, bond);
-  return before - bond.moments.length;
-}
-
 /** Takes a new "kim się staję" unless it crosses a line; the old one goes into the history. */
 export async function setBecoming(store: Store, text: string, at: string): Promise<{ ok: boolean; why?: string }> {
   const clean = text.replace(/[*_#`]+/g, "").trim();
@@ -51,14 +43,6 @@ export async function setBecoming(store: Store, text: string, at: string): Promi
   if (self.becoming) self.history = [...self.history, { at: self.at, text: self.becoming }].slice(-VERSIONS_KEPT);
   await store.set("self", { ...self, becoming: clean, at });
   return { ok: true };
-}
-
-export async function undoBecoming(store: Store): Promise<Self> {
-  const self = await loadSelf(store);
-  const previous = self.history.pop();
-  const next = previous ? { becoming: previous.text, at: previous.at, history: self.history } : { becoming: "", at: "", history: [] };
-  await store.set("self", next);
-  return next;
 }
 
 export const people = async (store: Store) => (await store.list("bond/")).map((k) => k.slice(5)).filter(Boolean);
