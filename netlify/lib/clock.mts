@@ -45,3 +45,21 @@ export function span(seconds: number): string {
   const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = seconds % 60;
   return [h ? `${h} godz.` : "", m ? `${m} min` : "", s && !h ? `${s} s` : ""].filter(Boolean).join(" ") || "0 s";
 }
+
+const plural = (n: number, one: string, few: string, many: string) =>
+  n === 1 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many;
+
+/** How long ago, said the way one says it: "przed chwilą", "40 minut temu", "3 godziny temu", "wczoraj", "2 tygodnie temu". */
+export function ago(ms: number): string {
+  const min = Math.round(ms / 60000);
+  if (min < 3) return "przed chwilą";
+  if (min < 60) return `${min} ${plural(min, "minutę", "minuty", "minut")} temu`;
+  const hours = Math.round(min / 60);
+  if (hours < 24) return `${hours === 1 ? "godzinę" : `${hours} ${plural(hours, "godzinę", "godziny", "godzin")}`} temu`;
+  const days = Math.round(hours / 24);
+  if (days === 1) return "dzień temu";
+  if (days < 14) return `${days} dni temu`;
+  if (days < 60) { const w = Math.round(days / 7); return `${w} ${plural(w, "tydzień", "tygodnie", "tygodni")} temu`; }
+  const months = Math.round(days / 30);
+  return `${months} ${plural(months, "miesiąc", "miesiące", "miesięcy")} temu`;
+}

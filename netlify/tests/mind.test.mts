@@ -448,3 +448,20 @@ test("who he is becoming: rewritten weekly by himself, never across his lines", 
   await respond(m2, at, "Hej");
   assert.match(s2[0].system[0].text, /KIM SIĘ STAJESZ[\s\S]*Nauczyłem się czekać/);
 });
+
+test("he knows how long it has been, with each of them, and where time passed in the talk", async () => {
+  const { ago } = await import("../lib/clock.mts");
+  assert.deepEqual([ago(60000), ago(22 * 60000), ago(3 * 3600000), ago(5 * 3600000), ago(26 * 3600000), ago(3 * 86400000), ago(22 * 86400000), ago(70 * 86400000)],
+    ["przed chwilą", "22 minuty temu", "3 godziny temu", "5 godzin temu", "dzień temu", "3 dni temu", "3 tygodnie temu", "2 miesiące temu"]);
+  const { mind, seen, store } = fakeMind([[text("No proszę, kto wrócił.")], "end_turn"]);
+  await store.set("talk/kuba", { notes: "", turns: [
+    { role: "user", text: "Lecę jutro do Barcelony.", at: "2026-11-09T19:00:00.000Z" }, { role: "assistant", text: "Weź kurtkę.", at: "2026-11-09T19:00:05.000Z" },
+    { role: "user", text: "Wróciłem.", at: "2026-11-10T08:00:00.000Z" }, { role: "assistant", text: "Szybko.", at: "2026-11-10T08:00:05.000Z" }] });
+  await store.set("talk/hubert", { notes: "", turns: [{ role: "user", text: "Dobranoc", at: "2026-11-12T22:00:00.000Z" }] });
+  await respond(mind, at, "Hej");
+  const changing = seen[0].system[1].text;
+  assert.match(changing, /Ostatnia rozmowa — Kuba: 3 dni temu \(wtorek 10\.11\.2026, 09:00\)/);
+  assert.match(changing, /Ostatnia rozmowa — Hubert: 10 godzin temu/);
+  assert.equal(seen[0].messages[0].content, "Lecę jutro do Barcelony.");
+  assert.match(seen[0].messages[2].content, /^\[13 godzin później: wtorek 10\.11\.2026, 09:00\] Wróciłem\.$/);
+});
