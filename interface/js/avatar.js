@@ -135,7 +135,7 @@ export async function startAvatar(canvas, isDark) {
   let blinkAt = performance.now() + 2500;
   let blinkLen = 200;
   let smirkAt = performance.now() + 18000;
-  const pose = { lean: 0, nod: 0 };
+  const pose = { lean: 0, nod: 0, gaze: 0 };
   let running = false;
 
   // A layer that melts from one painting to the next instead of jumping.
@@ -580,6 +580,10 @@ export async function startAvatar(canvas, isDark) {
     paintFigure(m, now);
     pose.lean += ((m === 'listening' ? 1 : m === 'alert' ? 0.6 : 0) - pose.lean) * 0.06;
     pose.nod += ((m === 'speaking' ? Math.min(0.6, signal.level) : 0) - pose.nod) * 0.06;
+    pose.gaze += ((painting ? 0 : signal.gaze) - pose.gaze) * 0.03;          // turns towards whoever the camera sees, slowly
+    // A listener's nod: two soft dips over 0.9 s while someone talks to him at length.
+    const sinceNod = (now - signal.nodAt) / 900;
+    const dip = sinceNod >= 0 && sinceNod < 1 && !painting ? Math.sin(sinceNod * Math.PI * 2) ** 2 * (1 - sinceNod * 0.4) * 7 : 0;
     g.save();
     g.beginPath();
     g.rect(0, 0, ROOM.w, SEAT.desk);          // the desk hides his legs
@@ -592,8 +596,8 @@ export async function startAvatar(canvas, isDark) {
     if (settle < 1) { g.globalAlpha = 1 - settle; g.drawImage(before, -BODY.centre, -BODY.lap); g.globalAlpha = 1; }
     g.globalAlpha = settle;
     const breath = Math.sin(t * 1.25) * 2;
-    const lift = painting ? breath * 0.6 : pose.nod * 5 - breath + pose.lean * 12;   // + is down; follows the voice slowly, never shakes
-    const sway = painting ? 0 : Math.sin(t * 0.37) * 2.2 + Math.sin(t * 0.9) * pose.nod * 2;                             // sideways, at the crown
+    const lift = painting ? breath * 0.6 : pose.nod * 5 - breath + pose.lean * 12 + dip;   // + is down; follows the voice slowly, never shakes
+    const sway = painting ? 0 : Math.sin(t * 0.37) * 2.2 + Math.sin(t * 0.9) * pose.nod * 2 + pose.gaze * 5;            // sideways, at the crown
     g.drawImage(figure, 0, NECK, BODY.w, BODY.h - NECK, -BODY.centre, NECK - BODY.lap, BODY.w, BODY.h - NECK);
     for (let y = 0; y < NECK; y += BAND) {
       const k = Math.min(1, (NECK - y) / BEND);

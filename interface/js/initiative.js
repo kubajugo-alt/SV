@@ -2,7 +2,8 @@
 // sign of you in the morning, a remark after a long silence, a question in the
 // evening. The server writes the line (serve.py /chat with `nudge`); it answers
 // with nothing while a meeting from the calendar is on. Key I switches this off
-// and on; the choice is remembered on this machine.
+// and on; the choice is remembered on this machine. Other modules ask him to speak
+// first with an 'alan:nudge' event ({kind}: e.g. eyes.js, 'arrived', when it sees someone come in).
 
 import { store, mode } from './store.js';
 import { say } from './speech.js';
@@ -33,14 +34,14 @@ export function startInitiative(config) {
     store.set({ initiative: on });
   });
 
-  async function nudge(kind) {
+  async function nudge(kind, extra = {}) {
     store.set({ busy: true });
     let reply = '';
     try {
       const res = await fetch(config.chat, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nudge: kind, person: store.get().person, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+        body: JSON.stringify({ nudge: kind, person: store.get().person, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, ...extra }),
       });
       if (res.ok) ({ reply = '' } = await res.json());
     } catch { /* no model behind the server: he stays quiet */ }
@@ -48,6 +49,14 @@ export function startInitiative(config) {
     touched();
     if (reply) say({ text: reply });
   }
+
+  addEventListener('alan:nudge', (e) => {
+    const s = store.get();
+    if (!s.initiative || s.busy || s.flat === 'studio' || mode(s) !== 'idle') return;   // not over a conversation, nor when told to keep quiet
+    seenToday = true;
+    if (new Date().getHours() < 12) keep('alan.morning', today());   // his greeting is the morning one: not two
+    nudge(e.detail.kind, e.detail.extra);
+  });
 
   setInterval(() => {
     const s = store.get();

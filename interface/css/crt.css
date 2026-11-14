@@ -230,7 +230,10 @@ body[data-flat="dark"] > * { display: none !important; }
 .overlay .keys { display: grid; grid-template-columns: auto auto; gap: .35em 1.6em; text-align: left; }
 .overlay .keys dt { color: var(--fg); }
 .overlay .keys dd { color: var(--fg-dim); text-transform: none; }
-.overlay.proposals { outline: none; }
+.overlay.proposals, .overlay.eyes { outline: none; }
+.overlay.eyes video { width: min(16em, 60vw); border-radius: .4em; border: 1px solid rgba(214, 173, 108, .35); transform: scaleX(-1); }   /* a mirror, as people expect */
+.overlay.eyes #ey-enrol button { margin: .2em; }
+#cam { color: #e7a184; margin-left: .6em; letter-spacing: .08em; }
 .overlay.proposals #pr-list { width: min(60em, 90vw); max-height: 66vh; overflow-y: auto; }
 .overlay.proposals article { border: 1px solid rgba(214, 173, 108, .35); border-radius: .4em; background: rgba(0, 0, 0, .18); padding: .7em 1em; margin-bottom: .8em; text-transform: none; }
 .overlay.proposals h3 { margin: 0; font: inherit; color: var(--fg); }

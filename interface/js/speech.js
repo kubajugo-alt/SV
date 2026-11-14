@@ -17,6 +17,12 @@ let source = null;
 let raf = 0;
 let current = 0;       // id of the latest utterance; older ones give way
 let onEnd = null;      // called once when the line being spoken stops, however it stops
+// What of the current reply has been heard, so a cut-off answer can be told apart from a finished one.
+let said = [];         // sentences played to the end
+let playing = null;    // { text, at, duration } of the sentence coming out of the speakers now
+let stream = null;     // { id, left }: the reply being spoken, and how many of its sentences still wait
+let cutOff = '';       // what he had said when he was last interrupted; taken by the next /chat request
+let murmurUntil = 0;   // performance.now() until which a backchannel "mhm" is playing
 
 export function configureVoice(config) {
   ttsUrl = config.tts || '';
@@ -43,7 +49,14 @@ function stop() {
 }
 
 function begin(text, duration) {
+  playing = { text, at: performance.now(), duration };
   store.set({ text, preparing: false, speakingUntil: performance.now() + duration, utterance: store.get().utterance + 1 });
+}
+
+/** The sentence playing now has been heard to its end. */
+function played() {
+  if (playing) said.push(playing.text);
+  playing = null;
 }
 
 function finish() {
@@ -96,7 +109,7 @@ function playAudio(text, buffer, radio, cues) {
     }
     raf = requestAnimationFrame(tick);
   };
-  source.onended = () => { stop(); finish(); };
+  source.onended = () => { played(); stop(); finish(); };
   begin(text, buffer.duration * 1000);
   source.start();
   startedAt = ctx.currentTime;
@@ -125,7 +138,7 @@ function playEnvelope(text, env, rate) {
   begin(text, duration);
   const tick = (now) => {
     const pos = Math.max(0, ((now - start) / 1000) * rate); // rAF time can predate `start`
-    if (pos >= env.length - 1) { stop(); return finish(); }
+    if (pos >= env.length - 1) { played(); stop(); return finish(); }
     const i = Math.floor(pos);
     signal.level = env[i] + (env[i + 1] - env[i]) * (pos - i);
     raf = requestAnimationFrame(tick);
@@ -146,6 +159,7 @@ function playEnvelope(text, env, rate) {
 export async function say({ text = '', audio, envelope, rate = 50, radio = false }) {
   if (store.get().flat === 'studio' && !Object.keys(store.get().alerts).length) return 0;   // recording: not a word
   const id = ++current;
+  said = [];
   const url = audio || (ttsUrl && text ? ttsUrl + encodeURIComponent(text) : '');
   if (url) {
     try {
@@ -166,6 +180,7 @@ export async function say({ text = '', audio, envelope, rate = 50, radio = false
 
 // Lines kept ready to say at once: fetched once, then played from memory.
 const ready = new Map();   // text -> Promise<{buffer, cues} | null>
+const recorded = new Map();   // text -> {buffer, cues}, once the recording has arrived
 
 function voiced(text) {
   if (ready.has(text)) return ready.get(text);
@@ -185,7 +200,10 @@ export function prepare(lines) {
     if (ready.has(line)) continue;
     const audio = voiced(line);
     ready.set(line, audio);
-    audio.then((got) => { if (!got) { ready.delete(line); preparedFailedAt = Date.now(); } });   // not recorded: try again in a while
+    audio.then((got) => {
+      if (got) recorded.set(line, got);
+      else { ready.delete(line); preparedFailedAt = Date.now(); }
+    });   // not recorded: try again in a while
   }
 }
 
@@ -200,6 +218,8 @@ export const prepared = (line) => ready.has(line);
 export function speakStream() {
   const quiet = store.get().flat === 'studio' && !Object.keys(store.get().alerts).length;   // recording: not a word
   const id = ++current;
+  said = [];
+  const mine = stream = { id, left: 0 };
   let line = Promise.resolve();
   let first = true;
   return {
@@ -207,15 +227,18 @@ export function speakStream() {
       if (!text || quiet || id !== current) return;
       if (first) { first = false; store.set({ preparing: true }); }
       const coming = voiced(text);
+      mine.left++;
       line = line.then(async () => {
-        const audio = await coming;
-        if (id !== current) return;
-        stop();
-        await new Promise((resolve) => {
-          onEnd = resolve;
-          if (audio) playAudio(text, audio.buffer, false, audio.cues);
-          else playEnvelope(text, synthEnvelope(text, 50), 50);
-        });
+        try {
+          const audio = await coming;
+          if (id !== current) return;
+          stop();
+          await new Promise((resolve) => {
+            onEnd = resolve;
+            if (audio) playAudio(text, audio.buffer, false, audio.cues);
+            else playEnvelope(text, synthEnvelope(text, 50), 50);
+          });
+        } finally { mine.left--; }
       });
     },
     end() {
@@ -228,9 +251,69 @@ export function speakStream() {
 export function hush() {
   current++;                    // abandons a line still being prepared
   stop();
+  playing = null;
   store.set({ preparing: false });
   finish();
 }
+
+/** Whether he is saying something, or about to (a sentence of his reply is still on its way). */
+export function talking() {
+  return !!playing || store.get().preparing || (stream?.id === current && stream.left > 0);
+}
+
+/**
+ * Someone talks over him: he stops at once, and remembers how much of the reply was heard —
+ * whole sentences, and the words of the cut sentence up to where the sound stopped.
+ * Tells the page ('alan:interrupted') so a reply still being written is abandoned too.
+ * @returns {string} what he had said of it ('' if he was not talking)
+ */
+export function interrupt() {
+  const busy = store.get().busy;
+  if (!talking()) { hush(); if (busy) dispatchEvent(new CustomEvent('alan:interrupted', { detail: '' })); return ''; }
+  const heard = [...said];
+  if (playing) {
+    const share = Math.min(1, (performance.now() - playing.at) / Math.max(1, playing.duration));
+    const words = playing.text.split(/\s+/);
+    const upTo = Math.round(words.length * share);
+    if (share > 0.95 || upTo >= words.length) heard.push(playing.text);
+    else if (upTo) heard.push(words.slice(0, upTo).join(' ') + '…');
+  }
+  const spoken = heard.join(' ').trim();
+  cutOff = spoken || '…';          // cut off before the first word: still worth knowing
+  hush();
+  dispatchEvent(new CustomEvent('alan:interrupted', { detail: spoken }));
+  return spoken;
+}
+
+/** What the last interrupted reply got out before he was cut off; once, for the next request. */
+export function takeInterrupted() {
+  const out = cutOff;
+  cutOff = '';
+  return out;
+}
+
+/**
+ * A short listener's noise ("mhm") while someone talks to him at length: only if it is already
+ * recorded (prepare()), never over his own voice, quietly, and without counting as him speaking.
+ * @returns {boolean} whether it plays
+ */
+export function murmur(lines) {
+  const ready = lines.filter((line) => recorded.has(line));
+  if (!ready.length || !ctx || ctx.state !== 'running' || talking() || murmuring()) return false;
+  if (performance.now() < store.get().speakingUntil) return false;
+  const { buffer } = recorded.get(ready[Math.floor(Math.random() * ready.length)]);
+  const voice = ctx.createBufferSource();
+  voice.buffer = buffer;
+  const gain = ctx.createGain();
+  gain.gain.value = 0.7;
+  voice.connect(gain).connect(ctx.destination);
+  voice.start();
+  murmurUntil = performance.now() + buffer.duration * 1000 + 250;   // and a moment for the room's echo
+  return true;
+}
+
+/** While his "mhm" plays, what the microphone hears is his own voice, not yours. */
+export const murmuring = () => performance.now() < murmurUntil;
 
 /** Live level outside speech, e.g. room audio while listening. */
 export function level(value) {
