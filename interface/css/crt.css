@@ -265,3 +265,36 @@ body.music-on .note .map canvas, body.music-on .note .picture img { aspect-ratio
 .overlay.backups .bk-item a { margin-right: .6em; }
 .overlay.backups .bk-error { color: #e7a184; }
 .overlay.backups select { font: inherit; background: rgba(0, 0, 0, .3); color: var(--fg); border: 1px solid rgba(214, 173, 108, .55); border-radius: .3em; padding: .2em .4em; }
+
+#ask-send { display: none; }   /* shown on a phone only */
+
+/* --- on a phone ---------------------------------------------------------
+   Everything above is sized for a TV (1% of a 16:9 frame), which on a phone makes the type
+   about 5 px and squeezes the text box to nothing. Here: readable type, the box for writing as
+   a bar along the bottom (16 px, so iOS does not zoom in), cards across the width. */
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1100px) and (orientation: portrait) {
+  body { font-size: 13px; }
+  .bar { gap: .8em; font-size: 11px; }
+  #ask {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 4;
+    width: auto; margin: 0; align-items: center;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(30, 17, 9, .88), rgba(18, 10, 5, .96));
+    border-top: 1px solid rgba(214, 173, 108, .5);
+    font-size: 16px;
+  }
+  #ask-input {
+    font-size: 16px; min-height: 44px; padding: 0 .8em; cursor: auto;
+    background: rgba(0, 0, 0, .35); border: 1px solid rgba(214, 173, 108, .45); border-radius: .5em;
+  }
+  #ask-input::placeholder { opacity: .7; }
+  #ask-send {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    min-width: 44px; min-height: 44px; border-radius: .5em;
+    background: rgba(214, 173, 108, .18); border: 1px solid rgba(214, 173, 108, .55); color: var(--fg); font: inherit;
+  }
+  #actions, #music { left: 12px; right: 12px; width: auto; top: 8%; }
+  #actions { max-height: 42%; }
+  body.music-on #actions { top: calc(8% + 120px + 5em); }
+  .overlay .card { width: min(94vw, 40em); max-height: 86vh; overflow-y: auto; }
+}
