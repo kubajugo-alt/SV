@@ -498,3 +498,18 @@ test("cut off mid-reply, he remembers only what he managed to say; someone arriv
   assert.equal(out.reply, "O, jesteś.");
   assert.match(seen[1].messages.at(-1).content, /usiadł przed ekranem/);
 });
+
+test("background work goes to the cheaper model, without the fallback Haiku does not have; talk stays on the main one", async () => {
+  const turns: Talk["turns"] = Array.from({ length: 25 }, (_, i) => ({ role: i % 2 ? "assistant" : "user", text: `zdanie ${i}`, at: "2026-11-12T20:00:00.000Z" }));
+  const { mind, seen, store } = fakeMind([[text("Dobra.")], "end_turn"], [[text("notatki")], "end_turn"], [[text("streszczenie")], "end_turn"], [[text("BRAK")], "end_turn"],
+    [[text('{"day": "Czytałem do późna, kawa wystygła."}')], "end_turn"]);
+  mind.background = "claude-haiku-5-5";
+  await store.set("talk/kuba", { notes: "", turns });
+  const out = await respond(mind, at, "Cześć");
+  await out.after();
+  await live(mind, new Date("2026-11-14T10:50:00Z"));
+  assert.deepEqual(seen.map((r) => r.model), ["claude-opus-5-5", "claude-haiku-5-5", "claude-haiku-5-5", "claude-haiku-5-5", "claude-haiku-5-5"]);
+  assert.equal(seen[0].fallbacks, "default");
+  assert.equal(seen[1].fallbacks, undefined);
+  assert.equal(seen[1].betas, undefined);
+});
