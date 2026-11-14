@@ -79,10 +79,17 @@ function finish() {
   store.set({ speakingUntil: 0 }); // re-render: back to the feed's state
 }
 
-async function fetchAudio(url) {
+const KEPT = 'alan-voice-1';   // the browser's own store of his prepared lines: recorded once per device
+async function fetchAudio(url, keep = false) {
   const ac = audioContext();
   if (ac.state !== 'running') throw new Error('audio is locked until the page is clicked');
-  const res = await fetch(url);
+  let res = null;
+  const store = keep && typeof caches !== 'undefined' ? await caches.open(KEPT).catch(() => null) : null;
+  if (store) res = await store.match(url).catch(() => null);
+  if (!res) {
+    res = await fetch(url);
+    if (store && res.ok) await store.put(url, res.clone()).catch(() => {});
+  }
   if (!res.ok) throw Object.assign(new Error(`${res.status} from ${url}`), { status: res.status });
   let cues = null;                       // [[start s, shape], ...] from Rhubarb Lip Sync, if the server has it
   try { cues = JSON.parse(res.headers.get('X-Mouth-Cues') || 'null'); } catch { /* go by loudness */ }
@@ -196,10 +203,10 @@ export async function say({ text = '', audio, envelope, rate = 50, radio = false
 const ready = new Map();   // text -> Promise<{buffer, cues} | null>
 const recorded = new Map();   // text -> {buffer, cues}, once the recording has arrived
 
-function voiced(text) {
+function voiced(text, keep = false) {
   if (ready.has(text)) return ready.get(text);
   const url = ttsUrl ? ttsUrl + encodeURIComponent(text) : '';
-  return !url ? Promise.resolve(null) : fetchAudio(url).catch((err) => {
+  return !url ? Promise.resolve(null) : fetchAudio(url, keep).catch((err) => {
     console.warn('ALAN voice unavailable, mouthing silently:', err.message);
     if (err.status === 404 || err.status === 503) ttsUrl = '';
     return null;
@@ -212,7 +219,7 @@ export function prepare(lines) {
   if (Date.now() - preparedFailedAt < 10 * 60000) return;      // the voice failed lately (no credit?): do not keep paying for retries
   for (const line of lines) {
     if (ready.has(line)) continue;
-    const audio = voiced(line);
+    const audio = voiced(line, true);
     ready.set(line, audio);
     audio.then((got) => {
       if (got) recorded.set(line, got);
