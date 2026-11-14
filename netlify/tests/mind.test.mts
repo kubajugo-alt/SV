@@ -66,6 +66,7 @@ test("tools run, their results go back in one message, failures are marked", asy
   const { mind, seen } = fakeMind(
     [[thinking, call("take_note", { text: "Ślimaki w sosie szarym" }), call("set_place", { place: "Ułan Bator" })], "tool_use"],
     [[text("Zapisane. A gdzie leży Ułan Bator, nie wiem.")], "end_turn"]);
+  mind.fetcher = (async () => Response.json([])) as typeof fetch;          // the map does not know the place: no network in a test
   const out = await respond(mind, at, "Zapisz pomysł i ustaw miejsce");
   assert.deepEqual(out.actions.map((a) => a.ok), [true, false]);
   const second = seen[1].messages;
