@@ -28,13 +28,27 @@ export function configureVoice(config) {
   ttsUrl = config.tts || '';
 }
 
+// iPhone: page sound counts as "playback", so the ring/silent switch does not mute him (Audio Session API, iOS 17+).
+try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* older browsers */ }
+
 function audioContext() {
   ctx ||= new AudioContext();
-  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+  if (ctx.state !== 'running') ctx.resume().catch(() => {});   // also 'interrupted' on iOS, after a call or the lock screen
   return ctx;
 }
-// Outside kiosk mode browsers keep audio locked until the first interaction.
-for (const type of ['keydown', 'pointerdown']) addEventListener(type, audioContext);
+// Browsers keep audio locked until the first touch or key. iOS lets it out only on a tap's end or a
+// click, and only if something is played right then: a moment of silence unlocks it for good.
+let unlocked = false;
+function unlock() {
+  const ac = audioContext();
+  if (unlocked) return;
+  const silence = ac.createBufferSource();
+  silence.buffer = ac.createBuffer(1, 1, 22050);
+  silence.connect(ac.destination);
+  silence.start(0);
+  unlocked = true;
+}
+for (const type of ['keydown', 'pointerdown', 'touchend', 'click']) addEventListener(type, unlock, { capture: true, passive: true });
 
 function stop() {
   cancelAnimationFrame(raf);
