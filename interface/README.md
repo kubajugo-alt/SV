@@ -81,6 +81,9 @@ Every variable the functions read (names only: after a disaster, this is what to
 - changes to himself: `ALAN_GITHUB_TOKEN`, `ALAN_GITHUB_REPO`, or `ALAN_ROUTINE_ID` + `ALAN_ROUTINE_TOKEN`
 - phone calls: `ALAN_CALL_AGENT_ID`, `ALAN_CALL_NUMBER_ID`
 - the weather outside: `WINDY_API_KEY`, `ALAN_WEBCAMS`; music: `YOUTUBE_API_KEY`
+- WhatsApp (Meta's Cloud API, webhook `/whatsapp`): `WHATSAPP_TOKEN` (a system user's permanent token),
+  `WHATSAPP_PHONE_ID`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `ALAN_WHATSAPP_PEOPLE`
+  (`48500100200=kuba,48600100200=hubert`; other numbers are ignored)
 - backups off Netlify: `ALAN_BACKUP_TOKEN` (write access to one private repository only),
   `ALAN_BACKUP_REPO` (default `kubajugo-alt/alan-pamiec`)
 
