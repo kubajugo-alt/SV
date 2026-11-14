@@ -74,13 +74,18 @@ html, body {
 #clock { font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
 
 /* --- spoken text + state line ------------------------------------------ */
-/* His words fill the front of the desk and the space below it: large, wide, up to five lines. */
-#speech { grid-row: 3; min-height: calc(var(--u) * 15); padding-bottom: calc(var(--u) * .8); text-align: center; }
-#status { color: var(--fg-dim); margin-bottom: .35em; }
+/* His words sit on the desk top and never leave it: the box is laid over the painted desk (ui.js
+   measures it from the window), and the text shrinks until it fits inside. */
+#speech {
+  position: fixed; left: calc(var(--u) * 4.5); right: calc(var(--u) * 4.5);
+  top: var(--desk-top, 68%); height: var(--desk-h, 20%);
+  display: flex; flex-direction: column; justify-content: safe center; align-items: center;
+  text-align: center; overflow: hidden; z-index: 2;
+}
+#status { color: var(--fg-dim); margin-bottom: .25em; font-size: .85em; }
 #text {
-  font-size: 2.15em; line-height: 1.28; letter-spacing: .005em; text-transform: none;
-  max-width: 58ch; margin-inline: auto; overflow-wrap: break-word; text-wrap: pretty;
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; line-clamp: 5; overflow: hidden;
+  font-size: var(--say-size, 1.6em); line-height: 1.25; letter-spacing: .005em; text-transform: none;
+  max-width: 62ch; overflow-wrap: break-word; text-wrap: pretty; overflow: hidden;
 }
 .cursor { animation: blink 1s steps(1) infinite; }
 
@@ -104,7 +109,7 @@ body[data-alan="alert"] #actions { display: none; }
 .cell.changed b { color: inherit; }
 
 /* --- typing to ALAN ---------------------------------------------------- */
-#ask { display: flex; gap: .6em; margin: .7em auto 0; max-width: 70%; color: var(--fg-dim); font-size: 1.15em; }
+#ask { display: flex; gap: .6em; margin: .4em auto 0; width: min(70%, 60em); color: var(--fg-dim); font-size: 1em; }
 #ask[hidden] { display: none; }
 #ask-input {
   flex: 1; min-width: 0;

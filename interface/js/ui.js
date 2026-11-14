@@ -63,6 +63,36 @@ let typing = 0;
 let clearTimer = 0;
 let shown = 0;
 
+// --- his words on the desk top -------------------------------------------
+// The room painting covers the window (as avatar.js draws it); the desk top runs from y 735 to 955 of its 1080.
+const ROOM_W = 1920, ROOM_H = 1080, DESK = [735, 955];
+
+function placeOnDesk() {
+  const k = Math.max(innerWidth / ROOM_W, innerHeight / ROOM_H);
+  const offset = (innerHeight - ROOM_H * k) / 2;
+  const top = Math.max(0, offset + DESK[0] * k);
+  const bottom = Math.min(innerHeight - 4, offset + DESK[1] * k);
+  document.documentElement.style.setProperty('--desk-top', `${top}px`);
+  document.documentElement.style.setProperty('--desk-h', `${Math.max(60, bottom - top)}px`);
+  fitWords();
+}
+
+/** The largest size, up to the usual one, at which everything in the box fits on the desk. */
+function fitWords() {
+  const box = $('speech');
+  let size = 1.6;
+  box.style.setProperty('--say-size', `${size}em`);
+  // The height of what is in the box (centred content that overflows is not counted by scrollHeight).
+  const used = () => [...box.children].filter((el) => !el.hidden).reduce((sum, el) => {
+    const style = getComputedStyle(el);
+    return sum + el.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+  }, 0);
+  while (size > 0.7 && used() > box.clientHeight - 2) {
+    size -= 0.05;
+    box.style.setProperty('--say-size', `${size}em`);
+  }
+}
+
 function type(text, duration) {
   clearInterval(typing);
   clearTimeout(clearTimer);
@@ -72,6 +102,10 @@ function type(text, duration) {
   // Finish typing a little before the voice does; never slower than 25 cps.
   const step = Math.min(40, (duration * 0.85) / text.length);
   let i = 0;
+  // Size for the whole line first, so the text does not shrink as it is typed.
+  out.textContent = text;
+  fitWords();
+  out.textContent = '';
   typing = setInterval(() => {
     out.textContent = text.slice(0, ++i);
     if (i >= text.length) {
@@ -164,6 +198,8 @@ function clock() {
 export function startUI(config) {
   quietUntil = performance.now() + 4000;
   store.subscribe((s) => render(s, config));
+  addEventListener('resize', placeOnDesk);
+  placeOnDesk();
   clock();
   setInterval(clock, 1000);
 }
