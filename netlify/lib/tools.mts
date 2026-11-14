@@ -2,6 +2,7 @@
 // weather from online.py. Each returns a sentence in Polish; "Wykonano" marks a
 // change he made, "Błąd" something that could not be done.
 import type Anthropic from "@anthropic-ai/sdk";
+import { randomUUID } from "node:crypto";
 import { DAYS, dmy, hm, instant, local, span } from "./clock.mts";
 import { describe, occurrences, parse, readCalendars } from "./diary.mts";
 import { addEvent, changeEvent, type Google } from "./gcal.mts";
@@ -14,7 +15,7 @@ import { loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
 import { MEMORIES } from "./texts.gen.mjs";
 
-export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; fetcher?: typeof fetch };
+export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; fetcher?: typeof fetch; site?: string };
 /**
  * Who changes his own code. Either a Claude Code routine (its id, trig_..., and the token of its API trigger),
  * or the repository on GitHub: he opens an issue titled [ALAN] and a GitHub Actions workflow runs Claude Code on it.
@@ -61,6 +62,9 @@ export const TOOLS: Anthropic.Tool[] = [
   tool("show_link", "Pokazuje rozmówcy na ekranie link z kodem QR do zeskanowania telefonem: ofertę w sklepie (np. Allegro), restaurację w aplikacji z jedzeniem, stronę rezerwacji. " +
     "Tak pomagasz w zakupach i zamówieniach: znajdujesz w sieci, wybierasz, pokazujesz link. Jedzenie z dostawą domownicy zamawiają przez Uber Eats i Glovo: wyszukaj stronę restauracji w jednej z tych aplikacji i pokaż ją. Sam niczego nie kupujesz ani nie zamawiasz i nigdy nie mów, że to zrobiłeś. Adres bierz z wyników wyszukiwania, nie zmyślaj go.",
     { title: text("krótki opis, np. Filtr do ekspresu, 64 zł, Allegro"), url: text("pełny adres https://") }, ["title", "url"]),
+  tool("show_document", "Tworzy dokument (listę, plan, zestawienie, notatkę do zabrania) i pokazuje go na ekranie jako link z kodem QR: po zeskanowaniu otwiera się w telefonie, można go wydrukować albo zapisać jako PDF. " +
+    "To jedyny sposób, żeby plik do kogoś dotarł: pliki z twojej piaskownicy (kodu uruchamianego przy wyszukiwaniu) nie trafiają na żaden ekran. Dopóki nie dostaniesz wyniku „Wykonano”, nie mów, że dokument jest gotowy.",
+    { title: text("tytuł dokumentu, np. Po powrocie do Tarnobrzega"), text: text("pełna treść; każdy punkt listy w osobnej linii") }, ["title", "text"]),
   tool("ride_link", "Przygotowuje przejazd: pokazuje na ekranie link z kodem QR, który otwiera w telefonie aplikację Uber z wpisanym celem (odbiór z miejsca, gdzie jest telefon). " +
     "Przejazd zamawia i potwierdza rozmówca w telefonie. W Tarnobrzegu Uber jeździ, ale aut jest mniej niż w Bolcie, a Bolt nie ma takiego linku: " +
     "pokaż link do Ubera i dodaj, że w Bolcie będzie pewnie szybciej, albo zaproponuj telefon po taksówkę.",
@@ -402,6 +406,16 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         if (url.protocol !== "https:" || url.username || url.href.length > 600 || !title) return "Błąd: podaj tytuł i adres zaczynający się od https://.";
         return `Wykonano: link na ekranie: ${title} ${url.href}`;
       }
+      case "show_document": {
+        const title = String(input.title ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+        const body = String(input.text ?? "").replace(/\r/g, "").trim();
+        if (!title || !body) return "Błąd: podaj tytuł i treść dokumentu.";
+        if (body.length > 20000) return "Błąd: dokument jest za długi (najwyżej 20 000 znaków).";
+        if (!ctx.site?.startsWith("https://")) return "Błąd: nie znam adresu strony, więc nie mogę pokazać dokumentu.";
+        const id = randomUUID().replace(/-/g, "");            // the address is the key: unguessable, like the calendar feed's
+        await store.set(`doc/${id}`, { title, text: body, person, at: ctx.now.toISOString() });
+        return `Wykonano: dokument na ekranie: ${title} ${ctx.site}/doc/${id}`;
+      }
       case "ride_link": {
         const to = String(input.destination ?? "").replace(/\s+/g, " ").trim().slice(0, 160);
         if (to.length < 3) return "Błąd: podaj, dokąd ma być przejazd.";
@@ -463,7 +477,7 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         return `Wykonano: zapisano o miejscu ${known?.name ?? name} (${town})${known ? "" : ", którego nie było w bazie"}: ${note}`;
       }
       case "look_outside":
-        return "Błąd: nie masz podłączonych kamer.";       // with cameras, the mind answers this one itself: the result is a picture
+        return "Błąd: nie masz podłączonych kamer. Kuba musi wpisać klucz Windy Webcams (WINDY_API_KEY) w ustawieniach strony.";       // with cameras, the mind answers this one itself: the result is a picture
       case "briefing": {
         const parts = [(await weather(own, ctx)).split(/(?<=\.) (?=Jutro)/)[0]];
         parts.push(await calendar(ctx));

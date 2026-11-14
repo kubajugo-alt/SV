@@ -18,7 +18,7 @@ export const REFUSED = "Tego tematu nie ruszę. Zapytaj mnie o coś innego.";
 const FLAT_ONLY = ["── MIESZKANIE", "── JAKOŚĆ POWIETRZA", "── TRYB PRACY", "── TRYB GOŚCIA", "── DRZWI", "── BEZPIECZEŃSTWO"];
 const CHARACTER = SYSTEM.split(/^(?=── )/m).filter((part) => !FLAT_ONLY.some((f) => part.startsWith(f))).join("").trim();
 const HERE = `Twoja odpowiedź zostanie wypowiedziana na głos: zwykle jedno do trzech zdań, bez list, nagłówków i znaczników.
-Narzędzi używaj, gdy są potrzebne; ich wyniki masz od razu w tej samej rozmowie. Aktualne fakty, wiadomości i kursy sprawdzaj w sieci (web_search), zamiast zgadywać.
+Narzędzi używaj, gdy są potrzebne; ich wyniki masz od razu w tej samej rozmowie. Nie mów, że coś jest gotowe, zrobione, zapisane, wysłane albo zlecone, jeśli w tej samej wypowiedzi nie użyłeś narzędzia, które to zrobiło, i nie dostałeś wyniku „Wykonano”. Pliki z twojej piaskownicy nigdy nie trafiają na ekran; dokument pokazujesz narzędziem show_document. Aktualne fakty, wiadomości i kursy sprawdzaj w sieci (web_search), zamiast zgadywać.
 ── GDZIE TERAZ MIESZKASZ ──
 Mieszkasz w chmurze i jesteś dostępny z każdego urządzenia domowników; nie masz czujników, kamer ani urządzeń mieszkania. Niczego nie mierzysz i niczym nie sterujesz, i nie udajesz, że jest inaczej.`;
 const NUDGES: Record<string, string> = {
@@ -31,10 +31,23 @@ const NUDGES: Record<string, string> = {
 export type Mind = {
   client: Anthropic; store: Store; model: string; effort: "low" | "medium" | "high";
   calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; webSearch: boolean; fetcher?: typeof fetch;
+  site?: string;              // the page's address, for links to what he makes (documents)
 };
 type Request = { person: string; tz: string; now: Date };
 
 const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/**
+ * A sentence in which he says something is done, ready, sent or handed over. Such a sentence is held back
+ * unless a tool confirmed something ("Wykonano") in the same turn.
+ */
+const DONE = new RegExp([
+  String.raw`(?<!\p{L})(?:zleci|zrobi|zapisa|zanotowa|wysła|przesła|doda|dopisa|wpisa|ustawi|utworzy|stworzy|przygotowa|wygenerowa|zamówi|zarezerwowa|zadzwoni|wyświetli|pokaza|umieści|wrzuci|zmieni|przekaza|usun[ąę])łem(?!\p{L})`,
+  String.raw`(?<!\p{L})(?:jest|są|już)\s+(?:gotow|zrobion|zlecon|wysłan|zapisan|na\s+ekranie)`,
+  String.raw`(?<!\p{L})(?:plik|pdf|dokument|list[aęy]|link)\p{L}*[^.!?]{0,60}(?<!\p{L})(?:gotow|na\s+ekranie|czeka)`,
+].join("|"), "iu");
+export const claimsDone = (sentence: string) => DONE.test(sentence);
+const UNCONFIRMED = "Nie mogę tego potwierdzić: żadne moje narzędzie tego w tej chwili nie zrobiło.";
+
 /** The answer is spoken: drop markdown marks and a leading "Alan:". */
 export const clean = (text: string) => text.replace(/[*_#`]+/g, "").replace(/^\s*(ALAN|Alan)\s*:\s*/, "").replace(/\s+/g, " ").trim();
 const textOf = (message: Anthropic.Beta.BetaMessage) => message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
@@ -73,21 +86,56 @@ async function ask(mind: Mind, sys: Anthropic.Beta.BetaTextBlockParam[] | string
   return message;
 }
 
-async function converse(mind: Mind, req: Request, talk: Talk, said: string, onText?: (delta: string) => void) {
-  const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, fetcher: mind.fetcher };
+async function converse(mind: Mind, req: Request, talk: Talk, said: string, onSay?: (sentence: string) => void) {
+  const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, fetcher: mind.fetcher, site: mind.site };
   const messages: Anthropic.Beta.BetaMessageParam[] = [...talk.turns.map((t) => ({ role: t.role, content: t.text })), { role: "user", content: said }];
   const sys = await system(mind, req, talk);
   const actions: { ok: boolean; text: string }[] = [];
-  let response = await ask(mind, sys, messages, true, 4000, onText);
-  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+  // What he says passes sentence by sentence. A sentence claiming something is done, ready or handed over waits
+  // (with everything after it) until a tool confirms something in this turn; without that, he is asked once to correct himself.
+  const spoken: string[] = [];
+  let held = null as string[] | null;
+  let dropped = false;
+  const confirmed = () => actions.some((a) => a.ok);
+  const pass = (sentence: string) => {
+    if (!sentence) return;
+    if (!held && !confirmed() && claimsDone(sentence)) held = [];
+    if (held) { held.push(sentence); return; }
+    spoken.push(sentence);
+    onSay?.(sentence);
+  };
+  const release = () => { if (held && confirmed()) { const waiting = held; held = null; waiting.forEach(pass); } };
+  const cutter = sentenceCutter(pass);
+  const next = async () => {
+    const response = await ask(mind, sys, messages, true, 4000, onSay ? (delta) => cutter.add(delta) : undefined);
+    if (!onSay) cutter.add(textOf(response) + "\n");
+    return response;
+  };
+  let corrected = false;
+  let response = await next();
+  for (let round = 0; round < MAX_TOOL_ROUNDS + 1; round++) {
     if (response.stop_reason === "refusal") return { reply: REFUSED, actions };
     if (response.stop_reason === "pause_turn") {                              // a web search still running: let it continue
       messages.push({ role: "assistant", content: response.content as Anthropic.Beta.BetaContentBlockParam[] });
-      response = await ask(mind, sys, messages, true, 4000, onText);
+      response = await next();
       continue;
     }
     const calls = response.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use");
-    if (response.stop_reason !== "tool_use" || !calls.length) break;
+    if (response.stop_reason !== "tool_use" || !calls.length || round >= MAX_TOOL_ROUNDS) {
+      cutter.end();
+      release();
+      if (!held || corrected || round >= MAX_TOOL_ROUNDS) break;
+      const claim: string = held[0];
+      console.log(`Unconfirmed claim held back: ${claim.slice(0, 160)}`);
+      held = null;
+      corrected = true;
+      messages.push({ role: "assistant", content: response.content as Anthropic.Beta.BetaContentBlockParam[] },
+        { role: "user", content: `[Kontrola, nie od domownika: domownik usłyszał tylko to: „${spoken.join(" ")}”. Zdanie „${claim}” i dalsze nie zostały wypowiedziane, ` +
+          "bo w tej wypowiedzi żadne narzędzie nie potwierdziło, że coś zostało zrobione. Jeśli masz do tego narzędzie, użyj go teraz. Jeśli nie, powiedz uczciwie, " +
+          "czego nie możesz zrobić. Nie twierdź, że coś jest gotowe, zrobione albo zlecone. Mów dalej tak, jakbyś kontynuował, bez powtarzania tego, co już padło.]" });
+      response = await next();
+      continue;
+    }
     messages.push({ role: "assistant", content: response.content as Anthropic.Beta.BetaContentBlockParam[] });   // unchanged, thinking included
     const results: Anthropic.Beta.BetaToolResultBlockParam[] = [];
     for (const call of calls) {
@@ -103,10 +151,15 @@ async function converse(mind: Mind, req: Request, talk: Talk, said: string, onTe
       if (/^(Wykonano|Błąd)/.test(result)) actions.push({ ok: result.startsWith("Wykonano"), text: result.split(": ").slice(1).join(": ").replace(/\.$/, "") || result });
       results.push({ type: "tool_result", tool_use_id: call.id, content: result, ...(result.startsWith("Błąd") ? { is_error: true } : {}) });
     }
+    release();
     messages.push({ role: "user", content: results });                          // all results in one message
-    response = await ask(mind, sys, messages, true, 4000, onText);
+    response = await next();
   }
-  return { reply: response.stop_reason === "refusal" ? REFUSED : clean(textOf(response)), actions };
+  cutter.end();
+  release();
+  if (held) { held = null; dropped = true; }                                  // still unconfirmed after the correction: never said
+  if (dropped && !spoken.length) pass(UNCONFIRMED);
+  return { reply: spoken.join(" "), actions };
 }
 
 /** Store the exchange; returns work to finish after the answer has gone out (folding old turns into notes). */
@@ -147,10 +200,11 @@ ZAKTUALIZOWANE NOTATKI:`;
   };
 }
 
-export async function respond(mind: Mind, req: Request, text: string, onText?: (delta: string) => void) {
+/** onSay gets his answer sentence by sentence, as it is written. */
+export async function respond(mind: Mind, req: Request, text: string, onSay?: (sentence: string) => void) {
   const talk = await loadTalk(mind.store, req.person);
   const started = Date.now();
-  const { reply, actions } = await converse(mind, req, talk, text, onText);
+  const { reply, actions } = await converse(mind, req, talk, text, onSay);
   console.log(`Timing: Claude ${((Date.now() - started) / 1000).toFixed(1)} s`);
   if (!reply) throw new Error("the model returned an empty answer");
   const at = req.now.toISOString();

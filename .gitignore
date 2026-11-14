@@ -4,5 +4,6 @@ data/
 __pycache__/
 .venv/
 vendor/
+!interface/js/vendor/
 netlify/lib/texts.gen.mjs
 .netlify/
