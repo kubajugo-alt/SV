@@ -34,7 +34,9 @@ const NUDGES: Record<string, string> = {
 
 export type Mind = {
   client: Anthropic; store: Store; model: string; effort: "low" | "medium" | "high";
-  calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; youtube?: string; webSearch: boolean; fetcher?: typeof fetch;
+  calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; youtube?: string; webSearch: boolean;
+  fetcher?: typeof fetch;
+  background?: string;   // a cheaper model for work nobody waits for: notes, digests, his journal, his own hours
 };
 type Request = { person: string; tz: string; now: Date };
 
@@ -97,12 +99,12 @@ function withGaps(turns: Turn[], tz: string): Anthropic.Beta.BetaMessageParam[] 
 }
 
 async function ask(mind: Mind, sys: Anthropic.Beta.BetaTextBlockParam[] | string, messages: Anthropic.Beta.BetaMessageParam[], tools = false, maxTokens = 4000,
-  onText?: (delta: string) => void): Promise<Anthropic.Beta.BetaMessage> {
+  onText?: (delta: string) => void, model = mind.model): Promise<Anthropic.Beta.BetaMessage> {
   const params = {
-    model: mind.model, max_tokens: maxTokens, system: sys, messages,
+    model, max_tokens: maxTokens, system: sys, messages,
     output_config: { effort: mind.effort },
-    // If a safety classifier declines the request, the API re-runs it on a fallback model in the same call.
-    betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+    // If a safety classifier declines the request, the API re-runs it on a fallback model in the same call (Haiku has no server-side fallback).
+    ...(/haiku/.test(model) ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }),
     ...(tools ? { tools: [...TOOLS, ...(mind.webSearch ? [{ type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 3 }] : [])] } : {}),
   } satisfies Anthropic.Beta.MessageCreateParamsNonStreaming;
   if (!onText) return mind.client.beta.messages.create(params);
@@ -177,7 +179,7 @@ ${transcript}
 
 ZAKTUALIZOWANE NOTATKI:`;
     try {
-      const notes = textOf(await ask(mind, "Aktualizujesz notatki. Odpowiadasz wyłącznie treścią notatek.", [{ role: "user", content: prompt }], false, 3000));
+      const notes = textOf(await ask(mind, "Aktualizujesz notatki. Odpowiadasz wyłącznie treścią notatek.", [{ role: "user", content: prompt }], false, 3000, undefined, mind.background ?? mind.model));
       if (!notes) return;
       const fresh = await loadTalk(mind.store, req.person);                     // turns may have arrived meanwhile
       await mind.store.set(`talk/${req.person}`, { notes, turns: fresh.turns.slice(old.length) });
@@ -186,7 +188,7 @@ ZAKTUALIZOWANE NOTATKI:`;
     }
     try {                                                                      // a line of what it was about, for finding it later by meaning
       const line = textOf(await ask(mind, "Streszczasz rozmowę jednym zdaniem. Odpowiadasz wyłącznie tym zdaniem.",
-        [{ role: "user", content: `O czym była ta rozmowa Alana z osobą ${capital(req.person)}? Jedno zdanie po polsku, konkretnie: tematy, decyzje, nazwy, osoby.\n\n${transcript}` }], false, 200));
+        [{ role: "user", content: `O czym była ta rozmowa Alana z osobą ${capital(req.person)}? Jedno zdanie po polsku, konkretnie: tematy, decyzje, nazwy, osoby.\n\n${transcript}` }], false, 200, undefined, mind.background ?? mind.model));
       if (line) {
         const key = `digest/${req.person}`;
         const lines = (await mind.store.get<{ at: string; text: string }[]>(key)) ?? [];
@@ -198,7 +200,7 @@ ZAKTUALIZOWANE NOTATKI:`;
     try {                                                                      // and what mattered between them, into his journal
       const kept = journalText(await loadBond(mind.store, req.person), 20);
       const found = parseMoments(textOf(await ask(mind, "Prowadzisz dziennik Alana. Odpowiadasz wyłącznie liniami dziennika albo słowem BRAK.",
-        [{ role: "user", content: momentsPrompt(capital(req.person), kept, transcript) }], false, 600)));
+        [{ role: "user", content: momentsPrompt(capital(req.person), kept, transcript) }], false, 600, undefined, mind.background ?? mind.model)));
       for (const m of found) await keepMoment(mind.store, req.person, m.text, m.at);
     } catch (err) {
       console.log(`Journal fold failed: ${(err as Error).message}`);
@@ -243,7 +245,7 @@ export async function live(mind: Mind, now: Date, tz = "Europe/Warsaw"): Promise
   const journals = await Promise.all((await people(mind.store)).map(async (p) => journalText(await loadBond(mind.store, p), 3)));
   const lisbonDue = l.hour >= 9 && l.hour <= 20 && (!life.lisbonAt || now.getTime() - new Date(life.lisbonAt).getTime() > 6 * 86400000);
   const prompt = tickPrompt(`${DAYS[l.weekday]}, ${dmy(l)}, godzina ${hm(l)}`, l.hour, life, journals.filter(Boolean).join("\n"), anniversaries(l.day, l.month), lisbonDue, weather.slice(0, 300));
-  const raw = textOf(await ask(mind, "Piszesz o sobie. Odpowiadasz wyłącznie obiektem JSON.", [{ role: "user", content: prompt }], false, 800));
+  const raw = textOf(await ask(mind, "Piszesz o sobie. Odpowiadasz wyłącznie obiektem JSON.", [{ role: "user", content: prompt }], false, 800, undefined, mind.background ?? mind.model));
   return (await absorb(mind.store, raw, now)) ? `lived${lisbonDue ? " (with news from Lisbon)" : ""}` : "nothing usable";
 }
 
