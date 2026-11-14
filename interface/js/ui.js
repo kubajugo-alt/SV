@@ -115,6 +115,63 @@ function type(text, duration) {
   }, step);
 }
 
+// --- what he did, as cards beside him --------------------------------------
+// Each thing he did (or could not do), a link to open on the phone, a reminder coming due: one card,
+// sliding in at the right and leaving on its own after a while (links stay longer: they are for scanning).
+const NOTE_MS = { done: 20000, failed: 25000, link: 120000, reminder: 60000 };
+const KIND = {
+  done: ['ZROBIONE', '✓'], failed: ['NIE WYSZŁO', '!'], link: ['DO ZESKANOWANIA TELEFONEM', '↗'], reminder: ['PRZYPOMNIENIE', '◷'],
+};
+const noteSeen = new Map();     // text -> when it first showed
+let noteTimer = 0;
+
+function kindOf(a) {
+  if (!a.ok) return 'failed';
+  if (/https:\/\//.test(a.text)) return 'link';
+  if (/^(minutnik|przypomnienie|\p{L}+, przypomnienie|za \d+ min)/iu.test(a.text)) return 'reminder';
+  return 'done';
+}
+
+function drawNotes(actions) {
+  const now = Date.now();
+  for (const key of noteSeen.keys()) if (!actions.some((a) => a.text === key)) noteSeen.delete(key);
+  const live = actions.filter((a) => {
+    if (!noteSeen.has(a.text)) noteSeen.set(a.text, now);
+    return now - noteSeen.get(a.text) < NOTE_MS[kindOf(a)];
+  });
+  $('actions').replaceChildren(...live.slice(-3).reverse().map((a) => {   // the newest three, newest on top
+    const kind = kindOf(a);
+    const li = document.createElement('li');
+    li.className = `note ${kind}`;
+    const left = NOTE_MS[kind] - (now - noteSeen.get(a.text));
+    li.style.setProperty('--life', `${left}ms`);
+    const head = document.createElement('div');
+    head.className = 'note-head';
+    head.innerHTML = '<span class="mark"></span><span class="label"></span><span class="when"></span>';
+    head.querySelector('.mark').textContent = KIND[kind][1];
+    head.querySelector('.label').textContent = KIND[kind][0];
+    head.querySelector('.when').textContent = new Date(noteSeen.get(a.text)).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+    const body = document.createElement('div');
+    body.className = 'note-body';
+    const text = a.text.replace(/^link na ekranie:\s*/i, '').replace(/^(\p{L}+), przypomnienie:\s*/u, '$1: ');
+    for (const part of text.split(/(https:\/\/\S+)/)) {
+      if (!part.startsWith('https://')) { if (part.trim()) body.append(part.replace(/\s+oraz\s*$/, '')); continue; }
+      const link = document.createElement('a');
+      link.href = part; link.target = '_blank'; link.rel = 'noopener noreferrer';
+      link.textContent = new URL(part).hostname.replace(/^www\./, '');
+      const scan = document.createElement('figure');
+      scan.className = 'scan';
+      scan.append(qr(part), link);
+      body.append(scan);
+    }
+    li.append(head, body);
+    return li;
+  }));
+  clearTimeout(noteTimer);
+  const next = Math.min(...live.map((a) => NOTE_MS[kindOf(a)] - (now - noteSeen.get(a.text))));
+  if (Number.isFinite(next)) noteTimer = setTimeout(() => drawNotes(store.get().actions), Math.max(200, next + 50));
+}
+
 // --- render --------------------------------------------------------------
 function render(s, config) {
   const m = mode(s);
@@ -137,21 +194,7 @@ function render(s, config) {
     type(s.text, Math.max(1500, s.speakingUntil - performance.now()));
   }
 
-  $('actions').replaceChildren(...s.actions.map((a) => {
-    const li = document.createElement('li');
-    li.className = a.ok ? 'ok' : 'failed';
-    // A link he prepared (an offer, a ride): shown with a QR code, to be opened on a phone.
-    const parts = a.ok ? a.text.split(/(https:\/\/\S+)/) : [a.text];
-    li.append(`${a.ok ? '[ OK ]' : '[ !! ]'} `);
-    for (const part of parts) {
-      if (!part.startsWith('https://')) { li.append(part); continue; }
-      const link = document.createElement('a');
-      link.href = part; link.target = '_blank'; link.rel = 'noopener noreferrer';
-      link.textContent = new URL(part).hostname.replace(/^www\./, '');
-      li.append(link, qr(part));
-    }
-    return li;
-  }));
+  drawNotes(s.actions);
 
   $('rooms').replaceChildren(...Object.keys(ROOM)
     .filter((r) => s.rooms[r])

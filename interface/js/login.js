@@ -5,7 +5,7 @@
 export const overlay = (html) => {
   const el = document.createElement('form');
   el.className = 'overlay';
-  el.innerHTML = html;
+  el.innerHTML = `<div class="card">${html}</div>`;
   document.body.append(el);
   return el;
 };
