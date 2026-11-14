@@ -143,7 +143,7 @@ export async function startAvatar(canvas, isDark) {
   };
   const amount = (layer, now) => Math.min(1, (now - layer.since) / layer.ms);
   const kfDone = (now) => now - face.since > face.ms;
-  const mouth = melting('A', 70);       // about two frames: quicker than speech, slower than a flicker
+  const mouth = melting('A', 55);       // a quick melt between shapes; how long a shape holds is decided above
   const face = melting('A', 220);
   const eyes = melting('', 120);        // a glance or raised brows over the face ('' = none)
   let glanceAt = performance.now() + 3000;
@@ -241,7 +241,7 @@ export async function startAvatar(canvas, isDark) {
     if (m === 'speaking') {
       head = 'A';
       lips = shapeOf(signal.mouth || mouthFor(signal.level));
-      if (lips !== mouth.to && now - mouthSince < 45) lips = mouth.to;          // never flicker faster than speech
+      if (lips !== mouth.to && now - mouthSince < 85) lips = mouth.to;          // a shape stays at least this long: no flicker
       else if (lips !== mouth.to) mouthSince = now;
     }
     melt(mouth, lips, now);

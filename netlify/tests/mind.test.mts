@@ -117,8 +117,13 @@ test("mouth shapes follow the letters and rest in pauses", () => {
   const starts = chars.map((_, i) => i * 0.1), ends = starts.map((s, i) => (i === 3 ? s + 0.4 : s + 0.1));
   assert.deepEqual(cuesFromCharacters(chars, starts, ends), [[0, "X"], [0, "A"], [0.1, "D"], [0.2, "A"], [0.3, "X"], [0.5, "E"], [0.7, "X"]]);
   // "tu": the lips round already on the t; a quick "a" opens only half way.
-  const quick = [..."tu ta"], at = quick.map((_, i) => i * 0.06), till = at.map((t) => t + 0.06);
-  assert.deepEqual(cuesFromCharacters(quick, at, till).map(([, shape]) => shape), ["X", "F", "B", "C", "X"]);
+  const quick = [..."tu ta"], at = quick.map((_, i) => i * 0.1), till = at.map((t) => t + 0.1);
+  assert.deepEqual(cuesFromCharacters(quick, at, till).map(([, shape]) => shape), ["X", "F", "B", "D", "X"]);
+  // Letters 55 ms apart: the shorter shapes fold away, so the mouth changes a few times a second, not with every letter.
+  const fast = [..."Dzień dobry, Kuba. Za oknem pada."], t0 = fast.map((_, i) => i * 0.055), t1 = t0.map((t) => t + 0.055);
+  const cues = cuesFromCharacters(fast, t0, t1);
+  assert.ok(cues.length <= 14, `${cues.length} cues`);
+  assert.ok(cues.slice(1, -1).every(([at, shape], i) => shape === "A" || cues[i + 2][0] - at >= 0.09));
 });
 
 test("a streamed answer is handed over sentence by sentence, across tool rounds", async () => {

@@ -43,5 +43,26 @@ export function cuesFromCharacters(characters: string[], starts: number[], ends:
     else if ((ends[i] ?? starts[i]) - starts[i] > 0.12) push(starts[i], "X");   // a pause: the mouth rests
   }
   if (ends.length) push(ends[ends.length - 1] + LEAD, "X");
-  return cues;
+  return steady(cues);
+}
+
+const HOLD = 0.09;        // seconds: a mouth shape shorter than this is a flicker, not a sound you see
+const CLOSE = 0.045;      // a closed mouth (p, b, m) still shows if this long: lips meeting is what the eye catches
+
+/**
+ * Letters come every 50-70 ms, far quicker than a mouth is seen to change. Like Rhubarb, keep only shapes that
+ * last: a short one is folded into the shape before it, so the mouth goes vowel to vowel and closes on p, b, m.
+ */
+export function steady(cues: [number, string][]): [number, string][] {
+  const out: [number, string][] = [];
+  for (let i = 0; i < cues.length; i++) {
+    const [at, shape] = cues[i];
+    const length = i + 1 < cues.length ? cues[i + 1][0] - at : Infinity;
+    const keep = shape === "X" ? length >= 0.12 || i === 0 || i === cues.length - 1
+      : shape === "A" ? length >= CLOSE : length >= HOLD;
+    if (!keep && out.length) continue;                       // the previous shape simply lasts longer
+    if (out.length && out[out.length - 1][1] === shape) continue;
+    out.push([at, shape]);
+  }
+  return out;
 }
