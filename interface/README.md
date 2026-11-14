@@ -75,7 +75,8 @@ Every variable the functions read (names only: after a disaster, this is what to
   password manager too**: without it no backup can be read
 - optional: `ALAN_CLAUDE_MODEL` (default `claude-sonnet-5-5`: talk, notes, digests, his journal, the weekly
   reflection), `ALAN_BACKGROUND_MODEL` (default `claude-haiku-5-5`: his own hours), `ALAN_CLAUDE_EFFORT` (`low`),
-  `ALAN_ELEVEN_MODEL`, `ALAN_ELEVEN_VOICE`, `ALAN_ELEVEN_STT`, `ALAN_WEB_SEARCH=off`
+  `ALAN_ELEVEN_MODEL` (fast voice, default `eleven_flash_v2_5`), `ALAN_ELEVEN_EXPRESSIVE` (for lines with a voice
+  tag, default `eleven_v3`), `ALAN_ELEVEN_VOICE`, `ALAN_ELEVEN_STT`, `ALAN_WEB_SEARCH=off`
 - calendars: `ALAN_CALENDARS` (https addresses of .ics calendars, comma-separated);
   `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `ALAN_CALENDAR_ID` (writing to Google; else his own calendar)
 - changes to himself: `ALAN_GITHUB_TOKEN`, `ALAN_GITHUB_REPO`, or `ALAN_ROUTINE_ID` + `ALAN_ROUTINE_TOKEN`

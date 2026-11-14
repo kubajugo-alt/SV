@@ -513,3 +513,15 @@ test("his own hours go to the cheapest model, without the fallback Haiku does no
   assert.equal(seen[4].fallbacks, undefined);
   assert.equal(seen[4].betas, undefined);
 });
+
+test("mixed voice: lines with a voice tag go to v3, the rest stay fast; tags never reach a model that would read them", async () => {
+  const { voicePlan, spokenOnly } = await import("../lib/voice.mts");
+  assert.deepEqual(voicePlan("Dzień dobry, Kuba.", "eleven_flash_v2_5", "eleven_v3"), [{ model: "eleven_flash_v2_5", text: "Dzień dobry, Kuba." }]);
+  assert.deepEqual(voicePlan("Żart. [pause] A teraz [sighs] prawda.", "eleven_flash_v2_5", "eleven_v3"), [
+    { model: "eleven_v3", text: "Żart. [short pause] A teraz [sighs] prawda." },
+    { model: "eleven_flash_v2_5", text: "Żart. A teraz prawda." }]);
+  assert.deepEqual(voicePlan("No wiesz [pause] tak bywa.", "eleven_v3", "eleven_v3"), [{ model: "eleven_v3", text: "No wiesz [short pause] tak bywa." }]);
+  const t = spokenOnly([..."a [laughs] b"], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  assert.equal(t.chars.join(""), "a  b");
+  assert.deepEqual(t.starts, [0, 1, 10, 11]);
+});
