@@ -7,7 +7,7 @@ import { loadPlaces, overpassQuery, TOWNS } from "../lib/places.mts";
 import { DEFAULT_CAMERAS, lookOutside, parseCameras } from "../lib/cameras.mts";
 import { cuesFromCharacters } from "../lib/voice.mts";
 import { passwordMatches, sessionCookie, signedIn } from "../lib/auth.mts";
-import { live, nudge, reflect, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
+import { fillerTopic, live, nudge, reflect, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
 import { keepMoment, loadBond, loadSelf, parseMoments, setBecoming } from "../lib/bond.mts";
 import { anniversaries, loadLife } from "../lib/life.mts";
 import { loadOwn, memoryStore, type Talk } from "../lib/store.mts";
@@ -553,4 +553,16 @@ test("travel: the guide, currency, any city with its time zone, and the clock at
   assert.doesNotMatch(forHubert, /w podróży/);
   assert.match(await runTool("set_place", { place: "Tarnobrzeg" }, ctx), /Tarnobrzegu/);
   assert.equal((await loadOwn(ctx.store)).place, null);
+});
+
+test("the thinking line's topic is judged by the cheap model, and only a known topic is passed on", async () => {
+  const { parseTopic } = await import("../lib/fillers.mts");
+  const { mind, seen } = fakeMind([[text("weather")], "end_turn"], [[text("Hmm, chyba pogoda?")], "end_turn"]);
+  mind.background = "claude-haiku-5-5";
+  assert.equal(await fillerTopic(mind, "Wezmę parasol jutro?"), "weather");
+  assert.equal(seen[0].model, "claude-haiku-5-5");
+  assert.match(seen[0].messages[0].content, /none: powitanie[\s\S]*WIADOMOŚĆ: Wezmę parasol jutro\?/);
+  assert.equal(await fillerTopic(mind, "?"), null);
+  assert.equal(parseTopic(" None."), "none");
+  assert.equal(parseTopic("pizza"), null);
 });
