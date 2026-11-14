@@ -140,14 +140,13 @@ function render(s, config) {
   if (s.co2 != null) vitals.push(cell('CO2', `${num(s.co2)} PPM`, s.co2 > 1200));
   if (s.battery != null) vitals.push(cell('BATERIA', `${num(s.battery)}%`, s.battery < 20));
   if (LINK[s.link]) vitals.push(cell('ŁĄCZE', LINK[s.link], s.link === 'offline'));
-  if (s.link === 'solo') {
-    // On a laptop the strip says who he is talking with and how to reach him.
-    vitals.push(cell('ROZMÓWCA', s.person.toUpperCase(), false, false));
-    vitals.push(cell('MIKROFON', s.handsfree ? 'POWIEDZ „ALAN”' : 'PRZYTRZYMAJ SPACJĘ', false, false));
-    if (!s.initiative) vitals.push(cell('ZAGADYWANIE', 'WYŁ.', false, false));
-    vitals.push(cell('KLAWISZE', `ENTER PISZ · M MIKROFON · P OSOBA · I ZAGADYWANIE · S STUDIO${config.cloud ? ' · U DOMOWNICY · K KALENDARZ · Z PROPOZYCJE' : ''}`, false, false));
-  }
+  // Who he is talking with and how to reach him: one quiet line in the top bar, not a panel row.
+  $('who').textContent = s.link === 'solo'
+    ? `· ${s.person.toUpperCase()} · ${s.handsfree ? 'POWIEDZ „ALAN”' : 'SPACJA = MÓW'}${s.initiative ? '' : ' · BEZ ZAGADYWANIA'} · ? POMOC`
+    : '';
   $('vitals').replaceChildren(...vitals);
+  // The panel only appears when there is something to read in it (sensors, timers, presence).
+  document.querySelector('.panel').hidden = !vitals.length && !$('rooms').childElementCount;
 
   // One more render when the newest glow runs out, to drop the class.
   clearTimeout(flashTimer);
@@ -158,8 +157,8 @@ function render(s, config) {
 
 function clock() {
   const now = new Date();
-  $('clock').textContent = now.toLocaleDateString('pl-PL', { weekday: 'short', day: '2-digit', month: '2-digit' })
-    + '  ' + now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  $('clock').textContent = now.toLocaleDateString('pl-PL', { weekday: 'short', day: 'numeric', month: 'numeric' }).replace(',', '')
+    + ' · ' + now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 }
 
 export function startUI(config) {

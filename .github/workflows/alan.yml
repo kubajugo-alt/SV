@@ -40,6 +40,7 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
           claude_args: '--allowedTools "Bash,Read,Write,Edit,Glob,Grep"'
+          show_full_output: true      # the run's own log shows why it stopped (the repository is private)
           prompt: |
             You maintain ALAN, a home assistant, in this repository. A member of the household asked him aloud
             to learn something new or to change how he works; ALAN opened issue #${{ github.event.issue.number }} with the request.

@@ -1,0 +1,40 @@
+# Deploys ALAN's site to Netlify whenever main changes: a merged pull request, including one of
+# ALAN's own proposals approved with the Z key. The site is not linked to Git inside Netlify, so
+# this does what that link would. Needs the repository secret NETLIFY_AUTH_TOKEN (a personal access
+# token from Netlify); without it the job does nothing. Build settings come from netlify.toml.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: acadf0a0-d139-4291-a22c-635c2673afed
+    steps:
+      - name: Without a Netlify token there is nothing to do
+        if: env.NETLIFY_AUTH_TOKEN == ''
+        run: echo "NETLIFY_AUTH_TOKEN is not set; skipping the deploy."
+      - uses: actions/checkout@v4
+        if: env.NETLIFY_AUTH_TOKEN != ''
+      - uses: actions/setup-node@v4
+        if: env.NETLIFY_AUTH_TOKEN != ''
+        with:
+          node-version: "22"
+      - name: Dependencies
+        if: env.NETLIFY_AUTH_TOKEN != ''
+        run: npm ci
+      - name: Build and deploy to production
+        if: env.NETLIFY_AUTH_TOKEN != ''
+        run: npx --yes netlify-cli@17 deploy --build --prod --message "main ${GITHUB_SHA::7}"
