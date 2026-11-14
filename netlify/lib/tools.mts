@@ -2,18 +2,18 @@
 // weather from online.py. Each returns a sentence in Polish; "Wykonano" marks a
 // change he made, "Błąd" something that could not be done.
 import type Anthropic from "@anthropic-ai/sdk";
-import { DAYS, dmy, hm, instant, local, span } from "./clock.mts";
+import { DAYS, dmy, hm, instant, local, safeZone, span } from "./clock.mts";
 import { describe, occurrences, parse, readCalendars } from "./diary.mts";
 import { addEvent, changeEvent, type Google } from "./gcal.mts";
 import { callOutcome, CALLS_A_DAY, placeCall, polishNumber, type Phone } from "./phone.mts";
-import { parseMemories, recallPast } from "./past.mts";
+import { bestSections, parseMemories, recallPast } from "./past.mts";
 import { findPlaces, loadPlaces, TOWNS } from "./places.mts";
 import type { Cameras } from "./cameras.mts";
 import { moved, newEvent, onDay, toIcs, whenText } from "./owncal.mts";
-import { loadOwn, type Own, type Store } from "./store.mts";
+import { placeOf, loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
 import { keepMoment } from "./bond.mts";
-import { MEMORIES } from "./texts.gen.mjs";
+import { MEMORIES, TRAVEL } from "./texts.gen.mjs";
 
 export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; youtube?: string; fetcher?: typeof fetch };
 /**
@@ -41,7 +41,14 @@ export const TOOLS: Anthropic.Tool[] = [
   tool("find_notes", "Szuka w notatkach rozmówcy albo podaje ostatnie.",
     { query: text("czego dotyczą; puste = wszystkie z okresu"), days: { type: "integer", description: "z ilu ostatnich dni, domyślnie 30" } }),
   tool("recall_talk", "Szuka w dawnych rozmowach z rozmówcą, co kto kiedy powiedział.", { query: text("słowa kluczowe") }, ["query"]),
-  tool("set_place", "Zapisuje, w jakim mieście rozmówca teraz jest, żeby pogoda dotyczyła tego miejsca.", { place: text("miasto w mianowniku, np. Las Palmas") }, ["place"]),
+  tool("set_place", "Zapisuje, w jakim mieście rozmówca teraz jest (dowolne miasto na świecie, także powrót do Tarnobrzega), żeby pogoda i godzina dotyczyły tego miejsca. " +
+    "Używaj, gdy rozmówca mówi, że dokądś doleciał, dojechał albo wrócił.", { place: text("miasto w mianowniku, z krajem, gdy niejasne, np. Las Palmas, Porto, Austin USA") }, ["place"]),
+  tool("travel_guide", "Twój praktyczny przewodnik podróżny: dokumenty i zezwolenia (ESTA, ETA), napiwki, transport z lotniska i po mieście, gniazdka, roaming, znaczki, różnice czasu, " +
+    "zwyczaje i pułapki w miejscach, do których domownicy jeżdżą (Nowy Jork, Miami, Barcelona, Davos i Szwajcaria, Lizbona, Londyn, Gran Canaria, Frankfurt, Singapur, Santo Domingo), " +
+    "i lista rzeczy przed wyjazdem. Sprawdź tu najpierw; aktualne ceny, godziny otwarcia, wydarzenia, strajki i miejsca spoza listy sprawdzaj w sieci.",
+    { query: text("miejsce i temat, np. Nowy Jork lotnisko JFK, Barcelona napiwki, Londyn wjazd") }, ["query"]),
+  tool("exchange", "Aktualny kurs walut (Europejski Bank Centralny, dni robocze) i przeliczenie kwoty, np. ile to złotych.",
+    { amount: { type: "number", description: "kwota, domyślnie 1" }, from: text("waluta źródłowa, kod ISO, np. USD"), to: text("waluta docelowa, kod ISO, domyślnie PLN") }, ["from"]),
   tool("reading_time", "Liczy, ile potrwa przeczytanie na głos podanego tekstu.", { text: { type: "string" } }, ["text"]),
   tool("recall_past", "Twoje własne wspomnienia: życie Alana Sanchesa, ludzie, których znałeś, romanse, Lizbona 1995 i Gran Canaria 1996. " +
     "Używaj, gdy rozmówca pyta o twoją przeszłość.", { query: text("imiona, miejsca, słowa kluczowe pytania") }, ["query"]),
@@ -134,6 +141,7 @@ const WMO: Record<number, string> = {
 };
 const num = (value: number, digits = 0) => value.toFixed(digits).replace(".", ",");
 const memories = parseMemories(MEMORIES);
+const travel = parseMemories(TRAVEL);
 /** A song or playlist from a YouTube or YouTube Music link. */
 export function youtubeId(link: string): { kind: "video" | "list"; id: string } | undefined {
   let url: URL;
@@ -174,7 +182,7 @@ function showReminders(own: Own, ctx: Ctx): string {
 }
 
 async function weather(own: Own, ctx: Ctx): Promise<string> {
-  const place = own.place ?? HOME;
+  const place = placeOf(own, ctx.person) ?? HOME;
   const url = "https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({
     latitude: String(place.lat), longitude: String(place.lon), timezone: place.tz, forecast_days: "3",
     current: "temperature_2m,weather_code,wind_speed_10m",
@@ -322,12 +330,43 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         return (about ? `Streszczenia: ${about} ` : "") + "Z dawnych rozmów: " + hits.map((t) => `[${dmy(local(new Date(t.at), ctx.tz))}] ${t.role === "user" ? capital(person) : "ty"}: ${t.text.slice(0, 300)}`).join(" ");
       }
       case "set_place": {
-        const key = plain(String(input.place ?? ""));
+        const asked = String(input.place ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+        const key = plain(asked);
         const found = Object.entries(PLACES).find(([k]) => key.includes(k))?.[1];
-        if (!found) return `Błąd: nie znam współrzędnych miejsca '${input.place}'. Znam: ${[...new Set(Object.values(PLACES).map((p) => p[0]))].sort().join(", ")}.`;
-        own.place = { name: found[0], where: found[1], lat: found[2], lon: found[3], tz: found[4] };
+        if (found) {
+          own.place = found[0] === HOME.name ? null : { name: found[0], where: found[1], lat: found[2], lon: found[3], tz: found[4], who: person };
+          await save();
+          return `Wykonano: zapisano, że jesteście teraz w ${found[1]}.`;
+        }
+        // Anywhere else: where it is on the map, and its time zone (Open-Meteo gives it for any point).
+        const geo = await (ctx.fetcher ?? fetch)(`https://nominatim.openstreetmap.org/search?${new URLSearchParams({ q: asked, format: "jsonv2", limit: "1", "accept-language": "pl" })}`,
+          { headers: { "User-Agent": "alan-home-assistant/1.0" }, signal: AbortSignal.timeout(6000) }).catch(() => null);
+        const hit = geo?.ok ? ((await geo.json()) as { lat: string; lon: string; name?: string; display_name: string }[])[0] : undefined;
+        if (!hit) return `Błąd: nie znalazłem na mapie miejsca '${asked}'.`;
+        const lat = Number(hit.lat), lon = Number(hit.lon);
+        const zone = await (ctx.fetcher ?? fetch)(`https://api.open-meteo.com/v1/forecast?${new URLSearchParams({ latitude: String(lat), longitude: String(lon), timezone: "auto", current: "temperature_2m" })}`,
+          { signal: AbortSignal.timeout(6000) }).catch(() => null);
+        const tz = zone?.ok ? String(((await zone.json()) as { timezone?: string }).timezone ?? "") : "";
+        const name = (hit.name || hit.display_name.split(",")[0]).trim();
+        own.place = { name, where: name, lat, lon, tz: safeZone(tz), who: person };
         await save();
-        return `Wykonano: zapisano, że jesteście teraz w ${found[1]}.`;
+        return `Wykonano: zapisano, że jesteście teraz w: ${name} (${hit.display_name.split(",").slice(-1)[0].trim()}), strefa czasowa ${own.place.tz}.`;
+      }
+      case "travel_guide": {
+        const found = bestSections(travel, String(input.query ?? ""));
+        if (!found.length) return "W przewodniku nic o tym nie ma; sprawdź w sieci.";
+        return "Twój przewodnik: " + found.map((s) => `„${s.title}”: ${s.text}`).join(" ") + " Ceny i przepisy oznaczone (sprawdź) potwierdź w sieci, zanim podasz je jako pewne.";
+      }
+      case "exchange": {
+        const from = String(input.from ?? "").trim().toUpperCase(), to = String(input.to ?? "PLN").trim().toUpperCase();
+        const amount = Number(input.amount ?? 1) || 1;
+        if (!/^[A-Z]{3}$/.test(from) || !/^[A-Z]{3}$/.test(to)) return "Błąd: podaj kody walut, np. USD i PLN.";
+        if (from === to) return `${amount} ${from} to ${amount} ${to}.`;
+        const res = await (ctx.fetcher ?? fetch)(`https://api.frankfurter.app/latest?${new URLSearchParams({ amount: String(amount), from, to })}`, { signal: AbortSignal.timeout(6000) }).catch(() => null);
+        const data = res?.ok ? ((await res.json()) as { date?: string; rates?: Record<string, number> }) : null;
+        const value = data?.rates?.[to];
+        if (!value) return `Błąd: nie mam kursu ${from}/${to} (Europejski Bank Centralny podaje tylko główne waluty); sprawdź w sieci.`;
+        return `${num(amount, amount % 1 ? 2 : 0)} ${from} to ${num(value, 2)} ${to} (kurs EBC z ${data!.date}; w kantorze i na karcie bywa gorzej o 1–3%).`;
       }
       case "reading_time": {
         const words = (String(input.text ?? "").match(/[\p{L}\p{N}]+/gu) ?? []).length;

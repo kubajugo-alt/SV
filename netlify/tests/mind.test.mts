@@ -66,6 +66,7 @@ test("tools run, their results go back in one message, failures are marked", asy
   const { mind, seen } = fakeMind(
     [[thinking, call("take_note", { text: "Ślimaki w sosie szarym" }), call("set_place", { place: "Ułan Bator" })], "tool_use"],
     [[text("Zapisane. A gdzie leży Ułan Bator, nie wiem.")], "end_turn"]);
+  mind.fetcher = (async () => Response.json([])) as typeof fetch;          // the map does not know the place: no network in a test
   const out = await respond(mind, at, "Zapisz pomysł i ustaw miejsce");
   assert.deepEqual(out.actions.map((a) => a.ok), [true, false]);
   const second = seen[1].messages;
@@ -524,4 +525,32 @@ test("mixed voice: lines with a voice tag go to v3, the rest stay fast; tags nev
   const t = spokenOnly([..."a [laughs] b"], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   assert.equal(t.chars.join(""), "a  b");
   assert.deepEqual(t.starts, [0, 1, 10, 11]);
+});
+
+test("travel: the guide, currency, any city with its time zone, and the clock at home for the one away", async () => {
+  const ctx = { store: memoryStore(), ...at, calendars: [] as string[], fetcher: (async (url: any) => {
+    const u = String(url);
+    if (u.includes("frankfurter")) return Response.json({ amount: 20, base: "USD", date: "2026-11-13", rates: { PLN: 73.4 } });
+    if (u.includes("nominatim")) return Response.json([{ lat: "30.2672", lon: "-97.7431", name: "Austin", display_name: "Austin, Travis County, Teksas, Stany Zjednoczone" }]);
+    if (u.includes("open-meteo")) return Response.json({ timezone: "America/Chicago" });
+    return Response.json({});
+  }) as typeof fetch };
+  assert.match(await runTool("travel_guide", { query: "Nowy Jork lotnisko JFK" }, ctx), /AirTrain/);
+  assert.match(await runTool("travel_guide", { query: "znaczki nowy jork" }, ctx), /Global Forever/);
+  assert.match(await runTool("travel_guide", { query: "Londyn wjazd" }, ctx), /ETA/);
+  assert.equal(await runTool("exchange", { amount: 20, from: "usd" }, ctx), "20 USD to 73,40 PLN (kurs EBC z 2026-11-13; w kantorze i na karcie bywa gorzej o 1–3%).");
+  assert.match(await runTool("set_place", { place: "Austin USA" }, ctx), /Austin \(Stany Zjednoczone\), strefa czasowa America\/Chicago/);
+  const { mind, seen, store } = fakeMind([[text("Witaj w Teksasie.")], "end_turn"], [[text("Kuba w Teksasie.")], "end_turn"]);
+  await store.set("own", await ctx.store.get("own"));
+  await respond(mind, { ...at, tz: "America/Chicago" }, "Doleciałem");
+  const forKuba = seen[0].system[1].text;
+  assert.match(forKuba, /Kuba jest teraz w: Austin/);
+  assert.match(forKuba, /W domu, w Tarnobrzegu, jest piątek, godzina 09:00/);
+  assert.match(forKuba, /w podróży/);
+  await respond(mind, { ...at, person: "hubert" }, "Gdzie jest Kuba?");
+  const forHubert = seen[1].system[1].text;
+  assert.match(forHubert, /Hubert jest w domu; Kuba jest teraz w: Austin \(tam jest godzina 02:00\)/);
+  assert.doesNotMatch(forHubert, /w podróży/);
+  assert.match(await runTool("set_place", { place: "Tarnobrzeg" }, ctx), /Tarnobrzegu/);
+  assert.equal((await loadOwn(ctx.store)).place, null);
 });

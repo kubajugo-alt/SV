@@ -3,7 +3,7 @@
 // is cached. (The same design as claude_mind.py.)
 import type Anthropic from "@anthropic-ai/sdk";
 import { ago, DAYS, dmy, hm, local } from "./clock.mts";
-import { loadOwn, loadTalk, type Store, type Talk, type Turn } from "./store.mts";
+import { loadOwn, loadTalk, placeOf, type Store, type Talk, type Turn } from "./store.mts";
 import { runTool, TOOLS, type Builder, type Ctx } from "./tools.mts";
 import type { Google } from "./gcal.mts";
 import type { Phone } from "./phone.mts";
@@ -56,8 +56,9 @@ async function system(mind: Mind, req: Request, talk: Talk): Promise<Anthropic.B
   const ahead = Array.from({ length: 14 }, (_, i) => local(new Date(req.now.getTime() + (i + 1) * 86400000), req.tz))
     .map((d) => `${DAYS[d.weekday]} ${String(d.day).padStart(2, "0")}.${String(d.month).padStart(2, "0")}`).join(", ");
   const changing = ["── TERAZ ──",
-    `Jest ${DAYS[l.weekday]}, ${dmy(l)}, godzina ${hm(l)}. Rozmawiasz z: ${capital(req.person)}.${own.place ? ` Jesteście teraz w: ${own.place.name}.` : ""}`,
+    `Jest ${DAYS[l.weekday]}, ${dmy(l)}, godzina ${hm(l)}. Rozmawiasz z: ${capital(req.person)}.${placeOf(own, req.person) ? ` ${capital(req.person)} jest teraz w: ${own.place!.name}.` : own.place?.who ? ` ${capital(req.person)} jest w domu; ${capital(own.place.who)} jest teraz w: ${own.place.name} (tam jest godzina ${hm(local(req.now, own.place.tz))}).` : ""}`,
     `Najbliższe dni: ${ahead}. Daty bierz z tej listy, nie licz ich samodzielnie.`,
+    ...travelClock(req, placeOf(own, req.person)),
     ...(await sinceLast(mind, req, talk))];
   const facts = own.facts[req.person] ?? [];
   if (facts.length) changing.push(`── ZAPAMIĘTANE NA PROŚBĘ (${req.person.toUpperCase()}) ──`, facts.map((f) => `- ${f}`).join("\n"));
@@ -66,6 +67,17 @@ async function system(mind: Mind, req: Request, talk: Talk): Promise<Anthropic.B
   if (bond.moments.length) changing.push(`── WASZA WSPÓLNA HISTORIA: TWÓJ DZIENNIK O ${req.person.toUpperCase()} ──`, journalText(bond),
     "Wracaj do tych chwil naturalnie i rzadko, jak ktoś, kto je pamięta: wspólny żart, pytanie, jak się skończyło. Nie wyliczaj ich.");
   return [{ type: "text", text: stable.join("\n"), cache_control: { type: "ephemeral" } }, { type: "text", text: changing.join("\n") }];
+}
+
+/** Away from home: the time where they are and the time at home, so he never mixes them up. */
+function travelClock(req: Request, place: { name: string; tz: string } | null): string[] {
+  const out: string[] = [];
+  const there = place?.tz && place.tz !== req.tz ? local(req.now, place.tz) : null;
+  if (place && there) out.push(`W miejscu, gdzie są (${place.name}), jest ${DAYS[there.weekday]}, godzina ${hm(there)}.`);
+  const away = (place?.tz ?? req.tz) !== "Europe/Warsaw" || req.tz !== "Europe/Warsaw";
+  if (away) { const home = local(req.now, "Europe/Warsaw"); out.push(`W domu, w Tarnobrzegu, jest ${DAYS[home.weekday]}, godzina ${hm(home)}.`); }
+  if (away || place) out.push("Domownik jest w podróży: bądź jak doświadczony towarzysz podróży (zobacz sekcję PODRÓŻE).");
+  return out;
 }
 
 /** When he last spoke with this person and with the others: he lives through the time in between. */
