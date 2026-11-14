@@ -4,10 +4,9 @@
 
 import { store } from './store.js';
 import { prepare, prepared, speakStream, takeInterrupted } from './speech.js';
+import { pickFiller, someFillers, TOPIC_LINES, topicOf } from './fillers.js';
 
-// What he mutters while the answer is on its way, so the pause is his and not the machine's.
-// Recorded once per visit, then said from memory.
-const FILLERS = ['Hmm.', 'Chwileczkę.', 'Niech pomyślę.', 'Momencik.', 'Zaraz, zaraz.', 'Dobre pytanie.', 'No dobrze.'];
+// What he says while the answer is on its way (fillers.js), so the pause is his and not the machine's.
 const FILLER_AFTER = 900;   // ms of silence before he says one
 // What he murmurs while you talk to him at length (mic.js), recorded along with the fillers.
 export const BACKCHANNEL = ['Mhm.', 'Aha.', 'No.'];
@@ -21,9 +20,11 @@ export function startChat(config) {
 
   let waiting = false;
   let exchange = 0;
-  let lastFiller = '';
+  const recentFillers = [];
   // The first click or key unlocks the sound; a moment later his mutters are recorded, ready for the first question.
-  for (const type of ['pointerdown', 'keydown']) addEventListener(type, () => setTimeout(() => prepare([...FILLERS, ...BACKCHANNEL]), 600), { once: true });
+  let readied = false;
+  const ready = () => { if (!readied) { readied = true; setTimeout(() => prepare([...someFillers(2), ...BACKCHANNEL]), 600); } };
+  for (const type of ['pointerdown', 'keydown']) addEventListener(type, ready, { once: true });
   // Talked over (speech.js interrupt()): the reply still being written is abandoned, so the next question is heard.
   let cancel = null;
   addEventListener('alan:interrupted', () => {
@@ -49,14 +50,17 @@ export function startChat(config) {
       if (!spoken++) store.set({ alan: 'idle' });   // the voice shows "thinking" itself while a line is prepared
       speaker.push(line);
     };
-    // If the answer is slow to start, he fills the silence with one of his recorded mutters (never the same twice running).
-    const recorded = FILLERS.filter((line) => prepared(line) && line !== lastFiller);
+    // If the answer is slow to start, he fills the silence with a recorded line that fits the question
+    // (not one of the last few). A greeting is answered fast enough to need none.
+    const greeting = text.split(/\s+/).length <= 3 && /^(hej|cześć|siema|dzień dobry|dobry wieczór|dobranoc|halo|elo)\b/i.test(text);
     const filler = setTimeout(() => {
-      if (spoken || !recorded.length) return;
-      lastFiller = recorded[Math.floor(Math.random() * recorded.length)];
-      speaker.push(lastFiller);
+      const line = !spoken && !greeting && pickFiller(text, prepared, recentFillers);
+      if (!line) return;
+      recentFillers.push(line);
+      if (recentFillers.length > 5) recentFillers.shift();
+      speaker.push(line);
     }, FILLER_AFTER);
-    prepare(FILLERS);
+    prepare(TOPIC_LINES[topicOf(text)]);   // the rest of this kind, for the next time
     const abort = cancel = new AbortController();
     const interrupted = takeInterrupted();   // he was cut off last time: the server learns how much was heard
     try {
