@@ -15,7 +15,7 @@ export default async (req: Request) => {
   if (!key) return new Response("No voice: ELEVENLABS_API_KEY is not set", { status: 503 });
   const voice = Netlify.env.get("ALAN_ELEVEN_VOICE") ?? ROGER;
   // Mixed voice: the fast model for ordinary lines; a line with a voice tag goes to the expressive one (lib/voice.mts).
-  const plan = voicePlan(raw, Netlify.env.get("ALAN_ELEVEN_MODEL") ?? "eleven_flash_v2_5", Netlify.env.get("ALAN_ELEVEN_EXPRESSIVE") ?? "eleven_v3");
+  const plan = voicePlan(raw, Netlify.env.get("ALAN_ELEVEN_MODEL") ?? "eleven_flash_v2_5", Netlify.env.get("ALAN_ELEVEN_EXPRESSIVE") ?? "");   // off: v3 made bad mistakes in Polish; set e.g. eleven_v3 to try again
   const call = (path: string, model: string, text: string) => fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}${path}?output_format=mp3_44100_128`, {
     method: "POST",
     headers: { "xi-api-key": key, "Content-Type": "application/json" },
