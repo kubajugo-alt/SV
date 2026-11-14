@@ -23,10 +23,12 @@ head".
   desk hides his legs.
 - The room has three paintings chosen by the clock: day (7–16), sunset
   (16–19) and the rainy night. They do not follow the real weather. Left alone
-  for a while he picks up a book or a coffee (`read.webp`, `coffee.webp`);
-  after a line that calls for it he laughs or looks sheepish for a moment
-  (`laugh`, `shy`, chosen by words in what he said); Pessoa the cat
-  (`art/cat.webp`) comes and goes on the desk.
+  for a while he plays a short scene: reads, drinks a coffee, lights and smokes
+  a cigarette, stretches, writes (`read`, `coffee`, `sip`, `light`, `smoke`,
+  `drag`, `stretch`, `write`); after a line that calls for it he laughs or
+  looks sheepish for a moment (`laugh`, `shy`, chosen by words in what he said).
+  Rain, the town's lights, a passing car, birds, smoke, the turning record and
+  the clock's real time are drawn in code.
 - Idle he blinks and now and then smirks; listening he leans in with raised
   brows; thinking he looks away; an alert alarms him and turns the room red.
   While he speaks the mouth follows the cues the server sends with the audio
