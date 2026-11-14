@@ -4,11 +4,19 @@ import { DEFAULT_CAMERAS, parseCameras } from "./cameras.mts";
 import { safeZone } from "./clock.mts";
 import type { Mind } from "./mind.mts";
 import { blobStore } from "./store.mts";
+import { parsePeople, type WhatsApp } from "./whatsapp.mts";
 
 /** The phone: an ElevenLabs agent and the number it calls from. */
 export function phone() {
   const p = { key: Netlify.env.get("ELEVENLABS_API_KEY") ?? "", agent: Netlify.env.get("ALAN_CALL_AGENT_ID") ?? "", number: Netlify.env.get("ALAN_CALL_NUMBER_ID") ?? "" };
   return p.key && p.agent && p.number ? p : undefined;
+}
+
+/** Alan's WhatsApp number (lib/whatsapp.mts): all five settings, or none. */
+export function whatsapp(): WhatsApp | undefined {
+  const get = (k: string) => Netlify.env.get(k) ?? "";
+  const wa = { token: get("WHATSAPP_TOKEN"), phoneId: get("WHATSAPP_PHONE_ID"), appSecret: get("WHATSAPP_APP_SECRET"), verify: get("WHATSAPP_VERIFY_TOKEN"), people: parsePeople(get("ALAN_WHATSAPP_PEOPLE")) };
+  return wa.token && wa.phoneId && wa.appSecret && wa.verify && wa.people.size ? wa : undefined;
 }
 
 /** Who changes his code: a Claude Code routine when its token is set, else the GitHub repository (issues picked up by a workflow). */

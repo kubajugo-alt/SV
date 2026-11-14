@@ -4,31 +4,10 @@
 // ("[śmiech] no to dobranoc"), so he hears the tone of voice as well as the words.
 import type { Config } from "@netlify/functions";
 import { guard } from "../lib/auth.mts";
+import { heard } from "../lib/hearing.mts";
+export { heard } from "../lib/hearing.mts";   // the tests import it from here
 
 const WAKE = /^[\s\p{P}]*(?:(?:hej|ej|cześć|halo|słuchaj|no)[\s\p{P}]+)?al+an(?:ie|ku)?(?![\p{L}])/iu;
-// Scribe names its events in English; the household speaks Polish. Others pass as they come.
-const EVENTS: [RegExp, string][] = [
-  [/laugh|chuckl|giggl|śmiech/i, "śmiech"],
-  [/sigh|westchn/i, "westchnienie"],
-  [/cough|kaszel/i, "kaszel"],
-  [/yawn|ziew/i, "ziewnięcie"],
-  [/cry|sob|płacz/i, "płacz"],
-  [/clap|oklaski/i, "oklaski"],
-];
-
-type Word = { text?: string; type?: string };
-
-/** The words, and the sounds that were not words, of a Scribe answer. */
-export function heard(answer: { text?: string; words?: Word[] }) {
-  const words = Array.isArray(answer.words) ? answer.words : [];
-  const events = words.filter((w) => w.type === "audio_event").map((w) => String(w.text ?? "").replace(/[()[\]]/g, "").trim()).filter(Boolean);
-  if (!events.length) return { text: String(answer.text ?? "").trim(), tone: "" };
-  const text = words.filter((w) => w.type !== "audio_event").map((w) => w.text ?? "").join("").replace(/\s+/g, " ").trim();
-  const named = events.map((e) => EVENTS.find(([pattern]) => pattern.test(e))?.[1] ?? e.toLowerCase().slice(0, 20));
-  const tone = [...new Set(named)].slice(0, 2).map((e) => `[${e}]`).join(" ");
-  return { text, tone };
-}
-
 export default async (req: Request) => {
   const denied = guard(req);
   if (denied) return denied;
