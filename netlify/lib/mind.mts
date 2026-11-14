@@ -2,7 +2,7 @@
 // keeps the character and uses tools; the unchanging part of his instructions
 // is cached. (The same design as claude_mind.py.)
 import type Anthropic from "@anthropic-ai/sdk";
-import { DAYS, dmy, hm, local } from "./clock.mts";
+import { ago, DAYS, dmy, hm, local } from "./clock.mts";
 import { loadOwn, loadTalk, type Store, type Talk, type Turn } from "./store.mts";
 import { runTool, TOOLS, type Builder, type Ctx } from "./tools.mts";
 import type { Google } from "./gcal.mts";
@@ -52,13 +52,44 @@ async function system(mind: Mind, req: Request, talk: Talk): Promise<Anthropic.B
     .map((d) => `${DAYS[d.weekday]} ${String(d.day).padStart(2, "0")}.${String(d.month).padStart(2, "0")}`).join(", ");
   const changing = ["── TERAZ ──",
     `Jest ${DAYS[l.weekday]}, ${dmy(l)}, godzina ${hm(l)}. Rozmawiasz z: ${capital(req.person)}.${own.place ? ` Jesteście teraz w: ${own.place.name}.` : ""}`,
-    `Najbliższe dni: ${ahead}. Daty bierz z tej listy, nie licz ich samodzielnie.`];
+    `Najbliższe dni: ${ahead}. Daty bierz z tej listy, nie licz ich samodzielnie.`,
+    ...(await sinceLast(mind, req, talk))];
   const facts = own.facts[req.person] ?? [];
   if (facts.length) changing.push(`── ZAPAMIĘTANE NA PROŚBĘ (${req.person.toUpperCase()}) ──`, facts.map((f) => `- ${f}`).join("\n"));
   if (talk.notes) changing.push(`── PAMIĘĆ: CO WIESZ O ${req.person.toUpperCase()} Z WCZEŚNIEJSZYCH ROZMÓW ──`, talk.notes);
   if (bond.moments.length) changing.push(`── WASZA WSPÓLNA HISTORIA: TWÓJ DZIENNIK O ${req.person.toUpperCase()} ──`, journalText(bond),
     "Wracaj do tych chwil naturalnie i rzadko, jak ktoś, kto je pamięta: wspólny żart, pytanie, jak się skończyło. Nie wyliczaj ich.");
   return [{ type: "text", text: stable.join("\n"), cache_control: { type: "ephemeral" } }, { type: "text", text: changing.join("\n") }];
+}
+
+/** When he last spoke with this person and with the others: he lives through the time in between. */
+async function sinceLast(mind: Mind, req: Request, talk: Talk): Promise<string[]> {
+  const when = (iso: string) => { const l = local(new Date(iso), req.tz); return `${ago(req.now.getTime() - new Date(iso).getTime())} (${DAYS[l.weekday]} ${dmy(l)}, ${hm(l)})`; };
+  const lines: string[] = [];
+  const mine = talk.turns.at(-1)?.at;
+  lines.push(mine ? `Ostatnia rozmowa — ${capital(req.person)}: ${when(mine)}.` : `Ostatnia rozmowa — ${capital(req.person)}: dawno albo jeszcze nigdy.`);
+  for (const key of await mind.store.list("talk/")) {
+    const other = key.slice(5);
+    if (other === req.person) continue;
+    const last = (await mind.store.get<Talk>(key))?.turns.at(-1)?.at;
+    if (last) lines.push(`Ostatnia rozmowa — ${capital(other)}: ${when(last)}.`);
+  }
+  lines.push("Między rozmowami czas płynie także dla ciebie: siedzisz w swoim pokoju, czytasz, pijesz kawę, palisz, patrzysz w okno. " +
+    "Czuj, ile minęło, i zachowuj się odpowiednio: po kilku minutach po prostu ciągniesz rozmowę; po nocy witasz się inaczej niż po godzinie; " +
+    "po dniach albo tygodniach zauważasz to po swojemu (że się stęskniłeś, że myślałeś, że wyjechali), a gdy coś wtedy było w toku, pytasz, jak się skończyło. " +
+    "Nie podawaj dokładnych godzin ani wyliczeń; mów o czasie tak, jak mówi człowiek.");
+  return lines;
+}
+
+/** The turns he is given, with a mark wherever time passed between them. */
+function withGaps(turns: Turn[], tz: string): Anthropic.Beta.BetaMessageParam[] {
+  return turns.map((t, i) => {
+    const prev = turns[i - 1];
+    const gap = prev ? new Date(t.at).getTime() - new Date(prev.at).getTime() : 0;
+    if (t.role !== "user" || gap < 45 * 60000) return { role: t.role, content: t.text };
+    const l = local(new Date(t.at), tz);
+    return { role: t.role, content: `[${ago(gap).replace(" temu", "")} później: ${DAYS[l.weekday]} ${dmy(l)}, ${hm(l)}] ${t.text}` };
+  });
 }
 
 async function ask(mind: Mind, sys: Anthropic.Beta.BetaTextBlockParam[] | string, messages: Anthropic.Beta.BetaMessageParam[], tools = false, maxTokens = 4000,
@@ -80,7 +111,7 @@ async function ask(mind: Mind, sys: Anthropic.Beta.BetaTextBlockParam[] | string
 
 async function converse(mind: Mind, req: Request, talk: Talk, said: string, onText?: (delta: string) => void) {
   const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, youtube: mind.youtube, fetcher: mind.fetcher };
-  const messages: Anthropic.Beta.BetaMessageParam[] = [...talk.turns.map((t) => ({ role: t.role, content: t.text })), { role: "user", content: said }];
+  const messages: Anthropic.Beta.BetaMessageParam[] = [...withGaps(talk.turns, req.tz), { role: "user", content: said }];
   const sys = await system(mind, req, talk);
   const actions: { ok: boolean; text: string }[] = [];
   let response = await ask(mind, sys, messages, true, 4000, onText);
@@ -192,7 +223,7 @@ export async function nudge(mind: Mind, req: Request, kind: string) {
     const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, youtube: mind.youtube, fetcher: mind.fetcher };
     said += ` Dane do odprawy: ${await runTool("briefing", {}, ctx)}`;
   }
-  const messages: Anthropic.Beta.BetaMessageParam[] = [...talk.turns.map((t) => ({ role: t.role, content: t.text })), { role: "user", content: said + "]" }];
+  const messages: Anthropic.Beta.BetaMessageParam[] = [...withGaps(talk.turns, req.tz), { role: "user", content: said + "]" }];
   const response = await ask(mind, await system(mind, req, talk), messages);
   const reply = response.stop_reason === "refusal" ? "" : clean(textOf(response));
   if (!reply) return { reply: "", after: async () => {} };
