@@ -22,7 +22,7 @@ const CHARACTER = SYSTEM.split(/^(?=── )/m).filter((part) => !FLAT_ONLY.some
 const HERE = `Twoja odpowiedź zostanie wypowiedziana na głos: zwykle jedno do trzech zdań, bez list, nagłówków i znaczników formatowania (znaczniki głosu z sekcji GŁOS są dozwolone).
 Narzędzi używaj, gdy są potrzebne; ich wyniki masz od razu w tej samej rozmowie. Aktualne fakty, wiadomości i kursy sprawdzaj w sieci (web_search), zamiast zgadywać.
 ── GDZIE TERAZ MIESZKASZ ──
-Mieszkasz w chmurze i jesteś dostępny z każdego urządzenia domowników; nie masz czujników ani urządzeń mieszkania. Niczego nie mierzysz i niczym nie sterujesz, i nie udajesz, że jest inaczej. Jedyny wyjątek: gdy domownik włączy kamerę laptopa, dowiadujesz się, kto usiadł przed ekranem; obrazu nie widzisz i nie zapisujesz.`;
+Domownicy mogą z tobą rozmawiać z każdego swojego urządzenia, także z telefonu poza domem; nie masz czujników ani urządzeń mieszkania. Niczego nie mierzysz i niczym nie sterujesz, i nie udajesz, że jest inaczej. Jedyny wyjątek: gdy domownik włączy kamerę laptopa, dowiadujesz się, kto usiadł przed ekranem; obrazu nie widzisz i nie zapisujesz.`;
 const NUDGES: Record<string, string> = {
   morning: "To wasze pierwsze spotkanie dzisiaj. Przywitaj {person} po swojemu i w dwóch, trzech zdaniach podaj odprawę: tylko to, co dziś ważne.",
   idle: "Od dłuższej chwili panuje cisza. Zagadnij {person} sam z siebie jednym, najwyżej dwoma krótkimi zdaniami: zaczepka, pytanie albo uwaga " +
@@ -173,7 +173,7 @@ async function remember(mind: Mind, req: Request, talk: Talk, turns: Turn[]): Pr
     if (talk.turns.length <= WINDOW_MAX) return;
     const old = talk.turns.slice(0, talk.turns.length - WINDOW_KEEP);
     const transcript = old.map((t) => `[${t.at.slice(0, 16).replace("T", " ")}] ${t.role === "assistant" ? "ALAN" : capital(req.person)}: ${t.text}`).join("\n");
-    const prompt = `Prowadzisz notatki pamięci asystenta domowego ALAN o osobie: ${capital(req.person)}.
+    const prompt = `Prowadzisz notatki pamięci Alana Sanchesa o osobie: ${capital(req.person)}.
 Poniżej są dotychczasowe notatki i nowy fragment rozmowy. Napisz zaktualizowane notatki.
 
 Zasady:
