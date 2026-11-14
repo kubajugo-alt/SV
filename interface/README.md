@@ -67,12 +67,33 @@ Memory, notes, reminders and lists are JSON documents in Netlify Blobs (store
 `alan`); his memories of the games are bundled at build time
 (`scripts/netlify-texts.mjs`). Environment variables, all scoped to Functions:
 
+Every variable the functions read (names only: after a disaster, this is what to put back):
+
 - `ALAN_PASSWORD` — the household's password; without it every function answers 503
 - `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`
-- optional: `ALAN_CLAUDE_MODEL` (default `claude-opus-5-5`), `ALAN_CLAUDE_EFFORT`
-  (`low`), `ALAN_ELEVEN_MODEL` (`eleven_v4`), `ALAN_ELEVEN_VOICE`,
-  `ALAN_CALENDARS` (https addresses of .ics calendars, comma-separated),
-  `ALAN_WEB_SEARCH=off`
+- `ALAN_BACKUP_KEY` — the passphrase that encrypts the backups of his memory. **Keep it in a
+  password manager too**: without it no backup can be read
+- optional: `ALAN_CLAUDE_MODEL` (default `claude-opus-5-5`), `ALAN_CLAUDE_EFFORT` (`low`),
+  `ALAN_ELEVEN_MODEL`, `ALAN_ELEVEN_VOICE`, `ALAN_ELEVEN_STT`, `ALAN_WEB_SEARCH=off`
+- calendars: `ALAN_CALENDARS` (https addresses of .ics calendars, comma-separated);
+  `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `ALAN_CALENDAR_ID` (writing to Google; else his own calendar)
+- changes to himself: `ALAN_GITHUB_TOKEN`, `ALAN_GITHUB_REPO`, or `ALAN_ROUTINE_ID` + `ALAN_ROUTINE_TOKEN`
+- phone calls: `ALAN_CALL_AGENT_ID`, `ALAN_CALL_NUMBER_ID`
+- the weather outside: `WINDY_API_KEY`, `ALAN_WEBCAMS`; music: `YOUTUBE_API_KEY`
+- backups off Netlify: `ALAN_BACKUP_TOKEN` (write access to one private repository only),
+  `ALAN_BACKUP_REPO` (default `kubajugo-alt/alan-pamiec`)
+
+### Backups of his memory
+
+His personality and code are in git. His memory (conversations, notes about the household,
+reminders, lists, his calendar, favourites, music: the `alan` blob store) is photographed every
+night at 3:40 UTC, encrypted with `ALAN_BACKUP_KEY` and kept in the `alan-backups` store: 14
+nightly, 8 weekly, 12 monthly, plus up to 10 taken by hand or just before a restore. Each one is
+opened again right after it is written, to make sure it can be read. On Sundays a copy also goes to the
+private repository, if `ALAN_BACKUP_TOKEN` is set (the last 12 are kept). Key **B** on the page
+lists them, takes one by hand, downloads one (encrypted `.alan`, or readable JSON) and puts one
+back: all of it, or only his lists, or one person's conversations. A restore first backs up the
+present, so it can be undone. He says so, once a day, when no backup has worked for 36 hours.
 
 Values are read at deploy time: change one, then deploy again. `npm test` runs
 the functions' tests against stand-in clients; `npx tsc -p .` checks types.

@@ -14,6 +14,7 @@ export interface Store {
   get<T>(key: string): Promise<T | null>;
   set(key: string, value: unknown): Promise<void>;
   list(prefix: string): Promise<string[]>;
+  delete?(key: string): Promise<void>;
 }
 
 export function blobStore(): Store {
@@ -22,6 +23,7 @@ export function blobStore(): Store {
     get: (key) => store.get(key, { type: "json" }),
     set: async (key, value) => { await store.setJSON(key, value); },
     list: async (prefix) => (await store.list({ prefix })).blobs.map((b) => b.key),
+    delete: async (key) => { await store.delete(key); },
   };
 }
 
@@ -33,6 +35,7 @@ export function memoryStore(seed: Record<string, unknown> = {}): Store & { data:
     get: async (key) => (data.has(key) ? JSON.parse(data.get(key)!) : null),
     set: async (key, value) => { data.set(key, JSON.stringify(value)); },
     list: async (prefix) => [...data.keys()].filter((k) => k.startsWith(prefix)),
+    delete: async (key) => { data.delete(key); },
   };
 }
 

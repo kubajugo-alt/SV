@@ -256,3 +256,9 @@ body[data-flat="dark"] > * { display: none !important; }
 }
 /* With music playing, a map or picture card is lower: it must fit above the desk. */
 body.music-on .note .map canvas, body.music-on .note .picture img { aspect-ratio: auto; height: 6em; max-height: 6em; object-fit: cover; }
+
+/* Key B: the backups. One row per backup, its buttons at the end. */
+.overlay.backups .bk-item { display: flex; justify-content: space-between; align-items: center; gap: 1em; padding: .45em 1em; margin-bottom: .4em; }
+.overlay.backups .bk-item a { margin-right: .6em; }
+.overlay.backups .bk-error { color: #e7a184; }
+.overlay.backups select { font: inherit; background: rgba(0, 0, 0, .3); color: var(--fg); border: 1px solid rgba(214, 173, 108, .55); border-radius: .3em; padding: .2em .4em; }
