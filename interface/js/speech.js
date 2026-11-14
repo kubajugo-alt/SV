@@ -178,12 +178,14 @@ function voiced(text) {
 }
 
 /** Have these lines recorded ahead of need (the little things he says while he thinks). */
+let preparedFailedAt = -Infinity;
 export function prepare(lines) {
+  if (Date.now() - preparedFailedAt < 10 * 60000) return;      // the voice failed lately (no credit?): do not keep paying for retries
   for (const line of lines) {
     if (ready.has(line)) continue;
     const audio = voiced(line);
     ready.set(line, audio);
-    audio.then((got) => { if (!got) ready.delete(line); });      // not recorded this time: try again later
+    audio.then((got) => { if (!got) { ready.delete(line); preparedFailedAt = Date.now(); } });   // not recorded: try again in a while
   }
 }
 
