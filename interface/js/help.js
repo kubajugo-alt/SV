@@ -14,6 +14,7 @@ const CLOUD = [
   ['U', 'co Alan wie o domownikach'],
   ['K', 'adres kalendarza Alana'],
   ['Z', 'propozycje zmian w Alanie'],
+  ['B', 'kopie pamięci Alana'],
 ];
 
 export function startHelp(config) {
