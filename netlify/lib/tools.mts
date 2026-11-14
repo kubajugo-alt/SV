@@ -3,12 +3,13 @@
 // change he made, "Błąd" something that could not be done.
 import type Anthropic from "@anthropic-ai/sdk";
 import { DAYS, dmy, hm, instant, local, span } from "./clock.mts";
-import { describe, occurrences, readCalendars } from "./diary.mts";
+import { describe, occurrences, parse, readCalendars } from "./diary.mts";
 import { addEvent, changeEvent, type Google } from "./gcal.mts";
 import { callOutcome, CALLS_A_DAY, placeCall, polishNumber, type Phone } from "./phone.mts";
 import { parseMemories, recallPast } from "./past.mts";
 import { findPlaces, loadPlaces, TOWNS } from "./places.mts";
 import type { Cameras } from "./cameras.mts";
+import { moved, newEvent, onDay, toIcs, whenText } from "./owncal.mts";
 import { loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
 import { MEMORIES } from "./texts.gen.mjs";
@@ -43,14 +44,14 @@ export const TOOLS: Anthropic.Tool[] = [
   tool("weather", "Aktualna pogoda i prognoza na trzy dni tam, gdzie rozmówca teraz jest."),
   tool("calendar", "Odczytuje kalendarz domowników: wydarzenia danego dnia albo kilku kolejnych dni.",
     { day: text("dziś, jutro albo data RRRR-MM-DD; domyślnie dziś"), days: { type: "integer", description: "ile dni od tego dnia, domyślnie 1" } }),
-  tool("add_event", "Dopisuje wydarzenie do kalendarza Google rozmówcy. Tylko gdy rozmówca wyraźnie o to prosi i znasz dzień; gdy brakuje dnia albo godziny, najpierw dopytaj.",
+  tool("add_event", "Dopisuje wydarzenie do kalendarza domowników. Tylko gdy rozmówca wyraźnie o to prosi i znasz dzień; gdy brakuje dnia albo godziny, najpierw dopytaj.",
     { title: text("krótki tytuł wydarzenia"), start: text("RRRR-MM-DD GG:MM, a dla wydarzenia całodniowego sama data RRRR-MM-DD"),
       end: text("koniec w tym samym formacie; domyślnie godzina później albo ten sam dzień"), location: text("miejsce, jeśli podano"), notes: text("opis, jeśli podano") }, ["title", "start"]),
-  tool("change_event", "Zmienia istniejące wydarzenie w kalendarzu Google rozmówcy: przesuwa je, zmienia tytuł, miejsce albo opis. Tylko gdy rozmówca wyraźnie o to prosi. " +
+  tool("change_event", "Zmienia wydarzenie, które sam dopisałeś do kalendarza: przesuwa je, zmienia tytuł, miejsce albo opis, albo je usuwa. Tylko gdy rozmówca wyraźnie o to prosi. " +
     "Wydarzenie cykliczne zmienia się tylko w tym jednym dniu.",
     { find: text("słowa z obecnego tytułu wydarzenia"), day: text("dzień, w którym wydarzenie jest teraz: RRRR-MM-DD"),
       title: text("nowy tytuł, jeśli ma się zmienić"), start: text("nowy początek: RRRR-MM-DD GG:MM albo RRRR-MM-DD dla całodniowego; długość zostaje, jeśli nie podasz końca"),
-      end: text("nowy koniec w tym samym formacie; wymaga podania start"), location: text("nowe miejsce"), notes: text("nowy opis") }, ["find", "day"]),
+      end: text("nowy koniec w tym samym formacie; wymaga podania start"), location: text("nowe miejsce"), notes: text("nowy opis"), cancel: { type: "boolean", description: "true = usuń wydarzenie" } }, ["find", "day"]),
   tool("request_feature", "Zleca programiście (Claude Code) dopisanie tobie nowej umiejętności albo zmianę w tym, jak działasz. " +
     "Tylko gdy rozmówca wyraźnie prosi, żebyś się czegoś nauczył albo coś w sobie zmienił, i tylko raz na prośbę. Zmiana nie dzieje się od razu: powstaje propozycja, którą Kuba musi zatwierdzić.",
     { request: text("co dokładnie ma zostać dodane lub zmienione, pełnymi zdaniami, ze szczegółami podanymi przez rozmówcę") }, ["request"]),
@@ -163,7 +164,8 @@ async function weather(own: Own, ctx: Ctx): Promise<string> {
 }
 
 async function calendar(ctx: Ctx, day = "", days = 1): Promise<string> {
-  if (!ctx.calendars.length) return "Błąd: kalendarz nie jest podłączony.";
+  const own = await loadOwn(ctx.store);
+  if (!ctx.calendars.length && !own.events.length) return "W kalendarzu nic nie ma.";
   const today = local(ctx.now, ctx.tz);
   const word = String(day ?? "").trim().toLowerCase();
   let first: [number, number, number] = [today.year, today.month, today.day];
@@ -176,7 +178,7 @@ async function calendar(ctx: Ctx, day = "", days = 1): Promise<string> {
     first = [+m[1], +m[2], +m[3]];
   }
   days = Math.max(1, Math.min(14, Math.trunc(Number(days) || 1)));
-  const events = await readCalendars(ctx.calendars, ctx.tz, ctx.fetcher);
+  const events = [...(ctx.calendars.length ? await readCalendars(ctx.calendars, ctx.tz, ctx.fetcher) : []), ...parse(toIcs(own.events, ctx.now), ctx.tz)];
   return describe(occurrences(events, first, days, ctx.tz), ctx.tz, "W kalendarzu nic nie ma.");
 }
 
@@ -301,7 +303,16 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
       case "calendar":
         return await calendar(ctx, input.day, input.days);
       case "add_event": {
-        if (!ctx.google) return "Błąd: nie masz prawa pisać do kalendarza, możesz go tylko czytać.";
+        if (!ctx.google) {
+          try {
+            const made = newEvent(input as any, ctx.tz, person, ctx.now);
+            own.events = [...own.events, made].slice(-1000);
+            await save();
+            return `Wykonano: dopisano do kalendarza „${made.title}”, ${whenText(made)}.`;
+          } catch (err) {
+            return `Błąd: ${(err as Error).message}.`;
+          }
+        }
         try {
           const made = await addEvent(ctx.google, input as any, ctx.tz, ctx.now, ctx.fetcher);
           const when = "date" in made.start ? `${made.start.date}, cały dzień` : `${made.start.dateTime.slice(0, 10)} ${made.start.dateTime.slice(11, 16)}–${made.end.dateTime!.slice(11, 16)}`;
@@ -311,10 +322,34 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         }
       }
       case "change_event": {
-        if (!ctx.google) return "Błąd: nie masz prawa pisać do kalendarza, możesz go tylko czytać.";
         const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(input.day ?? "").trim());
         const wanted = stems(String(input.find ?? ""));
         if (!day || !wanted.length) return "Błąd: podaj słowa z tytułu wydarzenia i dzień RRRR-MM-DD, w którym ono teraz jest.";
+        if (!ctx.google) {
+          const fits = own.events.filter((e) => onDay(e, day[0]) && wanted.every((w) => stems(e.title).includes(w)));
+          if (!fits.length) return "Błąd: tego dnia nie ma w twoim kalendarzu takiego wydarzenia. Wydarzeń z kalendarzy, które tylko czytasz, nie możesz zmieniać.";
+          if (fits.length > 1) return `Błąd: tego dnia pasuje kilka wydarzeń: ${fits.map((e) => e.title).join(", ")}; dopytaj, o które chodzi.`;
+          const [event] = fits;
+          if (input.cancel === true) {
+            own.events = own.events.filter((e) => e !== event);
+            await save();
+            return `Wykonano: usunięto z kalendarza „${event.title}”, ${whenText(event)}.`;
+          }
+          if (input.end && !input.start) return "Błąd: żeby zmienić koniec, podaj też początek wydarzenia.";
+          if (!input.start && !input.title && input.location === undefined && input.notes === undefined) return "Błąd: nie podano, co zmienić.";
+          const was = event.title;
+          try {
+            if (input.start) Object.assign(event, moved(event, input.start, input.end, ctx.tz));
+          } catch (err) {
+            return `Błąd: ${(err as Error).message}.`;
+          }
+          if (String(input.title ?? "").trim()) event.title = String(input.title).trim().slice(0, 200);
+          if (input.location !== undefined) event.location = String(input.location).slice(0, 200);
+          if (input.notes !== undefined) event.notes = String(input.notes).slice(0, 1000);
+          await save();
+          return `Wykonano: zmieniono w kalendarzu „${was}”${event.title !== was ? ` na „${event.title}”` : ""}${input.start ? `, teraz ${whenText(event)}` : ""}.`;
+        }
+        if (input.cancel === true) return "Błąd: z kalendarza Google nie usuwasz wydarzeń; rozmówca musi to zrobić sam.";
         try {
           const from = instant(+day[1], +day[2], +day[3], 0, 0, ctx.tz);
           const done = await changeEvent(ctx.google, { from, to: new Date(from.getTime() + 86400000), matches: (title) => { const has = new Set(stems(title)); return wanted.every((w) => has.has(w)); } },
@@ -413,7 +448,7 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         return "Błąd: nie masz podłączonych kamer.";       // with cameras, the mind answers this one itself: the result is a picture
       case "briefing": {
         const parts = [(await weather(own, ctx)).split(/(?<=\.) (?=Jutro)/)[0]];
-        if (ctx.calendars.length) parts.push(await calendar(ctx));
+        parts.push(await calendar(ctx));
         parts.push(showReminders(own, ctx));
         return "Odprawa na dziś. " + parts.join(" ");
       }

@@ -7,6 +7,7 @@
 //   household                what he is told about the people (private text)
 import type { Call, PendingCall } from "./phone.mts";
 import type { PlaceNote } from "./places.mts";
+import type { OwnEvent } from "./owncal.mts";
 import { getStore } from "@netlify/blobs";
 
 export interface Store {
@@ -48,8 +49,9 @@ export type Own = {
   calls: Call[];                       // phone calls he made, newest last
   pendingCall: PendingCall | null;     // a call he proposed and waits to have confirmed
   placeNotes: PlaceNote[];             // what the household said about places
+  events: OwnEvent[];                  // his own calendar
 };
 
-export const emptyOwn = (): Own => ({ seq: 0, reminders: [], lists: {}, facts: {}, jottings: {}, place: null, calls: [], pendingCall: null, placeNotes: [] });
+export const emptyOwn = (): Own => ({ seq: 0, reminders: [], lists: {}, facts: {}, jottings: {}, place: null, calls: [], pendingCall: null, placeNotes: [], events: [] });
 export const loadOwn = async (store: Store): Promise<Own> => ({ ...emptyOwn(), ...((await store.get<Own>("own")) ?? {}) });
 export const loadTalk = async (store: Store, person: string): Promise<Talk> => (await store.get<Talk>(`talk/${person}`)) ?? { notes: "", turns: [] };

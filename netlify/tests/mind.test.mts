@@ -8,7 +8,8 @@ import { DEFAULT_CAMERAS, lookOutside, parseCameras } from "../lib/cameras.mts";
 import { cuesFromCharacters } from "../lib/voice.mts";
 import { passwordMatches, sessionCookie, signedIn } from "../lib/auth.mts";
 import { nudge, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
-import { memoryStore, type Talk } from "../lib/store.mts";
+import { loadOwn, memoryStore, type Talk } from "../lib/store.mts";
+import { feedKey, toIcs } from "../lib/owncal.mts";
 import { agenda, runTool } from "../lib/tools.mts";
 
 const text = (words: string) => ({ type: "text", text: words });
@@ -147,7 +148,8 @@ test("he adds an event to the Google calendar as a service account", async () =>
     start: { dateTime: "2026-11-17T09:30:00", timeZone: "Europe/Warsaw" }, end: { dateTime: "2026-11-17T10:30:00", timeZone: "Europe/Warsaw" } });
   assert.deepEqual(eventBody({ title: "Sibos", start: "2026-11-20", end: "2026-11-22" }, "Europe/Warsaw"), { summary: "Sibos", start: { date: "2026-11-20" }, end: { date: "2026-11-23" } });
   assert.match(await runTool("add_event", { title: "Coś", start: "w piątek" }, ctx), /^Błąd: początek podaj/);
-  assert.match(await runTool("add_event", { title: "Coś", start: "2026-11-17" }, { ...ctx, google: undefined }), /^Błąd: nie masz prawa pisać/);
+  assert.match(await runTool("add_event", { title: "Coś", start: "2026-11-17" }, { ...ctx, google: undefined }), /^Wykonano: dopisano do kalendarza „Coś”, 2026-11-17, cały dzień/);   // his own calendar
+  assert.equal(calls.length, 2);
 });
 
 test("he moves an event, keeping its length, and asks when several fit", async () => {
@@ -319,4 +321,24 @@ test("he looks outside through a webcam: the picture goes to the model with its 
   assert.equal((await lookOutside({ key: "wk", list: parseCameras(DEFAULT_CAMERAS) }, "", at.now, (async () => new Response("", { status: 401 })) as typeof fetch)).text,
     "Błąd: kamera Jezioro Tarnobrzeskie w Tarnobrzegu nie odpowiada (401).");
   assert.match(await runTool("look_outside", {}, { store: memoryStore(), ...at, calendars: [] }), /^Błąd: nie masz podłączonych kamer/);
+});
+
+test("without Google he keeps a calendar of his own, publishes it as a feed and reads it back", async () => {
+  const store = memoryStore();
+  const ctx = { store, ...at, calendars: [] };
+  assert.equal(await runTool("add_event", { title: "Dentysta, przegląd", start: "2026-11-17 09:30", location: "Tarnobrzeg" }, ctx), "Wykonano: dopisano do kalendarza „Dentysta, przegląd”, 2026-11-17 09:30–10:30.");
+  assert.match(await runTool("add_event", { title: "Sibos", start: "2026-11-20", end: "2026-11-22" }, ctx), /„Sibos”, 2026-11-20, cały dzień\.$/);
+  assert.match(await runTool("add_event", { title: "Coś", start: "w piątek" }, ctx), /^Błąd: początek podaj/);
+  const own = await loadOwn(store);
+  const ics = toIcs(own.events, at.now);
+  assert.match(ics, /BEGIN:VCALENDAR\r\n[\s\S]*DTSTART:20261117T083000Z\r\nDTEND:20261117T093000Z\r\nSUMMARY:Dentysta\\, przegląd\r\nLOCATION:Tarnobrzeg\r\nEND:VEVENT/);
+  assert.match(ics, /DTSTART;VALUE=DATE:20261120\r\nDTEND;VALUE=DATE:20261123\r\nSUMMARY:Sibos/);
+  assert.match(await runTool("calendar", { day: "2026-11-17" }, ctx), /09:30–10:30: Dentysta, przegląd \(Tarnobrzeg\)/);
+  assert.match(await runTool("calendar", { day: "2026-11-21" }, ctx), /cały dzień: Sibos/);
+  assert.equal(await runTool("change_event", { find: "dentysta", day: "2026-11-17", start: "2026-11-18 11:00", title: "Dentysta" }, ctx), "Wykonano: zmieniono w kalendarzu „Dentysta, przegląd” na „Dentysta”, teraz 2026-11-18 11:00–12:00.");
+  assert.match(await runTool("change_event", { find: "dentysta", day: "2026-11-17", title: "X" }, ctx), /^Błąd: tego dnia nie ma w twoim kalendarzu/);
+  assert.match(await runTool("change_event", { find: "sibos", day: "2026-11-21", cancel: true }, ctx), /^Wykonano: usunięto z kalendarza „Sibos”/);
+  assert.deepEqual((await loadOwn(store)).events.map((e) => e.title), ["Dentysta"]);
+  assert.equal(feedKey("haslo").length, 32);
+  assert.notEqual(feedKey("haslo"), feedKey("inne"));
 });

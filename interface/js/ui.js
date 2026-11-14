@@ -145,7 +145,7 @@ function render(s, config) {
     vitals.push(cell('ROZMÓWCA', s.person.toUpperCase(), false, false));
     vitals.push(cell('MIKROFON', s.handsfree ? 'POWIEDZ „ALAN”' : 'PRZYTRZYMAJ SPACJĘ', false, false));
     if (!s.initiative) vitals.push(cell('ZAGADYWANIE', 'WYŁ.', false, false));
-    vitals.push(cell('KLAWISZE', `ENTER PISZ · M MIKROFON · P OSOBA · I ZAGADYWANIE · S STUDIO${config.cloud ? ' · U DOMOWNICY · Z PROPOZYCJE' : ''}`, false, false));
+    vitals.push(cell('KLAWISZE', `ENTER PISZ · M MIKROFON · P OSOBA · I ZAGADYWANIE · S STUDIO${config.cloud ? ' · U DOMOWNICY · K KALENDARZ · Z PROPOZYCJE' : ''}`, false, false));
   }
   $('vitals').replaceChildren(...vitals);
 
