@@ -47,20 +47,30 @@ export function startChat(config) {
     let spoken = 0;
     const speak = (line) => {
       clearTimeout(filler);
+      clearTimeout(lastChance);
       if (!spoken++) store.set({ alan: 'idle' });   // the voice shows "thinking" itself while a line is prepared
       speaker.push(line);
     };
     // If the answer is slow to start, he fills the silence with a recorded line that fits the question
     // (not one of the last few). A greeting is answered fast enough to need none.
+    // The server names the topic (a quick judgement made alongside the answer); his own guess by
+    // keywords is used only if that has not come in time.
     const greeting = text.split(/\s+/).length <= 3 && /^(hej|cześć|siema|dzień dobry|dobry wieczór|dobranoc|halo|elo)\b/i.test(text);
-    const filler = setTimeout(() => {
-      const line = !spoken && !greeting && pickFiller(text, prepared, recentFillers);
+    let serverTopic = null, due = false, fillerDone = false, lastChance = null;
+    const sayFiller = (topic) => {
+      if (fillerDone || spoken || greeting) return;
+      fillerDone = true;
+      const line = pickFiller(text, prepared, recentFillers, topic);
       if (!line) return;
       recentFillers.push(line);
       if (recentFillers.length > 5) recentFillers.shift();
       speaker.push(line);
+    };
+    const filler = setTimeout(() => {
+      due = true;
+      if (serverTopic) sayFiller(serverTopic);
+      else lastChance = setTimeout(() => sayFiller(serverTopic ?? topicOf(text)), 700);
     }, FILLER_AFTER);
-    prepare(TOPIC_LINES[topicOf(text)]);   // the rest of this kind, for the next time
     const abort = cancel = new AbortController();
     const interrupted = takeInterrupted();   // he was cut off last time: the server learns how much was heard
     try {
@@ -76,6 +86,11 @@ export function startChat(config) {
       if (!res.ok) throw new Error(`${res.status}`);
       const take = (data) => {
         if (data.error) throw new Error(data.error);
+        if (data.filler) {
+          serverTopic = data.filler;
+          prepare(TOPIC_LINES[serverTopic] || []);   // the rest of this kind, for the next time
+          if (due) { clearTimeout(lastChance); sayFiller(serverTopic); }
+        }
         if (data.say) speak(data.say);
         if (data.actions) actions = data.actions;
         if (data.reply && !spoken) speak(data.reply);
@@ -95,6 +110,7 @@ export function startChat(config) {
       } else take(await res.json());   // the server at home answers in one piece
     } catch (err) {
       clearTimeout(filler);
+      clearTimeout(lastChance);
       if (abort.signal.aborted) { waiting = false; return; }   // talked over: the new question takes it from here
       console.warn('ALAN chat failed:', err.message);
       speak(spoken ? 'I tu zgubiłem wątek. Połączenie się urwało.' : 'Nie mam teraz połączenia z modelem językowym.');

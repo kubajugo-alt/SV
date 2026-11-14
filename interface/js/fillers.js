@@ -10,13 +10,16 @@ const SETS = {
   weather: ['Zaraz zerknę, co tam na niebie.', 'Moment, sprawdzę pogodę, zanim coś obiecam.', 'Pogoda, mówisz. Zaraz popatrzę za okno.', 'Chwila, nie chcę cię wysłać bez parasola.'],
   food: ['Jedzenie, mój ulubiony temat. Chwileczkę.', 'Zaraz zajrzę, co da się zamówić.', 'Moment, głodnemu się nie odmawia.', 'Hmm, niech pomyślę, na co masz ochotę.'],
   plans: ['Zaraz, zajrzę do kalendarza.', 'Moment, sprawdzę, co tam masz zapisane.', 'Chwileczkę, przekartkuję terminarz.', 'Daj mi sekundę, policzę te dni.'],
-  self: ['O mnie? No proszę. Chwilę.', 'Co u mnie? Zaraz, zrobię szybki bilans.', 'Miło, że pytasz. Daj mi sekundę.'],
-  past: ['Hmm, dobre pytanie. Daj mi chwilę.', 'Dawno nikt mnie o to nie pytał. Moment.', 'Zaraz, muszę to dobrze opowiedzieć.', 'Ech, Lizbona. Daj mi chwilę.'],
+  self: ['Co u mnie? Zaraz, zrobię szybki bilans.', 'Miło, że pytasz. Daj mi sekundę.', 'U mnie? Hmm, niech się zastanowię, od czego zacząć.'],
+  past: ['Dawno nikt mnie o to nie pytał. Moment.', 'Zaraz, muszę to dobrze opowiedzieć.', 'Hmm, wracamy do starych spraw. Daj mi chwilę.'],
+  lisbon: ['Ech, Lizbona. Daj mi chwilę.', 'Lizbona, mówisz. Zaraz, niech sobie przypomnę.'],
+  story: ['Mhm. Daj mi chwilę, niech to przetrawię.', 'No proszę. Moment, poukładam sobie to w głowie.', 'Słucham, słucham. Sekundę.'],
+  opinion: ['Hmm, mam na ten temat zdanie, tylko je ubiorę w słowa.', 'Dobre pytanie, nie chcę odpowiedzieć byle czego.', 'Zaraz, niech się zastanowię, co naprawdę myślę.'],
   remind: ['Zaraz, zapiszę to sobie.', 'Moment, zanotuję, żeby nie umknęło.', 'Dobrze, już biorę ołówek.'],
   ride: ['Zaraz, sprawdzę, co jeździ w okolicy.', 'Moment, załatwimy ci jakiś transport.', 'Chwila, zobaczę, jak cię tam dowieźć.'],
   travel: ['Podróże, to lubię. Daj mi chwilę.', 'Moment, sprawdzę, jak to tam wygląda.', 'Zaraz, przypomnę sobie, co o tym wiem.', 'Chwila, nie chcę, żebyś utknął na lotnisku.'],
   lookup: ['Dobre pytanie. Sprawdzę, żeby nie zmyślać.', 'Moment, poszukam, wolę mieć pewność.', 'Zaraz, upewnię się, zanim coś powiem.', 'Hmm, tego nie mam w głowie. Już sprawdzam.'],
-  general: ['Hmm, daj mi sekundę, zbiorę myśli.', 'Zaraz, zaraz, niech to sobie poukładam.', 'Dobre pytanie. Chwila, nie chcę palnąć głupstwa.',
+  general: ['Hmm, daj mi sekundę, zbiorę myśli.', 'Zaraz, zaraz, niech to sobie poukładam.', 'Chwila, nie chcę palnąć głupstwa.',
     'Momencik, myślę. Wiem, rzadko mi się to zdarza.', 'No dobrze, tylko się zastanowię.', 'Chwileczkę, już do tego dochodzę.'],
 };
 
@@ -31,14 +34,19 @@ const TOPICS = [
   ['weather', /pogod|deszcz|pada|słońc|temperatur|zimno|ciepło|parasol|śnieg|wiatr|mróz|upał/],
   ['food', /jedzeni|głodn|zjeść|obiad|kolacj|śniadani|pizz|glovo|uber eats|restaurac|zamów|przepis|ugotow|kuchni/],
   ['plans', /kalendarz|spotkani|jutro|pojutrze|w (poniedziałek|wtorek|środę|czwartek|piątek|sobotę|niedzielę)|o której|termin|zaplanuj/],
-  ['past', /vasc|inês|ines|pessoa|dziadek|joaquim|lizbon|alfam|dzwon|matk|ojc/],
+  ['lisbon', /lizbon|alfam|portugal/],
+  ['past', /vasc|inês|ines|pessoa|dziadek|joaquim|dzwon|twoja matk|twój ojc|gran canari/],
   ['self', /jak się masz|co u ciebie|co czytasz|co robiłeś|opowiedz (mi )?o (sobie|tobie)|\b(ty|tobie|ciebie|twój|twoja|twoje)\b.*\?/],
   ['travel', /\blot\b|lotów|lecę|lotnisk|samolot|podróż|wyjazd|wyjeżdż|hotel|esta|walut|kurs (dolara|euro)|dolar|euro\b|paszport|bagaż|nowy jork|nowym jorku|miami|barcelon|davos|londyn/],
+  ['opinion', /co (o tym )?myślisz|jak (ci|tobie) się podoba|twoim zdaniem|co sądzisz|polecasz|lepiej .* czy/],
   ['lookup', /co to (jest|znaczy)|kto to|dlaczego|jak działa|ile (kosztuje|jest|trwa)|kiedy (jest|będzie)|wiadomości|sprawdź|wyszukaj|znajdź|czy wiesz/],
 ];
 
-/** Which kind of question this is. */
-export const topicOf = (text) => (TOPICS.find(([, words]) => words.test(String(text).toLowerCase())) || ['general'])[0];
+/** Which kind of question this is, by its words (the server's quicker judgement, when it comes, wins). */
+export const topicOf = (text) => (TOPICS.find(([, words]) => words.test(String(text).toLowerCase())) || [/\?\s*$/.test(text) ? 'general' : 'story'])[0];
+
+/** The topics the server may name (lib/fillers.mts keeps the same list), plus "none": better silence than a line that does not fit. */
+export const TOPIC_NAMES = Object.keys(SETS);
 
 /** All of them, for recording; a short greeting needs none. */
 export const ALL_FILLERS = Object.values(SETS).flat();
@@ -52,8 +60,8 @@ export function someFillers(perSet = 2) {
  * The line to say for this question: from its topic if one of those is recorded, else a general one;
  * never one of the last few said. `isReady(line)` tells whether a line is recorded.
  */
-export function pickFiller(text, isReady, recent = []) {
-  const topic = topicOf(text);
+export function pickFiller(text, isReady, recent = [], topic = topicOf(text)) {
+  if (topic === 'none' || !SETS[topic]) return null;
   const fresh = (lines) => lines.filter((line) => isReady(line) && !recent.includes(line));
   const pool = fresh(SETS[topic]).length ? fresh(SETS[topic]) : fresh(SETS.general);
   return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;

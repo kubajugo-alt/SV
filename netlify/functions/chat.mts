@@ -4,7 +4,7 @@ import type { Config, Context } from "@netlify/functions";
 import Anthropic from "@anthropic-ai/sdk";
 import { guard } from "../lib/auth.mts";
 import { mind, who } from "../lib/env.mts";
-import { nudge, respond, sentenceCutter } from "../lib/mind.mts";
+import { fillerTopic, nudge, respond, sentenceCutter } from "../lib/mind.mts";
 
 export default async (req: Request, context: Context) => {
   const denied = guard(req);
@@ -27,10 +27,14 @@ export default async (req: Request, context: Context) => {
     const encoder = new TextEncoder();
     const lines = new ReadableStream<Uint8Array>({
       async start(controller) {
-        const send = (data: object) => controller.enqueue(encoder.encode(JSON.stringify(data) + "\n"));
-        const cutter = sentenceCutter((say) => send({ say }));
+        let open = true, saying = false;
+        const send = (data: object) => { if (open) controller.enqueue(encoder.encode(JSON.stringify(data) + "\n")); };
+        const cutter = sentenceCutter((say) => { saying = true; send({ say }); });
+        const brain = mind();
+        // In parallel: which thinking line fits, so the page can say one while he works it out.
+        fillerTopic(brain, text).then((topic) => { if (topic && !saying) send({ filler: topic }); }).catch(() => {});
         try {
-          const result = await respond(mind(), whom, text, (delta) => cutter.add(delta), interrupted);
+          const result = await respond(brain, whom, text, (delta) => cutter.add(delta), interrupted);
           cutter.end();
           send({ reply: result.reply, actions: result.actions });
           context.waitUntil(result.after());
@@ -38,6 +42,7 @@ export default async (req: Request, context: Context) => {
           failed(err);
           send({ error: "the language model did not answer" });
         }
+        open = false;
         controller.close();
       },
     });

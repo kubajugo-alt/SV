@@ -9,6 +9,7 @@ import type { Google } from "./gcal.mts";
 import type { Phone } from "./phone.mts";
 import { lookOutside, type Cameras } from "./cameras.mts";
 import { SYSTEM } from "./texts.gen.mjs";
+import { fillerPrompt, parseTopic } from "./fillers.mts";
 import { absorb, anniversaries, lifeText, loadLife, tickPrompt } from "./life.mts";
 import { becomingPrompt, journalText, keepMoment, loadBond, loadSelf, momentsPrompt, parseMoments, people, setBecoming } from "./bond.mts";
 
@@ -259,6 +260,12 @@ export async function live(mind: Mind, now: Date, tz = "Europe/Warsaw"): Promise
   const prompt = tickPrompt(`${DAYS[l.weekday]}, ${dmy(l)}, godzina ${hm(l)}`, l.hour, life, journals.filter(Boolean).join("\n"), anniversaries(l.day, l.month), lisbonDue, weather.slice(0, 300));
   const raw = textOf(await ask(mind, "Piszesz o sobie. Odpowiadasz wyłącznie obiektem JSON.", [{ role: "user", content: prompt }], false, 800, undefined, mind.background ?? mind.model));
   return (await absorb(mind.store, raw, now)) ? `lived${lisbonDue ? " (with news from Lisbon)" : ""}` : "nothing usable";
+}
+
+/** Which of his thinking lines fits what was said (lib/fillers.mts): quick, on the cheap model, in parallel with the answer. */
+export async function fillerTopic(mind: Mind, said: string): Promise<string | null> {
+  const message = await ask(mind, "Klasyfikujesz wiadomości. Odpowiadasz jednym słowem.", [{ role: "user", content: fillerPrompt(said) }], false, 300, undefined, mind.background ?? mind.model);
+  return parseTopic(textOf(message));
 }
 
 /** He speaks first. -> reply "" when he should stay quiet. */
