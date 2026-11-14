@@ -11,9 +11,12 @@ function qr(url) {
   img.alt = 'Kod QR';
   try {
     if (!codes.has(url)) {
-      const code = qrcode(0, 'M');
-      code.addData(url);
-      code.make();
+      let code;
+      try {
+        code = qrcode(0, 'M'); code.addData(url); code.make();
+      } catch {
+        code = qrcode(0, 'L'); code.addData(url); code.make();   // a long address still fits with less error correction
+      }
       codes.set(url, code.createDataURL(4, 8));
     }
     img.src = codes.get(url);

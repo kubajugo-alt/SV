@@ -18,7 +18,7 @@ export const REFUSED = "Tego tematu nie ruszę. Zapytaj mnie o coś innego.";
 const FLAT_ONLY = ["── MIESZKANIE", "── JAKOŚĆ POWIETRZA", "── TRYB PRACY", "── TRYB GOŚCIA", "── DRZWI", "── BEZPIECZEŃSTWO"];
 const CHARACTER = SYSTEM.split(/^(?=── )/m).filter((part) => !FLAT_ONLY.some((f) => part.startsWith(f))).join("").trim();
 const HERE = `Twoja odpowiedź zostanie wypowiedziana na głos: zwykle jedno do trzech zdań, bez list, nagłówków i znaczników.
-Narzędzi używaj, gdy są potrzebne; ich wyniki masz od razu w tej samej rozmowie. Aktualne fakty, wiadomości i kursy sprawdzaj w sieci (web_search), zamiast zgadywać.
+Narzędzi używaj, gdy są potrzebne; ich wyniki masz od razu w tej samej rozmowie. Nigdy nie mów, że coś zrobiłeś, zapisałeś, wysłałeś, zleciłeś albo przygotowałeś (plik, PDF, zgłoszenie, link), jeśli w tej turze nie dostałeś wyniku narzędzia, które to wykonało; czego nie umiesz zrobić narzędziem, tego nie zrobiłeś. Linki pokazuj narzędziem show_link, nie wpisuj ich do odpowiedzi. Aktualne fakty, wiadomości i kursy sprawdzaj w sieci (web_search), zamiast zgadywać.
 ── GDZIE TERAZ MIESZKASZ ──
 Mieszkasz w chmurze i jesteś dostępny z każdego urządzenia domowników; nie masz czujników, kamer ani urządzeń mieszkania. Niczego nie mierzysz i niczym nie sterujesz, i nie udajesz, że jest inaczej.`;
 const NUDGES: Record<string, string> = {
@@ -31,7 +31,19 @@ const NUDGES: Record<string, string> = {
 export type Mind = {
   client: Anthropic; store: Store; model: string; effort: "low" | "medium" | "high";
   calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; webSearch: boolean; fetcher?: typeof fetch;
+  site?: string;               // the page's address (https://...), for links to documents he writes
 };
+
+/**
+ * "I did it" in his words: made, sent, reported, saved, added, showed... Said with no tool result in the same
+ * turn, it is not true. ("nie zrobiłem" is not a claim.)
+ */
+export const CLAIM = new RegExp("(?<!nie\\s)(?<!\\p{L})(?:(?:zrobi|przygotowa|wysła|zgłosi|zleci|zapisa|doda|dopisa|ustawi|zamówi|utworzy|stworzy|wygenerowa|" +
+  "przekaza|zarezerwowa|załatwi|pokaza|wyświetli|udostępni|wrzuci|zanotowa|usuną|skreśli|anulowa|przesuną)łem|pokazuję|wysyłam)(?!\\p{L})", "iu");
+const CHECK = "[Kontrola, to nie jest wiadomość od domownika: w tej turze żadne narzędzie niczego nie wykonało, a z twojej odpowiedzi wynika, że coś zrobiłeś. " +
+  "Jeśli masz do tego narzędzie, użyj go teraz. Jeśli nie masz, powiedz krótko i uczciwie, czego nie zrobiłeś i dlaczego; niczego nie obiecuj na później. " +
+  "Jeśli mówiłeś tylko o swojej przeszłości, odpowiedz tak samo jak przed chwilą. Odpowiedz od nowa, jakby poprzedniej odpowiedzi nie było.]";
+export const NOT_DONE = "Poprawiam się: tego nie zrobiłem. Żadne narzędzie tego nie wykonało.";
 type Request = { person: string; tz: string; now: Date };
 
 const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -63,7 +75,7 @@ async function ask(mind: Mind, sys: Anthropic.Beta.BetaTextBlockParam[] | string
     output_config: { effort: mind.effort },
     // If a safety classifier declines the request, the API re-runs it on a fallback model in the same call.
     betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
-    ...(tools ? { tools: [...TOOLS, ...(mind.webSearch ? [{ type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 3 }] : [])] } : {}),
+    ...(tools ? { tools: [...TOOLS.filter((t) => t.name !== "look_outside" || mind.cameras), ...(mind.webSearch ? [{ type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 3 }] : [])] } : {}),
   } satisfies Anthropic.Beta.MessageCreateParamsNonStreaming;
   if (!onText) return mind.client.beta.messages.create(params);
   // Streaming: his words are handed over as they are written, so he can start speaking the first
@@ -73,40 +85,74 @@ async function ask(mind: Mind, sys: Anthropic.Beta.BetaTextBlockParam[] | string
   return message;
 }
 
-async function converse(mind: Mind, req: Request, talk: Talk, said: string, onText?: (delta: string) => void) {
-  const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, fetcher: mind.fetcher };
+async function converse(mind: Mind, req: Request, talk: Talk, said: string, onSentence?: (sentence: string) => void) {
+  const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, fetcher: mind.fetcher, site: mind.site };
   const messages: Anthropic.Beta.BetaMessageParam[] = [...talk.turns.map((t) => ({ role: t.role, content: t.text })), { role: "user", content: said }];
   const sys = await system(mind, req, talk);
   const actions: { ok: boolean; text: string }[] = [];
-  let response = await ask(mind, sys, messages, true, 4000, onText);
+  let done = false;        // a tool of his gave a real result (not "Błąd") in this turn
+  let checked = false;     // he was already told off once for claiming what no tool did
+  // Sentences go out as they are written; one claiming a deed no tool did is held back (and he is asked again).
+  let held = false;
+  const cutter = onSentence && sentenceCutter((sentence) => {
+    if (!checked && !done && CLAIM.test(sentence)) held = true;
+    if (!held) onSentence(sentence);
+  });
+  const next = async () => {
+    held = false;
+    const message = await ask(mind, sys, messages, true, 4000, cutter ? (delta) => cutter.add(delta) : undefined);
+    cutter?.end();
+    return message;
+  };
+  let response = await next();
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     if (response.stop_reason === "refusal") return { reply: REFUSED, actions };
     if (response.stop_reason === "pause_turn") {                              // a web search still running: let it continue
       messages.push({ role: "assistant", content: response.content as Anthropic.Beta.BetaContentBlockParam[] });
-      response = await ask(mind, sys, messages, true, 4000, onText);
+      response = await next();
       continue;
     }
     const calls = response.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use");
-    if (response.stop_reason !== "tool_use" || !calls.length) break;
+    if (response.stop_reason !== "tool_use" || !calls.length) {
+      if (checked || done || !CLAIM.test(textOf(response))) break;
+      console.log(`Guard: claimed with no tool result -> ${textOf(response).slice(0, 160)}`);
+      checked = true;
+      messages.push({ role: "assistant", content: response.content as Anthropic.Beta.BetaContentBlockParam[] }, { role: "user", content: CHECK });
+      response = await next();
+      continue;
+    }
     messages.push({ role: "assistant", content: response.content as Anthropic.Beta.BetaContentBlockParam[] });   // unchanged, thinking included
     const results: Anthropic.Beta.BetaToolResultBlockParam[] = [];
     for (const call of calls) {
       if (call.name === "look_outside" && mind.cameras) {                       // the one tool whose result is a picture
         const view = await lookOutside(mind.cameras, String((call.input as any)?.where ?? ""), req.now, mind.fetcher);
         console.log(`Tool: look_outside -> ${view.text.slice(0, 120)}`);
+        if (view.image) done = true;
         results.push({ type: "tool_result", tool_use_id: call.id, ...(view.image ? {} : { is_error: true }),
           content: [...(view.image ? [{ type: "image" as const, source: { type: "base64" as const, ...view.image } }] : []), { type: "text" as const, text: view.text }] });
         continue;
       }
       const result = await runTool(call.name, (call.input ?? {}) as Record<string, any>, ctx);
       console.log(`Tool: ${call.name}(${JSON.stringify(call.input)}) -> ${result.slice(0, 200)}`);
+      if (!result.startsWith("Błąd")) done = true;
       if (/^(Wykonano|Błąd)/.test(result)) actions.push({ ok: result.startsWith("Wykonano"), text: result.split(": ").slice(1).join(": ").replace(/\.$/, "") || result });
       results.push({ type: "tool_result", tool_use_id: call.id, content: result, ...(result.startsWith("Błąd") ? { is_error: true } : {}) });
     }
     messages.push({ role: "user", content: results });                          // all results in one message
-    response = await ask(mind, sys, messages, true, 4000, onText);
+    response = await next();
   }
-  return { reply: response.stop_reason === "refusal" ? REFUSED : clean(textOf(response)), actions };
+  if (response.stop_reason === "refusal") return { reply: REFUSED, actions };
+  let reply = clean(textOf(response));
+  if (held || (!checked && !done && CLAIM.test(reply))) {                   // out of rounds, or nothing left to say but the claim
+    reply = NOT_DONE;
+    onSentence?.(reply);
+  }
+  // A link written into his words instead of shown with show_link still gets its QR code on the screen.
+  for (const found of reply.match(/https:\/\/[^\s<>"]+/g) ?? []) {
+    const url = found.replace(/[.,;:!?)\]”»]+$/, "");
+    if (!actions.some((a) => a.text.includes(url))) actions.push({ ok: true, text: `link: ${url}` });
+  }
+  return { reply, actions };
 }
 
 /** Store the exchange; returns work to finish after the answer has gone out (folding old turns into notes). */
@@ -147,10 +193,11 @@ ZAKTUALIZOWANE NOTATKI:`;
   };
 }
 
-export async function respond(mind: Mind, req: Request, text: string, onText?: (delta: string) => void) {
+/** onSentence gets his answer sentence by sentence as it is written, so he can start speaking sooner. */
+export async function respond(mind: Mind, req: Request, text: string, onSentence?: (sentence: string) => void) {
   const talk = await loadTalk(mind.store, req.person);
   const started = Date.now();
-  const { reply, actions } = await converse(mind, req, talk, text, onText);
+  const { reply, actions } = await converse(mind, req, talk, text, onSentence);
   console.log(`Timing: Claude ${((Date.now() - started) / 1000).toFixed(1)} s`);
   if (!reply) throw new Error("the model returned an empty answer");
   const at = req.now.toISOString();

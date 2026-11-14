@@ -19,7 +19,8 @@ function builder() {
   return github ? { token: github, repo: Netlify.env.get("ALAN_GITHUB_REPO") ?? "kubajugo-alt/SV" } : undefined;
 }
 
-export function mind(): Mind {
+/** `site` is the page's address, for links to the documents he writes. */
+export function mind(site?: string): Mind {
   // Writing to the calendar: a Google service account the calendar was shared with.
   const google = { email: Netlify.env.get("GOOGLE_CLIENT_EMAIL") ?? "", key: Netlify.env.get("GOOGLE_PRIVATE_KEY") ?? "", calendar: Netlify.env.get("ALAN_CALENDAR_ID") ?? "" };
   const effort = Netlify.env.get("ALAN_CLAUDE_EFFORT") ?? "low";
@@ -35,6 +36,7 @@ export function mind(): Mind {
     cameras: Netlify.env.get("WINDY_API_KEY")
       ? { key: Netlify.env.get("WINDY_API_KEY")!, list: parseCameras(Netlify.env.get("ALAN_WEBCAMS") ?? DEFAULT_CAMERAS) } : undefined,
     webSearch: (Netlify.env.get("ALAN_WEB_SEARCH") ?? "on") !== "off",
+    site,
   };
 }
 

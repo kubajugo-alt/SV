@@ -4,7 +4,7 @@ import type { Config, Context } from "@netlify/functions";
 import Anthropic from "@anthropic-ai/sdk";
 import { guard } from "../lib/auth.mts";
 import { mind, who } from "../lib/env.mts";
-import { nudge, respond, sentenceCutter } from "../lib/mind.mts";
+import { nudge, respond } from "../lib/mind.mts";
 
 export default async (req: Request, context: Context) => {
   const denied = guard(req);
@@ -15,6 +15,7 @@ export default async (req: Request, context: Context) => {
   const text = kind ? "" : String(body.text ?? "").trim();
   if ((!text && !kind) || text.length > 2000) return Response.json({ error: "text must be 1-2000 characters" }, { status: 400 });
   const whom = who(body.person, body.tz);
+  const site = new URL(req.url).origin;           // links to the documents he writes point back here
   const failed = (err: unknown) => {
     if (err instanceof Anthropic.AuthenticationError) console.log("Claude rejected the key (ANTHROPIC_API_KEY).");
     else if (err instanceof Anthropic.RateLimitError) console.log("Claude: rate limited.");
@@ -27,10 +28,8 @@ export default async (req: Request, context: Context) => {
     const lines = new ReadableStream<Uint8Array>({
       async start(controller) {
         const send = (data: object) => controller.enqueue(encoder.encode(JSON.stringify(data) + "\n"));
-        const cutter = sentenceCutter((say) => send({ say }));
         try {
-          const result = await respond(mind(), whom, text, (delta) => cutter.add(delta));
-          cutter.end();
+          const result = await respond(mind(site), whom, text, (say) => send({ say }));
           send({ reply: result.reply, actions: result.actions });
           context.waitUntil(result.after());
         } catch (err) {
@@ -43,7 +42,7 @@ export default async (req: Request, context: Context) => {
     return new Response(lines, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" } });
   }
   try {
-    const result = kind ? await nudge(mind(), whom, kind) : await respond(mind(), whom, text);
+    const result = kind ? await nudge(mind(site), whom, kind) : await respond(mind(site), whom, text);
     context.waitUntil(result.after());          // folding old turns into notes need not hold the answer up
     return Response.json({ reply: result.reply, actions: "actions" in result ? result.actions : [] });
   } catch (err) {

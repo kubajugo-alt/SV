@@ -18,6 +18,7 @@ export async function lookOutside(cameras: Cameras, where: string, now: Date, fe
   if (!camera) return { text: "Błąd: nie masz żadnej kamery." };
   try {
     const res = await fetcher(`https://api.windy.com/webcams/api/v3/webcams/${camera.id}?include=images`, { headers: { "x-windy-api-key": cameras.key }, signal: AbortSignal.timeout(6000) });
+    if (res.status === 401 || res.status === 403) return { text: `Błąd: Windy nie przyjmuje klucza WINDY_API_KEY (${res.status}); Kuba musi go sprawdzić.` };
     if (!res.ok) return { text: `Błąd: kamera ${camera.name} nie odpowiada (${res.status}).` };
     const info = await res.json();
     const url = info.images?.current?.preview ?? info.images?.daylight?.preview;

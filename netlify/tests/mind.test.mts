@@ -7,7 +7,8 @@ import { loadPlaces, overpassQuery, TOWNS } from "../lib/places.mts";
 import { DEFAULT_CAMERAS, lookOutside, parseCameras } from "../lib/cameras.mts";
 import { cuesFromCharacters } from "../lib/voice.mts";
 import { passwordMatches, sessionCookie, signedIn } from "../lib/auth.mts";
-import { nudge, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
+import { CLAIM, nudge, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
+import { documentFileName, documentPage, loadDocument } from "../lib/documents.mts";
 import { loadOwn, memoryStore, type Talk } from "../lib/store.mts";
 import { feedKey, toIcs } from "../lib/owncal.mts";
 import { agenda, runTool } from "../lib/tools.mts";
@@ -126,9 +127,7 @@ test("a streamed answer is handed over sentence by sentence, across tool rounds"
     [[text("Chwila, zajrzę do notatek."), call("find_notes", {})], "tool_use"],
     [[text("Nic tam nie ma. **Pusto** jak w kasie po remoncie! Dr. Kowalski by się uśmiał.")], "end_turn"]);
   const said: string[] = [];
-  const cutter = sentenceCutter((s) => said.push(s));
-  const out = await respond(mind, at, "Co mam w notatkach?", (delta) => cutter.add(delta));
-  cutter.end();
+  const out = await respond(mind, at, "Co mam w notatkach?", (s) => said.push(s));
   assert.equal(seen.length, 2);
   assert.deepEqual(said, ["Chwila, zajrzę do notatek.", "Nic tam nie ma. Pusto jak w kasie po remoncie!", "Dr. Kowalski by się uśmiał."]);
   assert.match(out.reply, /Kowalski/);
@@ -321,9 +320,16 @@ test("he looks outside through a webcam: the picture goes to the model with its 
   const [picture, words] = seen[1].messages.at(-1).content[0].content;
   assert.deepEqual(picture, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: "/9j/4A==" } });
   assert.match(words.text, /^Kamera: Sandomierz\. Obraz sprzed 12 min\./);
-  assert.equal((await lookOutside({ key: "wk", list: parseCameras(DEFAULT_CAMERAS) }, "", at.now, (async () => new Response("", { status: 401 })) as typeof fetch)).text,
-    "Błąd: kamera Jezioro Tarnobrzeskie w Tarnobrzegu nie odpowiada (401).");
-  assert.match(await runTool("look_outside", {}, { store: memoryStore(), ...at, calendars: [] }), /^Błąd: nie masz podłączonych kamer/);
+  assert.ok(seen[0].tools.some((t: any) => t.name === "look_outside"));
+  assert.equal((await lookOutside({ key: "wk", list: parseCameras(DEFAULT_CAMERAS) }, "", at.now, (async () => new Response("", { status: 503 })) as typeof fetch)).text,
+    "Błąd: kamera Jezioro Tarnobrzeskie w Tarnobrzegu nie odpowiada (503).");
+  assert.match((await lookOutside({ key: "zly", list: parseCameras(DEFAULT_CAMERAS) }, "", at.now, (async () => new Response("", { status: 401 })) as typeof fetch)).text,
+    /^Błąd: Windy nie przyjmuje klucza WINDY_API_KEY/);
+  assert.match(await runTool("look_outside", {}, { store: memoryStore(), ...at, calendars: [] }), /^Błąd: nie masz podłączonych kamer: .*WINDY_API_KEY/);
+  // Without the key he is not offered the cameras at all, so he does not try them and fail.
+  const bare = fakeMind([[text("Nie widzę.")], "end_turn"]);
+  await respond(bare.mind, at, "Jak jest na dworze?");
+  assert.ok(!bare.seen[0].tools.some((t: any) => t.name === "look_outside"));
 });
 
 test("without Google he keeps a calendar of his own, publishes it as a feed and reads it back", async () => {
@@ -357,4 +363,56 @@ test("without a routine, a feature request becomes an [ALAN] issue on GitHub", a
   assert.equal(sent.title, "[ALAN] Naucz się podawać kursy walut z NBP.");
   assert.match(sent.body, /Kuba\), przekazana przez Alana:\n\nNaucz się/);
   assert.match(await runTool("find_notes", { query: "zlecenie" }, ctx), /issues\/5/);
+});
+
+test("he writes a document and shows its link with a QR code; it opens without signing in, for a while", async () => {
+  const store = memoryStore();
+  const ctx = { store, ...at, calendars: [], site: "https://alan.example" };
+  const done = await runTool("make_document", { title: "Plan wycieczki", text: "# Sobota\n\n- zamek\n- obiad <u>\n\nWyjazd o 9." }, ctx);
+  const m = /^Wykonano: link na ekranie: dokument „Plan wycieczki” https:\/\/alan\.example\/doc\/([0-9a-f]{32})$/.exec(done);
+  assert.ok(m, done);
+  const doc = (await loadDocument(store, m![1], at.now))!;
+  assert.equal(doc.person, "kuba");
+  const page = documentPage(doc, m![1]);
+  assert.match(page, /<h1>Plan wycieczki<\/h1>/);
+  assert.match(page, /<h2>Sobota<\/h2>/);
+  assert.match(page, /<li>obiad &#60;u&#62;<\/li>/);
+  assert.match(page, /<p>Wyjazd o 9\.<\/p>/);
+  assert.match(page, /zapisz jako PDF/);
+  assert.equal(documentFileName(doc), "Plan-wycieczki.txt");
+  assert.equal(await loadDocument(store, m![1], new Date(at.now.getTime() + 91 * 86400000)), null);   // expired
+  assert.equal(await loadDocument(store, "../own", at.now), null);
+  assert.match(await runTool("make_document", { title: "x", text: "y" }, { ...ctx, site: undefined }), /^Błąd/);
+  assert.match(await runTool("make_document", { title: "", text: "y" }, ctx), /^Błąd/);
+});
+
+test("he may not claim a deed no tool did: he is asked again, and the claim is never spoken", async () => {
+  const { mind, seen } = fakeMind(
+    [[text("Proszę bardzo. Zrobiłem PDF i wysłałem zgłoszenie.")], "end_turn"],
+    [[text("Przepraszam, nie zrobiłem tego. Nie mam narzędzia do wysyłania zgłoszeń.")], "end_turn"]);
+  const said: string[] = [];
+  const out = await respond(mind, at, "Zrób PDF i wyślij zgłoszenie", (s) => said.push(s));
+  assert.equal(seen.length, 2);
+  assert.match(seen[1].messages.at(-1).content, /^\[Kontrola/);
+  assert.equal(out.reply, "Przepraszam, nie zrobiłem tego. Nie mam narzędzia do wysyłania zgłoszeń.");
+  assert.ok(!said.some((s) => /Zrobiłem PDF/.test(s)), said.join(" | "));
+  assert.ok(said.some((s) => /nie zrobiłem tego/.test(s)));
+
+  // Asked once; if he then stands by it (a story from his past, say), he is believed.
+  const stubborn = fakeMind([[text("Zapisałem to w notatkach.")], "end_turn"], [[text("Zapisałem to w notatkach, naprawdę.")], "end_turn"]);
+  assert.equal((await respond(stubborn.mind, at, "Zapisz to")).reply, "Zapisałem to w notatkach, naprawdę.");
+  // With a real tool result in the same turn, the same words pass at once.
+  const honest = fakeMind([[call("take_note", { text: "kupić filtr" })], "tool_use"], [[text("Zapisałem to w notatkach.")], "end_turn"]);
+  const said2: string[] = [];
+  assert.equal((await respond(honest.mind, at, "Zapisz: kupić filtr", (s) => said2.push(s))).reply, "Zapisałem to w notatkach.");
+  assert.equal(honest.seen.length, 2);
+  assert.deepEqual(said2, ["Zapisałem to w notatkach."]);
+  assert.ok(CLAIM.test("Wysłałem zgłoszenie.") && CLAIM.test("pokazuję link") && !CLAIM.test("Nie zrobiłem tego.") && !CLAIM.test("Zrobię to jutro."));
+});
+
+test("a link written into his words still gets its QR code on the screen", async () => {
+  const { mind } = fakeMind([[call("show_link", { title: "Filtr, 64 zł", url: "https://allegro.pl/oferta/1" })], "tool_use"],
+    [[text("Proszę, filtr: https://allegro.pl/oferta/1. A tu drugi: https://allegro.pl/oferta/2.")], "end_turn"]);
+  const out = await respond(mind, at, "Znajdź filtr");
+  assert.deepEqual(out.actions, [{ ok: true, text: "link na ekranie: Filtr, 64 zł https://allegro.pl/oferta/1" }, { ok: true, text: "link: https://allegro.pl/oferta/2" }]);
 });
