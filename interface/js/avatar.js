@@ -44,8 +44,8 @@ const NEEDS = { read: ['read'], write: ['write'], stretch: ['stretch'], coffee: 
 // Where the cigarette's tip is in each painting, and his lips (painting px): for the smoke and the glow.
 const TIP = { smoke: [1272, 318], drag: [800, 346], light: [754, 398] };
 const LIPS = [770, 335];
-// The window's three panes in the room painting [x, y, w, h], the lights of the town seen through them, and things in the room.
-const PANES = [[252, 0, 120, 400], [390, 0, 290, 400], [706, 0, 166, 400]];
+// The window's glass in the room painting, as rectangles [x, y, w, h], the lights of the town seen through them, and things in the room.
+const PANES = [[252, 0, 120, 366], [390, 0, 44, 366], [434, 0, 246, 400], [706, 0, 166, 400]];   // cut around the television, which stands in front of the glass
 const TOWN = [[578, 348, 255, 170, 60], [733, 328, 60, 230, 170], [420, 292, 255, 190, 110], [790, 290, 255, 180, 100], [336, 296, 255, 175, 90], [640, 300, 250, 200, 130]];   // x, y, r, g, b
 const RECORD = [1414, 403, 62, 9];     // the record on the player: centre and radii as seen from the side
 const CLOCK = [1541, 156, 30];         // the sunburst clock's face
