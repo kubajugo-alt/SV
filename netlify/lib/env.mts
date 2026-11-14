@@ -26,7 +26,7 @@ export function mind(): Mind {
   return {
     client: new Anthropic({ apiKey: Netlify.env.get("ANTHROPIC_API_KEY") }),
     store: blobStore(),
-    model: Netlify.env.get("ALAN_CLAUDE_MODEL") ?? "claude-opus-5-5",
+    model: Netlify.env.get("ALAN_CLAUDE_MODEL") ?? "claude-sonnet-5-5",   // talk, notes, digests, journal, the weekly reflection
     effort: effort === "medium" || effort === "high" ? effort : "low",
     calendars: (Netlify.env.get("ALAN_CALENDARS") ?? "").split(/[\s,]+/).filter((u) => u.startsWith("https://")),
     google: google.email && google.key && google.calendar ? google : undefined,

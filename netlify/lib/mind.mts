@@ -36,7 +36,7 @@ export type Mind = {
   client: Anthropic; store: Store; model: string; effort: "low" | "medium" | "high";
   calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; youtube?: string; webSearch: boolean;
   fetcher?: typeof fetch;
-  background?: string;   // a cheaper model for work nobody waits for: notes, digests, his journal, his own hours
+  background?: string;   // the cheapest model, for his own hours (life-tick), which nobody waits for
 };
 type Request = { person: string; tz: string; now: Date };
 
@@ -179,7 +179,7 @@ ${transcript}
 
 ZAKTUALIZOWANE NOTATKI:`;
     try {
-      const notes = textOf(await ask(mind, "Aktualizujesz notatki. Odpowiadasz wyłącznie treścią notatek.", [{ role: "user", content: prompt }], false, 3000, undefined, mind.background ?? mind.model));
+      const notes = textOf(await ask(mind, "Aktualizujesz notatki. Odpowiadasz wyłącznie treścią notatek.", [{ role: "user", content: prompt }], false, 3000));
       if (!notes) return;
       const fresh = await loadTalk(mind.store, req.person);                     // turns may have arrived meanwhile
       await mind.store.set(`talk/${req.person}`, { notes, turns: fresh.turns.slice(old.length) });
@@ -188,7 +188,7 @@ ZAKTUALIZOWANE NOTATKI:`;
     }
     try {                                                                      // a line of what it was about, for finding it later by meaning
       const line = textOf(await ask(mind, "Streszczasz rozmowę jednym zdaniem. Odpowiadasz wyłącznie tym zdaniem.",
-        [{ role: "user", content: `O czym była ta rozmowa Alana z osobą ${capital(req.person)}? Jedno zdanie po polsku, konkretnie: tematy, decyzje, nazwy, osoby.\n\n${transcript}` }], false, 200, undefined, mind.background ?? mind.model));
+        [{ role: "user", content: `O czym była ta rozmowa Alana z osobą ${capital(req.person)}? Jedno zdanie po polsku, konkretnie: tematy, decyzje, nazwy, osoby.\n\n${transcript}` }], false, 200));
       if (line) {
         const key = `digest/${req.person}`;
         const lines = (await mind.store.get<{ at: string; text: string }[]>(key)) ?? [];
@@ -200,7 +200,7 @@ ZAKTUALIZOWANE NOTATKI:`;
     try {                                                                      // and what mattered between them, into his journal
       const kept = journalText(await loadBond(mind.store, req.person), 20);
       const found = parseMoments(textOf(await ask(mind, "Prowadzisz dziennik Alana. Odpowiadasz wyłącznie liniami dziennika albo słowem BRAK.",
-        [{ role: "user", content: momentsPrompt(capital(req.person), kept, transcript) }], false, 600, undefined, mind.background ?? mind.model)));
+        [{ role: "user", content: momentsPrompt(capital(req.person), kept, transcript) }], false, 600)));
       for (const m of found) await keepMoment(mind.store, req.person, m.text, m.at);
     } catch (err) {
       console.log(`Journal fold failed: ${(err as Error).message}`);
