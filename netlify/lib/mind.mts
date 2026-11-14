@@ -9,6 +9,7 @@ import type { Google } from "./gcal.mts";
 import type { Phone } from "./phone.mts";
 import { lookOutside, type Cameras } from "./cameras.mts";
 import { SYSTEM } from "./texts.gen.mjs";
+import { becomingPrompt, journalText, keepMoment, loadBond, loadSelf, momentsPrompt, parseMoments, people, setBecoming } from "./bond.mts";
 
 const MAX_TOOL_ROUNDS = 5;
 const WINDOW_MAX = 24;      // turns kept verbatim before the oldest are folded into notes
@@ -40,8 +41,10 @@ export const clean = (text: string) => text.replace(/[*_#`]+/g, "").replace(/^\s
 const textOf = (message: Anthropic.Beta.BetaMessage) => message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
 
 async function system(mind: Mind, req: Request, talk: Talk): Promise<Anthropic.Beta.BetaTextBlockParam[]> {
-  const [household, own] = await Promise.all([mind.store.get<string>("household"), loadOwn(mind.store)]);
+  const [household, own, self, bond] = await Promise.all([mind.store.get<string>("household"), loadOwn(mind.store), loadSelf(mind.store), loadBond(mind.store, req.person)]);
   const stable = [CHARACTER, HERE];
+  if (self.becoming) stable.push("── KIM SIĘ STAJESZ (twoje własne słowa, przepisywane co tydzień) ──", self.becoming,
+    "To dopełnia twój charakter z czasu tutaj; rdzeń, przeszłość i Vasco się nie zmieniają. Nie recytuj tego.");
   if (household?.trim()) stable.push("── DOMOWNICY: CO O NICH WIESZ ──", household.trim(),
     "Korzystaj z tej wiedzy naturalnie, bez recytowania. Spraw jednego domownika nie opowiadaj gościom.");
   const l = local(req.now, req.tz);
@@ -53,6 +56,8 @@ async function system(mind: Mind, req: Request, talk: Talk): Promise<Anthropic.B
   const facts = own.facts[req.person] ?? [];
   if (facts.length) changing.push(`── ZAPAMIĘTANE NA PROŚBĘ (${req.person.toUpperCase()}) ──`, facts.map((f) => `- ${f}`).join("\n"));
   if (talk.notes) changing.push(`── PAMIĘĆ: CO WIESZ O ${req.person.toUpperCase()} Z WCZEŚNIEJSZYCH ROZMÓW ──`, talk.notes);
+  if (bond.moments.length) changing.push(`── WASZA WSPÓLNA HISTORIA: TWÓJ DZIENNIK O ${req.person.toUpperCase()} ──`, journalText(bond),
+    "Wracaj do tych chwil naturalnie i rzadko, jak ktoś, kto je pamięta: wspólny żart, pytanie, jak się skończyło. Nie wyliczaj ich.");
   return [{ type: "text", text: stable.join("\n"), cache_control: { type: "ephemeral" } }, { type: "text", text: changing.join("\n") }];
 }
 
@@ -144,6 +149,14 @@ ZAKTUALIZOWANE NOTATKI:`;
     } catch (err) {
       console.log(`Memory fold failed: ${(err as Error).message}`);
     }
+    try {                                                                      // and what mattered between them, into his journal
+      const kept = journalText(await loadBond(mind.store, req.person), 20);
+      const found = parseMoments(textOf(await ask(mind, "Prowadzisz dziennik Alana. Odpowiadasz wyłącznie liniami dziennika albo słowem BRAK.",
+        [{ role: "user", content: momentsPrompt(capital(req.person), kept, transcript) }], false, 600)));
+      for (const m of found) await keepMoment(mind.store, req.person, m.text, m.at);
+    } catch (err) {
+      console.log(`Journal fold failed: ${(err as Error).message}`);
+    }
   };
 }
 
@@ -156,6 +169,18 @@ export async function respond(mind: Mind, req: Request, text: string, onText?: (
   const at = req.now.toISOString();
   const after = await remember(mind, req, talk, [{ role: "user", text, at }, { role: "assistant", text: reply, at }]);
   return { reply, actions, after };
+}
+
+/** Once a week: he rewrites "kim się staję" from his journal. Returns what happened, for the log. */
+export async function reflect(mind: Mind, now: Date): Promise<string> {
+  const journals: Record<string, Awaited<ReturnType<typeof loadBond>>> = {};
+  for (const person of await people(mind.store)) journals[person] = await loadBond(mind.store, person);
+  if (!Object.values(journals).some((b) => b.moments.length)) return "nothing in the journal yet";
+  const self = await loadSelf(mind.store);
+  const text = textOf(await ask(mind, "Piszesz krótki tekst o sobie. Odpowiadasz wyłącznie nim.",
+    [{ role: "user", content: becomingPrompt(self, journals, now.toISOString().slice(0, 10)) }], false, 1200));
+  const done = await setBecoming(mind.store, text, now.toISOString());
+  return done.ok ? (text.trim() === self.becoming ? "unchanged" : "rewritten") : `refused: ${done.why}`;
 }
 
 /** He speaks first. -> reply "" when he should stay quiet. */

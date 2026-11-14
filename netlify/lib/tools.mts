@@ -12,6 +12,7 @@ import type { Cameras } from "./cameras.mts";
 import { moved, newEvent, onDay, toIcs, whenText } from "./owncal.mts";
 import { loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
+import { keepMoment } from "./bond.mts";
 import { MEMORIES } from "./texts.gen.mjs";
 
 export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; youtube?: string; fetcher?: typeof fetch };
@@ -79,6 +80,9 @@ export const TOOLS: Anthropic.Tool[] = [
       query: text("play/forget: co grać, np. Dawid Podsiadło Małomiasteczkowy, jazz do pracy, moja playlista na wieczór"),
       kind: { type: "string", enum: ["song", "playlist"], description: "play: song = jeden utwór; playlist = album, składanka, wykonawca na dłużej" },
       name: text("save: nazwa, pod którą domownicy będą o to prosić"), url: text("save: link do playlisty albo utworu na YouTube lub YouTube Music") }, ["action"]),
+  tool("keep_moment", "Zapisuje do twojego dziennika chwilę ważną dla twojej relacji z rozmówcą: wspólny żart, który będzie wracał, zwierzenie, ważne wydarzenie w jego życiu, chwilę troski. " +
+    "Rzadko, tylko gdy naprawdę coś się wydarzyło; zwykłych poleceń nie zapisujesz. Nie mów o tym na głos.",
+    { text: text("jedno zdanie w pierwszej osobie, twoim głosem, z imieniem rozmówcy, np. Hubert opowiedział mi o egzaminie mamy; trzymałem kciuki") }, ["text"]),
   tool("ride_link", "Przygotowuje przejazd: pokazuje na ekranie link z kodem QR, który otwiera w telefonie aplikację Uber z wpisanym celem (odbiór z miejsca, gdzie jest telefon). " +
     "Przejazd zamawia i potwierdza rozmówca w telefonie. W Tarnobrzegu Uber jeździ, ale aut jest mniej niż w Bolcie, a Bolt nie ma takiego linku: " +
     "pokaż link do Ubera i dodaj, że w Bolcie będzie pewnie szybciej, albo zaproponuj telefon po taksówkę.",
@@ -506,6 +510,8 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         const title = String(item.snippet?.title ?? query).replace(/&amp;/g, "&").replace(/&quot;/g, "\"").replace(/&#39;/g, "'");
         return `Wykonano: muzyka: ${title} yt:${list ? "list" : "video"}:${id}`;
       }
+      case "keep_moment":
+        return (await keepMoment(ctx.store, person, String(input.text ?? ""), ctx.now.toISOString())) ? "Zapisane w dzienniku." : "Już to masz w dzienniku albo to za mało, żeby zapisać.";
       case "show_map": {
         const place = String(input.place ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
         if (place.length < 3) return "Błąd: podaj, jakie miejsce pokazać.";

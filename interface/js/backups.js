@@ -6,7 +6,7 @@
 import { overlay } from './login.js';
 
 const KIND = { daily: 'NOCNA', weekly: 'TYGODNIOWA', monthly: 'MIESIĘCZNA', manual: 'RĘCZNA' };
-const SCOPES = [['', 'całą pamięć'], ['own', 'listy, przypomnienia, kalendarz, ulubione'], ['talk/kuba', 'rozmowy z Kubą'], ['talk/hubert', 'rozmowy z Hubertem'], ['household', 'opis domowników']];
+const SCOPES = [['', 'całą pamięć'], ['own', 'listy, przypomnienia, kalendarz, ulubione'], ['talk/kuba', 'rozmowy z Kubą'], ['talk/hubert', 'rozmowy z Hubertem'], ['household', 'opis domowników'], ['self', 'kim się staje'], ['bond/kuba', 'dziennik o Kubie'], ['bond/hubert', 'dziennik o Hubercie']];
 
 const el = (tag, text, cls) => { const n = document.createElement(tag); if (text) n.textContent = text; if (cls) n.className = cls; return n; };
 const when = (iso) => iso ? new Date(iso).toLocaleString('pl-PL', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : 'nigdy';

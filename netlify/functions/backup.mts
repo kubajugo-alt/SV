@@ -11,7 +11,7 @@ import { offsite, passphrase } from "../lib/backupenv.mts";
 import { blobStore } from "../lib/store.mts";
 
 const NAME = /^(daily|weekly|monthly|manual)\/[\w.-]+$/;
-const ONLY = /^(|own|household|talk\/[a-ząćęłńóśźż]+|log\/[a-ząćęłńóśźż]+)$/;
+const ONLY = /^(|own|household|self|talk\/[a-ząćęłńóśźż]+|log\/[a-ząćęłńóśźż]+|bond\/[a-ząćęłńóśźż]+)$/;
 
 export default async (req: Request) => {
   const denied = guard(req);

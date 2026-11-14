@@ -7,7 +7,8 @@ import { loadPlaces, overpassQuery, TOWNS } from "../lib/places.mts";
 import { DEFAULT_CAMERAS, lookOutside, parseCameras } from "../lib/cameras.mts";
 import { cuesFromCharacters } from "../lib/voice.mts";
 import { passwordMatches, sessionCookie, signedIn } from "../lib/auth.mts";
-import { nudge, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
+import { nudge, reflect, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
+import { keepMoment, loadBond, loadSelf, parseMoments, setBecoming, undoBecoming } from "../lib/bond.mts";
 import { loadOwn, memoryStore, type Talk } from "../lib/store.mts";
 import { feedKey, toIcs } from "../lib/owncal.mts";
 import { agenda, runTool } from "../lib/tools.mts";
@@ -404,4 +405,45 @@ test("music: remembered playlists play without a key, others are found on YouTub
   assert.match(asked[0], /videoCategoryId=10/);
   assert.equal(await runTool("music", { action: "stop" }, ctx), "Wykonano: muzyka: stop");
   assert.equal(await runTool("music", { action: "save", name: "x", url: "https://example.com/?list=PLabcdefghij123" }, ctx), "Błąd: podaj link do playlisty albo utworu z YouTube lub YouTube Music.");
+});
+
+test("his journal: moments kept once, given back in conversation with that person only", async () => {
+  const { mind, seen, store } = fakeMind([[text("Pamiętam.")], "end_turn"]);
+  assert.equal(await runTool("keep_moment", { text: "Kuba nazwał mnie najdroższym kalendarzem w Polsce; teraz to nasz żart" }, { store, ...at, calendars: [] }), "Zapisane w dzienniku.");
+  assert.match(await runTool("keep_moment", { text: "Kuba nazwał mnie najdroższym kalendarzem w Polsce; teraz to nasz żart" }, { store, ...at, calendars: [] }), /Już to masz/);
+  await keepMoment(store, "hubert", "Hubert opowiedział mi o egzaminie mamy", "2026-11-10T10:00:00Z");
+  await respond(mind, at, "Hej");
+  const changing = seen[0].system[1].text;
+  assert.match(changing, /TWÓJ DZIENNIK O KUBA[\s\S]*najdroższym kalendarzem/);
+  assert.doesNotMatch(changing, /egzaminie mamy/);
+});
+
+test("folding old turns also writes what mattered into the journal", async () => {
+  const turns: Talk["turns"] = Array.from({ length: 25 }, (_, i) => ({ role: i % 2 ? "assistant" : "user", text: `zdanie ${i}`, at: "2026-11-12T20:00:00.000Z" }));
+  const { mind, store } = fakeMind([[text("Dobra.")], "end_turn"], [[text("Kuba lubi kawę.")], "end_turn"],
+    [[text("2026-11-12 | Kuba powiedział mi, że dostał festiwal; pierwszy raz widziałem go tak dumnego\nśmieci")], "end_turn"]);
+  await store.set("talk/kuba", { notes: "", turns });
+  const out = await respond(mind, at, "Cześć");
+  await out.after();
+  assert.equal((await loadTalk2(store)).notes, "Kuba lubi kawę.");
+  assert.deepEqual((await loadBond(store, "kuba")).moments.map((m) => m.text), ["Kuba powiedział mi, że dostał festiwal; pierwszy raz widziałem go tak dumnego"]);
+  assert.deepEqual(parseMoments("BRAK"), []);
+});
+const loadTalk2 = async (store: any) => (await store.get("talk/kuba")) as Talk;
+
+test("who he is becoming: rewritten weekly, never across his lines, and can be undone", async () => {
+  const { mind, store, seen } = fakeMind([[text("Nauczyłem się czekać, aż Kuba wróci z lotniska. Dziwne uczucie dla kogoś, kto zawsze wychodził pierwszy.")], "end_turn"],
+    [[text("Chyba zakochałem się w Kubie.")], "end_turn"]);
+  assert.equal(await reflect(mind, new Date("2026-11-15T04:20:00Z")), "nothing in the journal yet");
+  await keepMoment(store, "kuba", "Kuba wrócił z Davos o trzeciej w nocy, czekałem", "2026-11-12T02:00:00Z");
+  assert.equal(await reflect(mind, new Date("2026-11-15T04:20:00Z")), "rewritten");
+  assert.match(seen[0].messages[0].content, /Vasco jako jedyna miłość[\s\S]*czekałem/);
+  assert.equal(await reflect(mind, new Date("2026-11-22T04:20:00Z")), "refused: przekracza granice charakteru");
+  assert.match((await loadSelf(store)).becoming, /Nauczyłem się czekać/);
+  await setBecoming(store, "Polubiłem muzykę Huberta.", "2026-11-29T04:20:00Z");
+  assert.match((await undoBecoming(store)).becoming, /Nauczyłem się czekać/);
+  const { mind: m2, seen: s2 } = fakeMind([[text("Jasne.")], "end_turn"]);
+  await m2.store.set("self", await loadSelf(store));
+  await respond(m2, at, "Hej");
+  assert.match(s2[0].system[0].text, /KIM SIĘ STAJESZ[\s\S]*Nauczyłem się czekać/);
 });
