@@ -115,7 +115,11 @@ test("the password opens a signed session and nothing else does", () => {
 test("mouth shapes follow the letters and rest in pauses", () => {
   const chars = [..."Mam, o!"];
   const starts = chars.map((_, i) => i * 0.1), ends = starts.map((s, i) => (i === 3 ? s + 0.4 : s + 0.1));
-  assert.deepEqual(cuesFromCharacters(chars, starts, ends), [[0, "X"], [0, "A"], [0.1, "D"], [0.2, "A"], [0.3, "X"], [0.5, "E"], [0.7, "X"]]);
+  // The lips lead the sound by a moment.
+  assert.deepEqual(cuesFromCharacters(chars, starts, ends), [[0, "X"], [0, "A"], [0.07, "D"], [0.17, "A"], [0.27, "X"], [0.47, "E"], [0.7, "X"]]);
+  // "tu": the lips round already on the t; a quick "a" opens only half way.
+  const quick = [..."tu ta"], at = quick.map((_, i) => i * 0.06), till = at.map((t) => t + 0.06);
+  assert.deepEqual(cuesFromCharacters(quick, at, till).map(([, shape]) => shape), ["X", "F", "B", "C", "X"]);
 });
 
 test("a streamed answer is handed over sentence by sentence, across tool rounds", async () => {
@@ -341,4 +345,17 @@ test("without Google he keeps a calendar of his own, publishes it as a feed and 
   assert.deepEqual((await loadOwn(store)).events.map((e) => e.title), ["Dentysta"]);
   assert.equal(feedKey("haslo").length, 32);
   assert.notEqual(feedKey("haslo"), feedKey("inne"));
+});
+
+test("without a routine, a feature request becomes an [ALAN] issue on GitHub", async () => {
+  const calls: { url: string; init: any }[] = [];
+  const fetcher = (async (url: any, init: any) => { calls.push({ url: String(url), init }); return Response.json({ html_url: "https://github.com/o/r/issues/5" }, { status: 201 }); }) as typeof fetch;
+  const ctx = { store: memoryStore(), ...at, calendars: [], fetcher, builder: { token: "ghp", repo: "o/r" } };
+  assert.match(await runTool("request_feature", { request: "Naucz się podawać kursy walut z NBP." }, ctx), /^Wykonano: zlecenie przekazane/);
+  assert.equal(calls[0].url, "https://api.github.com/repos/o/r/issues");
+  assert.equal(calls[0].init.headers.Authorization, "Bearer ghp");
+  const sent = JSON.parse(calls[0].init.body);
+  assert.equal(sent.title, "[ALAN] Naucz się podawać kursy walut z NBP.");
+  assert.match(sent.body, /Kuba\), przekazana przez Alana:\n\nNaucz się/);
+  assert.match(await runTool("find_notes", { query: "zlecenie" }, ctx), /issues\/5/);
 });

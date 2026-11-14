@@ -15,8 +15,11 @@ import { plain, stems } from "./words.mts";
 import { MEMORIES } from "./texts.gen.mjs";
 
 export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; fetcher?: typeof fetch };
-/** The Claude Code routine that changes his own code: its id (trig_...) and the token of its API trigger. */
-export type Builder = { routine: string; token: string };
+/**
+ * Who changes his own code. Either a Claude Code routine (its id, trig_..., and the token of its API trigger),
+ * or the repository on GitHub: he opens an issue titled [ALAN] and a GitHub Actions workflow runs Claude Code on it.
+ */
+export type Builder = { token: string; routine?: string; repo?: string };
 
 const text = (description: string) => ({ type: "string" as const, description });
 const tool = (name: string, description: string, properties: Record<string, unknown> = {}, required: string[] = []): Anthropic.Tool =>
@@ -365,15 +368,30 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         const request = String(input.request ?? "").trim();
         if (!ctx.builder) return "Błąd: nie masz połączenia z programistą; nie możesz zlecać zmian w sobie.";
         if (request.length < 10) return "Błąd: opisz dokładniej, co ma zostać dodane.";
-        const res = await (ctx.fetcher ?? fetch)(`https://api.anthropic.com/v1/claude_code/routines/${encodeURIComponent(ctx.builder.routine)}/fire`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${ctx.builder.token}`, "anthropic-version": "2023-06-01", "anthropic-beta": "experimental-cc-routine-2026-04-01", "Content-Type": "application/json" },
-          body: JSON.stringify({ text: `Prośba od domownika (${capital(person)}), przekazana przez Alana:\n${request.slice(0, 4000)}` }),
-        });
-        if (res.status === 429) return "Błąd: za dużo zleceń w ostatniej godzinie; spróbuj później.";
-        if (!res.ok) return `Błąd: programista nie przyjął zlecenia (${res.status}).`;
-        const made = await res.json().catch(() => ({}));
-        (own.jottings[person] ??= []).push({ at: ctx.now.toISOString(), text: `Zlecenie dla programisty: ${request}${made.claude_code_session_url ? ` (${made.claude_code_session_url})` : ""}` });
+        const who = capital(person);
+        const fetcher = ctx.fetcher ?? fetch;
+        let link = "";
+        if (ctx.builder.routine) {
+          const res = await fetcher(`https://api.anthropic.com/v1/claude_code/routines/${encodeURIComponent(ctx.builder.routine)}/fire`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${ctx.builder.token}`, "anthropic-version": "2023-06-01", "anthropic-beta": "experimental-cc-routine-2026-04-01", "Content-Type": "application/json" },
+            body: JSON.stringify({ text: `Prośba od domownika (${who}), przekazana przez Alana:\n${request.slice(0, 4000)}` }),
+          });
+          if (res.status === 429) return "Błąd: za dużo zleceń w ostatniej godzinie; spróbuj później.";
+          if (!res.ok) return `Błąd: programista nie przyjął zlecenia (${res.status}).`;
+          link = (await res.json().catch(() => ({}))).claude_code_session_url ?? "";
+        } else {
+          // An issue in the repository; the workflow .github/workflows/alan.yml picks up those titled [ALAN].
+          const title = `[ALAN] ${request.replace(/\s+/g, " ").slice(0, 80)}${request.length > 80 ? "…" : ""}`;
+          const res = await fetcher(`https://api.github.com/repos/${ctx.builder.repo}/issues`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${ctx.builder.token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "alan-home", "Content-Type": "application/json" },
+            body: JSON.stringify({ title, body: `Prośba od domownika (${who}), przekazana przez Alana:\n\n${request.slice(0, 4000)}` }),
+          });
+          if (!res.ok) return `Błąd: GitHub nie przyjął zlecenia (${res.status}).`;
+          link = (await res.json().catch(() => ({}))).html_url ?? "";
+        }
+        (own.jottings[person] ??= []).push({ at: ctx.now.toISOString(), text: `Zlecenie dla programisty: ${request}${link ? ` (${link})` : ""}` });
         await save();
         return "Wykonano: zlecenie przekazane programiście. Przygotuje propozycję zmiany; zacznie działać, gdy Kuba ją zatwierdzi.";
       }
