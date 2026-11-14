@@ -52,7 +52,7 @@ export type Own = {
   lists: Record<string, string[]>;
   facts: Record<string, string[]>;
   jottings: Record<string, { text: string; at: string }[]>;
-  place: { name: string; where: string; lat: number; lon: number; tz: string } | null;
+  place: { name: string; where: string; lat: number; lon: number; tz: string; who?: string } | null;   // who: the one who is there (the others are at home)
   calls: Call[];                       // phone calls he made, newest last
   pendingCall: PendingCall | null;     // a call he proposed and waits to have confirmed
   placeNotes: PlaceNote[];             // what the household said about places
@@ -61,6 +61,8 @@ export type Own = {
   events: OwnEvent[];                  // his own calendar
 };
 
+/** Where this person is: the saved place if it is theirs (or nobody's), else home (null). */
+export const placeOf = (own: Own, person: string) => (own.place && (!own.place.who || own.place.who === person) ? own.place : null);
 export const emptyOwn = (): Own => ({ seq: 0, reminders: [], lists: {}, facts: {}, jottings: {}, place: null, calls: [], pendingCall: null, placeNotes: [], events: [], favourites: [], music: [] });
 export const loadOwn = async (store: Store): Promise<Own> => ({ ...emptyOwn(), ...((await store.get<Own>("own")) ?? {}) });
 export const loadTalk = async (store: Store, person: string): Promise<Talk> => (await store.get<Talk>(`talk/${person}`)) ?? { notes: "", turns: [] };
