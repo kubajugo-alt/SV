@@ -2,6 +2,7 @@
 import type { Config } from "@netlify/functions";
 import { guard } from "../lib/auth.mts";
 import { blobVault, staleWarning } from "../lib/backup.mts";
+import { loadLife } from "../lib/life.mts";
 import { passphrase } from "../lib/backupenv.mts";
 import { phone } from "../lib/env.mts";
 import { blobStore } from "../lib/store.mts";
@@ -16,7 +17,9 @@ export default async (req: Request) => {
     const warning = await staleWarning(blobVault(), now).catch(() => null);
     if (warning) out.say.push(warning);
   }
-  return Response.json(out);
+  const mood = (await loadLife(blobStore()).catch(() => null))?.mood;
+  const fresh = mood && now.getTime() - new Date(mood.at).getTime() < 12 * 3600000;
+  return Response.json({ ...out, ...(fresh ? { mood: { energy: mood.energy, cheer: mood.cheer } } : {}) });
 };
 
 export const config: Config = { path: "/agenda", method: "GET" };

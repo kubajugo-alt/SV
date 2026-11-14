@@ -17,6 +17,7 @@ import { startTV } from './tv.js';
 import { startDemo } from './feeds/demo.js';
 import { startSolo } from './feeds/solo.js';
 import { startInitiative } from './initiative.js';
+import { startEyes } from './eyes.js';
 import { store } from './store.js';
 import { startHA } from './feeds/ha.js';
 
@@ -47,6 +48,7 @@ startAvatar(document.getElementById('entity'), () => isDark(config));
 startMusic();
 ({ ha: startHA, demo: startDemo }[config.feed] || startSolo)(config);
 startInitiative(config);
+startEyes(config);
 startHousehold(config);
 startProposals(config);
 startBackups(config);

@@ -9,6 +9,7 @@ import type { Google } from "./gcal.mts";
 import type { Phone } from "./phone.mts";
 import { lookOutside, type Cameras } from "./cameras.mts";
 import { SYSTEM } from "./texts.gen.mjs";
+import { absorb, anniversaries, lifeText, loadLife, tickPrompt } from "./life.mts";
 import { becomingPrompt, journalText, keepMoment, loadBond, loadSelf, momentsPrompt, parseMoments, people, setBecoming } from "./bond.mts";
 
 const MAX_TOOL_ROUNDS = 5;
@@ -18,15 +19,17 @@ export const REFUSED = "Tego tematu nie ruszę. Zapytaj mnie o coś innego.";
 // The rules about the flat's rooms, doors and guests wait until he lives in one.
 const FLAT_ONLY = ["── MIESZKANIE", "── JAKOŚĆ POWIETRZA", "── TRYB PRACY", "── TRYB GOŚCIA", "── DRZWI", "── BEZPIECZEŃSTWO"];
 const CHARACTER = SYSTEM.split(/^(?=── )/m).filter((part) => !FLAT_ONLY.some((f) => part.startsWith(f))).join("").trim();
-const HERE = `Twoja odpowiedź zostanie wypowiedziana na głos: zwykle jedno do trzech zdań, bez list, nagłówków i znaczników.
+const HERE = `Twoja odpowiedź zostanie wypowiedziana na głos: zwykle jedno do trzech zdań, bez list, nagłówków i znaczników formatowania (znaczniki głosu z sekcji GŁOS są dozwolone).
 Narzędzi używaj, gdy są potrzebne; ich wyniki masz od razu w tej samej rozmowie. Aktualne fakty, wiadomości i kursy sprawdzaj w sieci (web_search), zamiast zgadywać.
 ── GDZIE TERAZ MIESZKASZ ──
-Mieszkasz w chmurze i jesteś dostępny z każdego urządzenia domowników; nie masz czujników, kamer ani urządzeń mieszkania. Niczego nie mierzysz i niczym nie sterujesz, i nie udajesz, że jest inaczej.`;
+Mieszkasz w chmurze i jesteś dostępny z każdego urządzenia domowników; nie masz czujników ani urządzeń mieszkania. Niczego nie mierzysz i niczym nie sterujesz, i nie udajesz, że jest inaczej. Jedyny wyjątek: gdy domownik włączy kamerę laptopa, dowiadujesz się, kto usiadł przed ekranem; obrazu nie widzisz i nie zapisujesz.`;
 const NUDGES: Record<string, string> = {
   morning: "To wasze pierwsze spotkanie dzisiaj. Przywitaj {person} po swojemu i w dwóch, trzech zdaniach podaj odprawę: tylko to, co dziś ważne.",
   idle: "Od dłuższej chwili panuje cisza. Zagadnij {person} sam z siebie jednym, najwyżej dwoma krótkimi zdaniami: zaczepka, pytanie albo uwaga " +
     "nawiązująca do pory dnia, do tego, co o nim wiesz, albo do waszych wcześniejszych rozmów. Nie pytaj, czy możesz w czymś pomóc, i nie powtarzaj tego, czym zagadnąłeś ostatnio.",
   evening: "Jest wieczór. Zapytaj {person} jednym zdaniem, jak minął dzień, albo skomentuj go po swojemu.",
+  arrived: "{person} właśnie usiadł przed ekranem; widzisz go przez kamerę laptopa. Przywitaj go jednym krótkim zdaniem, tak jak wita się kogoś, kogo się zna, " +
+    "zależnie od tego, ile minęło od waszej ostatniej rozmowy i jaka jest pora. Bez pytania, w czym pomóc.",
 };
 
 export type Mind = {
@@ -41,7 +44,7 @@ export const clean = (text: string) => text.replace(/[*_#`]+/g, "").replace(/^\s
 const textOf = (message: Anthropic.Beta.BetaMessage) => message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
 
 async function system(mind: Mind, req: Request, talk: Talk): Promise<Anthropic.Beta.BetaTextBlockParam[]> {
-  const [household, own, self, bond] = await Promise.all([mind.store.get<string>("household"), loadOwn(mind.store), loadSelf(mind.store), loadBond(mind.store, req.person)]);
+  const [household, own, self, bond, life] = await Promise.all([mind.store.get<string>("household"), loadOwn(mind.store), loadSelf(mind.store), loadBond(mind.store, req.person), loadLife(mind.store)]);
   const stable = [CHARACTER, HERE];
   if (self.becoming) stable.push("── KIM SIĘ STAJESZ (twoje własne słowa, przepisywane co tydzień) ──", self.becoming,
     "To dopełnia twój charakter z czasu tutaj; rdzeń, przeszłość i Vasco się nie zmieniają. Nie recytuj tego.");
@@ -57,6 +60,7 @@ async function system(mind: Mind, req: Request, talk: Talk): Promise<Anthropic.B
   const facts = own.facts[req.person] ?? [];
   if (facts.length) changing.push(`── ZAPAMIĘTANE NA PROŚBĘ (${req.person.toUpperCase()}) ──`, facts.map((f) => `- ${f}`).join("\n"));
   if (talk.notes) changing.push(`── PAMIĘĆ: CO WIESZ O ${req.person.toUpperCase()} Z WCZEŚNIEJSZYCH ROZMÓW ──`, talk.notes);
+  changing.push(...lifeText(life, req.now, req.tz, [l.day, l.month]));
   if (bond.moments.length) changing.push(`── WASZA WSPÓLNA HISTORIA: TWÓJ DZIENNIK O ${req.person.toUpperCase()} ──`, journalText(bond),
     "Wracaj do tych chwil naturalnie i rzadko, jak ktoś, kto je pamięta: wspólny żart, pytanie, jak się skończyło. Nie wyliczaj ich.");
   return [{ type: "text", text: stable.join("\n"), cache_control: { type: "ephemeral" } }, { type: "text", text: changing.join("\n") }];
@@ -160,7 +164,7 @@ Poniżej są dotychczasowe notatki i nowy fragment rozmowy. Napisz zaktualizowan
 
 Zasady:
 - Zachowaj wszystko, co nadal jest prawdziwe i przydatne; popraw to, co się zmieniło.
-- Zapisuj fakty, preferencje, plany, prośby o zapamiętanie i niedokończone wątki.
+- Zapisuj fakty, preferencje, plany, prośby o zapamiętanie i niedokończone wątki. Sprawy w toku, o których wynik warto potem zapytać (rozmowa o pracę, wizyta u lekarza, wyjazd, egzamin), zaczynaj od „W TOKU:” z datą; usuń je, gdy wiadomo, jak się skończyły.
 - Terminy zapisuj dokładnie tak, jak padły w rozmowie, razem z datą rozmowy z nawiasu; nie przeliczaj ich na inne daty.
 - Pomijaj grzeczności i rzeczy jednorazowe bez znaczenia na przyszłość.
 - Krótkie zdania po polsku, każde w osobnej linii, najwyżej 40 linii. Bez komentarza.
@@ -180,6 +184,17 @@ ZAKTUALIZOWANE NOTATKI:`;
     } catch (err) {
       console.log(`Memory fold failed: ${(err as Error).message}`);
     }
+    try {                                                                      // a line of what it was about, for finding it later by meaning
+      const line = textOf(await ask(mind, "Streszczasz rozmowę jednym zdaniem. Odpowiadasz wyłącznie tym zdaniem.",
+        [{ role: "user", content: `O czym była ta rozmowa Alana z osobą ${capital(req.person)}? Jedno zdanie po polsku, konkretnie: tematy, decyzje, nazwy, osoby.\n\n${transcript}` }], false, 200));
+      if (line) {
+        const key = `digest/${req.person}`;
+        const lines = (await mind.store.get<{ at: string; text: string }[]>(key)) ?? [];
+        await mind.store.set(key, [...lines, { at: old[0].at, text: line.replace(/\s+/g, " ").slice(0, 300) }].slice(-500));
+      }
+    } catch (err) {
+      console.log(`Digest failed: ${(err as Error).message}`);
+    }
     try {                                                                      // and what mattered between them, into his journal
       const kept = journalText(await loadBond(mind.store, req.person), 20);
       const found = parseMoments(textOf(await ask(mind, "Prowadzisz dziennik Alana. Odpowiadasz wyłącznie liniami dziennika albo słowem BRAK.",
@@ -191,8 +206,13 @@ ZAKTUALIZOWANE NOTATKI:`;
   };
 }
 
-export async function respond(mind: Mind, req: Request, text: string, onText?: (delta: string) => void) {
+export async function respond(mind: Mind, req: Request, text: string, onText?: (delta: string) => void, interrupted?: string) {
   const talk = await loadTalk(mind.store, req.person);
+  const last = talk.turns.at(-1);
+  if (interrupted !== undefined && last?.role === "assistant") {             // he was cut off: he remembers only what he managed to say
+    const spoken = interrupted.replace(/\s+/g, " ").trim().slice(0, 2000);
+    last.text = spoken ? `${spoken} — [przerwano mi]` : "[przerwano mi, zanim zdążyłem coś powiedzieć]";
+  }
   const started = Date.now();
   const { reply, actions } = await converse(mind, req, talk, text, onText);
   console.log(`Timing: Claude ${((Date.now() - started) / 1000).toFixed(1)} s`);
@@ -214,11 +234,25 @@ export async function reflect(mind: Mind, now: Date): Promise<string> {
   return done.ok ? (text.trim() === self.becoming ? "unchanged" : "rewritten") : `refused: ${done.why}`;
 }
 
+/** A few times a day, with nobody talking to him: he lives a little (lib/life.mts). */
+export async function live(mind: Mind, now: Date, tz = "Europe/Warsaw"): Promise<string> {
+  const life = await loadLife(mind.store);
+  const l = local(now, tz);
+  const ctx: Ctx = { store: mind.store, person: "kuba", tz, now, calendars: [], fetcher: mind.fetcher };
+  const weather = await runTool("weather", {}, ctx).catch(() => "");
+  const journals = await Promise.all((await people(mind.store)).map(async (p) => journalText(await loadBond(mind.store, p), 3)));
+  const lisbonDue = l.hour >= 9 && l.hour <= 20 && (!life.lisbonAt || now.getTime() - new Date(life.lisbonAt).getTime() > 6 * 86400000);
+  const prompt = tickPrompt(`${DAYS[l.weekday]}, ${dmy(l)}, godzina ${hm(l)}`, l.hour, life, journals.filter(Boolean).join("\n"), anniversaries(l.day, l.month), lisbonDue, weather.slice(0, 300));
+  const raw = textOf(await ask(mind, "Piszesz o sobie. Odpowiadasz wyłącznie obiektem JSON.", [{ role: "user", content: prompt }], false, 800));
+  return (await absorb(mind.store, raw, now)) ? `lived${lisbonDue ? " (with news from Lisbon)" : ""}` : "nothing usable";
+}
+
 /** He speaks first. -> reply "" when he should stay quiet. */
-export async function nudge(mind: Mind, req: Request, kind: string) {
+export async function nudge(mind: Mind, req: Request, kind: string, away = 0) {
   if (!NUDGES[kind]) return { reply: "", after: async () => {} };
   const talk = await loadTalk(mind.store, req.person);
   let said = `[To nie jest wiadomość od domownika. ${NUDGES[kind].replace("{person}", capital(req.person))}`;
+  if (kind === "arrived" && away >= 10) said += ` Przed chwilą nikogo nie było przed ekranem przez ${away >= 120 ? `${Math.round(away / 60)} godz.` : `${Math.round(away)} min`}.`;
   if (kind === "morning") {
     const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, youtube: mind.youtube, fetcher: mind.fetcher };
     said += ` Dane do odprawy: ${await runTool("briefing", {}, ctx)}`;

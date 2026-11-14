@@ -3,12 +3,14 @@
 // you type, thinks while the model answers, then speaks the reply.
 
 import { store } from './store.js';
-import { prepare, prepared, speakStream } from './speech.js';
+import { prepare, prepared, speakStream, takeInterrupted } from './speech.js';
 
 // What he mutters while the answer is on its way, so the pause is his and not the machine's.
 // Recorded once per visit, then said from memory.
 const FILLERS = ['Hmm.', 'Chwileczkę.', 'Niech pomyślę.', 'Momencik.', 'Zaraz, zaraz.', 'Dobre pytanie.', 'No dobrze.'];
 const FILLER_AFTER = 900;   // ms of silence before he says one
+// What he murmurs while you talk to him at length (mic.js), recorded along with the fillers.
+export const BACKCHANNEL = ['Mhm.', 'Aha.', 'No.'];
 
 /** @returns {((text: string) => Promise<void>) | undefined} ask — send a line to ALAN */
 export function startChat(config) {
@@ -21,7 +23,13 @@ export function startChat(config) {
   let exchange = 0;
   let lastFiller = '';
   // The first click or key unlocks the sound; a moment later his mutters are recorded, ready for the first question.
-  for (const type of ['pointerdown', 'keydown']) addEventListener(type, () => setTimeout(() => prepare(FILLERS), 600), { once: true });
+  for (const type of ['pointerdown', 'keydown']) addEventListener(type, () => setTimeout(() => prepare([...FILLERS, ...BACKCHANNEL]), 600), { once: true });
+  // Talked over (speech.js interrupt()): the reply still being written is abandoned, so the next question is heard.
+  let cancel = null;
+  addEventListener('alan:interrupted', () => {
+    cancel?.abort();
+    store.set({ busy: false, alan: 'idle' });
+  });
 
   async function ask(text) {
     text = text.trim();
@@ -49,11 +57,17 @@ export function startChat(config) {
       speaker.push(lastFiller);
     }, FILLER_AFTER);
     prepare(FILLERS);
+    const abort = cancel = new AbortController();
+    const interrupted = takeInterrupted();   // he was cut off last time: the server learns how much was heard
     try {
       const res = await fetch(config.chat, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, person: store.get().person, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, stream: true }),
+        body: JSON.stringify({
+          text, person: store.get().person, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, stream: true,
+          ...(interrupted ? { interrupted } : {}),
+        }),
+        signal: abort.signal,
       });
       if (!res.ok) throw new Error(`${res.status}`);
       const take = (data) => {
@@ -76,10 +90,13 @@ export function startChat(config) {
         }
       } else take(await res.json());   // the server at home answers in one piece
     } catch (err) {
-      console.warn('ALAN chat failed:', err.message);
       clearTimeout(filler);
+      if (abort.signal.aborted) { waiting = false; return; }   // talked over: the new question takes it from here
+      console.warn('ALAN chat failed:', err.message);
       speak(spoken ? 'I tu zgubiłem wątek. Połączenie się urwało.' : 'Nie mam teraz połączenia z modelem językowym.');
     }
+    if (cancel === abort) cancel = null;
+    if (abort.signal.aborted) { waiting = false; return; }
     waiting = false;
     store.set({ alan: 'idle', actions });
     if (actions.length) dispatchEvent(new Event('alan:acted'));

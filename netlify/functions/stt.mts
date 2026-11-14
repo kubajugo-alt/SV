@@ -1,9 +1,33 @@
 // POST /stt  (a WAV recording) -> {text}, recognised by ElevenLabs Scribe.
 // With ?wake=1 (open microphone) the text is passed on only if it starts with his name.
+// Scribe also tags sounds that are not words — a laugh, a sigh: they come first, in brackets
+// ("[śmiech] no to dobranoc"), so he hears the tone of voice as well as the words.
 import type { Config } from "@netlify/functions";
 import { guard } from "../lib/auth.mts";
 
 const WAKE = /^[\s\p{P}]*(?:(?:hej|ej|cześć|halo|słuchaj|no)[\s\p{P}]+)?al+an(?:ie|ku)?(?![\p{L}])/iu;
+// Scribe names its events in English; the household speaks Polish. Others pass as they come.
+const EVENTS: [RegExp, string][] = [
+  [/laugh|chuckl|giggl|śmiech/i, "śmiech"],
+  [/sigh|westchn/i, "westchnienie"],
+  [/cough|kaszel/i, "kaszel"],
+  [/yawn|ziew/i, "ziewnięcie"],
+  [/cry|sob|płacz/i, "płacz"],
+  [/clap|oklaski/i, "oklaski"],
+];
+
+type Word = { text?: string; type?: string };
+
+/** The words, and the sounds that were not words, of a Scribe answer. */
+export function heard(answer: { text?: string; words?: Word[] }) {
+  const words = Array.isArray(answer.words) ? answer.words : [];
+  const events = words.filter((w) => w.type === "audio_event").map((w) => String(w.text ?? "").replace(/[()[\]]/g, "").trim()).filter(Boolean);
+  if (!events.length) return { text: String(answer.text ?? "").trim(), tone: "" };
+  const text = words.filter((w) => w.type !== "audio_event").map((w) => w.text ?? "").join("").replace(/\s+/g, " ").trim();
+  const named = events.map((e) => EVENTS.find(([pattern]) => pattern.test(e))?.[1] ?? e.toLowerCase().slice(0, 20));
+  const tone = [...new Set(named)].slice(0, 2).map((e) => `[${e}]`).join(" ");
+  return { text, tone };
+}
 
 export default async (req: Request) => {
   const denied = guard(req);
@@ -16,15 +40,17 @@ export default async (req: Request) => {
   form.append("file", new Blob([audio], { type: "audio/wav" }), "said.wav");
   form.append("model_id", Netlify.env.get("ALAN_ELEVEN_STT") ?? "scribe_v1");
   form.append("language_code", "pl");
+  form.append("tag_audio_events", "true");
   try {
     const res = await fetch("https://api.elevenlabs.io/v1/speech-to-text", { method: "POST", headers: { "xi-api-key": key }, body: form });
     if (!res.ok) {
       console.log(`Scribe answered ${res.status}: ${(await res.text()).slice(0, 200)}`);
       return new Response("The hearing service did not answer", { status: 502 });
     }
-    const text = String(((await res.json()) as { text?: string }).text ?? "").trim();
+    const { text, tone } = heard(await res.json());
     const wake = new URL(req.url).searchParams.get("wake") === "1";
-    return Response.json({ text: wake && !WAKE.test(text) ? "" : text });
+    if (wake && !WAKE.test(text)) return Response.json({ text: "" });    // his name is looked for in the words, not the laugh
+    return Response.json({ text: tone && text ? `${tone} ${text}` : tone || text });
   } catch (err) {
     console.log(`STT failed: ${(err as Error).message}`);
     return new Response("The hearing service did not answer", { status: 502 });

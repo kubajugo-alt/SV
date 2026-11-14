@@ -7,8 +7,9 @@ import { loadPlaces, overpassQuery, TOWNS } from "../lib/places.mts";
 import { DEFAULT_CAMERAS, lookOutside, parseCameras } from "../lib/cameras.mts";
 import { cuesFromCharacters } from "../lib/voice.mts";
 import { passwordMatches, sessionCookie, signedIn } from "../lib/auth.mts";
-import { nudge, reflect, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
+import { live, nudge, reflect, REFUSED, respond, sentenceCutter, type Mind } from "../lib/mind.mts";
 import { keepMoment, loadBond, loadSelf, parseMoments, setBecoming } from "../lib/bond.mts";
+import { anniversaries, loadLife } from "../lib/life.mts";
 import { loadOwn, memoryStore, type Talk } from "../lib/store.mts";
 import { feedKey, toIcs } from "../lib/owncal.mts";
 import { agenda, runTool } from "../lib/tools.mts";
@@ -421,6 +422,7 @@ test("his journal: moments kept once, given back in conversation with that perso
 test("folding old turns also writes what mattered into the journal", async () => {
   const turns: Talk["turns"] = Array.from({ length: 25 }, (_, i) => ({ role: i % 2 ? "assistant" : "user", text: `zdanie ${i}`, at: "2026-11-12T20:00:00.000Z" }));
   const { mind, store } = fakeMind([[text("Dobra.")], "end_turn"], [[text("Kuba lubi kawę.")], "end_turn"],
+    [[text("Rozmowa o festiwalu i o kawie.")], "end_turn"],
     [[text("2026-11-12 | Kuba powiedział mi, że dostał festiwal; pierwszy raz widziałem go tak dumnego\nśmieci")], "end_turn"]);
   await store.set("talk/kuba", { notes: "", turns });
   const out = await respond(mind, at, "Cześć");
@@ -428,6 +430,8 @@ test("folding old turns also writes what mattered into the journal", async () =>
   assert.equal((await loadTalk2(store)).notes, "Kuba lubi kawę.");
   assert.deepEqual((await loadBond(store, "kuba")).moments.map((m) => m.text), ["Kuba powiedział mi, że dostał festiwal; pierwszy raz widziałem go tak dumnego"]);
   assert.deepEqual(parseMoments("BRAK"), []);
+  assert.deepEqual(await store.get("digest/kuba"), [{ at: "2026-11-12T20:00:00.000Z", text: "Rozmowa o festiwalu i o kawie." }]);
+  assert.match(await runTool("recall_talk", { query: "jaki był ten koncert" }, { store, ...at, calendars: [] }), /po sensie: \[12\.11\.2026\] Rozmowa o festiwalu/);
 });
 const loadTalk2 = async (store: any) => (await store.get("talk/kuba")) as Talk;
 
@@ -464,4 +468,33 @@ test("he knows how long it has been, with each of them, and where time passed in
   assert.match(changing, /Ostatnia rozmowa — Hubert: 10 godzin temu/);
   assert.equal(seen[0].messages[0].content, "Lecę jutro do Barcelony.");
   assert.match(seen[0].messages[2].content, /^\[13 godzin później: wtorek 10\.11\.2026, 09:00\] Wróciłem\.$/);
+});
+
+test("his own hours: a book, a mood, news from Lisbon now and then, all given back to him", async () => {
+  const { mind, seen, store } = fakeMind(
+    [[text('{"day": "Przeczytałem dwa rozdziały i wypiłem za dużo kawy; deszcz nie przestaje.", "book": {"title": "Rok śmierci Ricarda Reisa", "author": "José Saramago", "page": 84, "of": 420, "thoughts": "Saramago nie wierzy w kropki."}, "mood": {"label": "senny, trochę melancholijny", "energy": -1, "cheer": 0, "why": "szary dzień"}, "lisbon": "Inês pisze, że Pessoa przespał cały tydzień na Camõesie. Nikt go nie kupił."}')], "end_turn"],
+    [[text("Cześć.")], "end_turn"]);
+  assert.equal(await live(mind, new Date("2026-11-14T10:50:00Z")), "lived (with news from Lisbon)");
+  assert.match(seen[0].messages[0].content, /"lisbon"[\s\S]*Nigdy wielkich wydarzeń/);
+  const life = await loadLife(store);
+  assert.equal(life.book!.page, 84);
+  assert.equal(life.mood!.energy, -1);
+  await respond(mind, { ...at, now: new Date("2026-11-14T12:00:00Z") }, "Hej");
+  const changing = seen[1].system[1].text;
+  assert.match(changing, /TWOJE GODZINY BEZ NICH[\s\S]*deszcz nie przestaje[\s\S]*wieści z Lizbony[\s\S]*Pessoa przespał/);
+  assert.match(changing, /Czytasz teraz: José Saramago, „Rok śmierci Ricarda Reisa”, strona 84 z 420/);
+  assert.match(changing, /TWÓJ NASTRÓJ[\s\S]*senny, trochę melancholijny/);
+  assert.deepEqual(anniversaries(1, 11), ["Blisko dziś: rocznica dnia, w którym poznałeś Vasca w dole odlewniczym w Sé (1995).",
+    "Dziś: Wszystkich Świętych: rocznica dzwonu z 1755 roku i twojego telefonu do matki o świcie (1995).", "Blisko dziś: rocznica czwartku w dole odlewniczym, kiedy Vasco cię pocałował (1995): „Każdy czwartek”."]);
+  assert.deepEqual(anniversaries(14, 11), []);
+});
+
+test("cut off mid-reply, he remembers only what he managed to say; someone arriving gets a greeting", async () => {
+  const { mind, seen, store } = fakeMind([[text("Dobra, słucham.")], "end_turn"], [[text("O, jesteś.")], "end_turn"]);
+  await store.set("talk/kuba", { notes: "", turns: [{ role: "user", text: "Opowiedz o Lizbonie", at: "2026-11-13T07:00:00.000Z" }, { role: "assistant", text: "Lizbona to miasto siedmiu wzgórz. I mgły. I długów.", at: "2026-11-13T07:00:05.000Z" }] });
+  await respond(mind, at, "Czekaj, czekaj", undefined, "Lizbona to miasto siedmiu wzgórz.");
+  assert.equal(seen[0].messages[1].content, "Lizbona to miasto siedmiu wzgórz. — [przerwano mi]");
+  const out = await nudge(mind, at, "arrived");
+  assert.equal(out.reply, "O, jesteś.");
+  assert.match(seen[1].messages.at(-1).content, /usiadł przed ekranem/);
 });

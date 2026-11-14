@@ -272,7 +272,7 @@ function render(s, config) {
 
   if (s.utterance !== shown) {
     shown = s.utterance;
-    type(s.text, Math.max(1500, s.speakingUntil - performance.now()));
+    type(String(s.text ?? '').replace(/\s*\[(sighs|laughs|chuckles|whispers|pause)\]\s*/gi, ' ').trim(), Math.max(1500, s.speakingUntil - performance.now()));   // voice tags are heard, not read
   }
 
   drawNotes(s.actions);

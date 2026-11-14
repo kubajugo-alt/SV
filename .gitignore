@@ -7,3 +7,4 @@ vendor/
 !interface/js/vendor/
 netlify/lib/texts.gen.mjs
 .netlify/
+.claude/worktrees/

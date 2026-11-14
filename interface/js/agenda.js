@@ -20,6 +20,7 @@ export function startAgenda(config) {
       return;   // server restarting; try again in 2 s
     }
     const now = Date.now();
+    if (agenda.mood) window.alanMood = agenda.mood;          // the room shows how he feels (avatar.js)
     const patch = { timers: agenda.timers.map((t) => ({ label: t.label, endsAt: now + t.seconds * 1000 })) };
     if (agenda.say.length) {
       patch.actions = agenda.say.map((text) => ({ ok: true, text: text.replace(/\.$/, '') }));
