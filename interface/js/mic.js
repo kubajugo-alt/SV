@@ -150,6 +150,7 @@ export function startMic(config, ask) {
     if (awake) store.set({ alan: 'thinking' });
     const text = await recognise(recorded, rate, !awake);
     const forHim = addressed(text);
+    if (forHim !== null) dispatchEvent(new Event('alan:wake'));   // e.g. the TV switches over to him
     if (forHim === '') {                        // just his name: he turns to listen
       awakeUntil = Date.now() + NAME_MS;
       hush();

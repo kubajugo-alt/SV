@@ -12,7 +12,7 @@ const MOUTH: Record<string, string> = {
 };
 for (const c of "cdghjknrstzxq") MOUTH[c] = "B";
 const HELD = 0.07;                       // seconds: shorter than this, an "a" is only half open and an "e" barely
-const LEAD = 0.035;                      // the lips move a moment before the sound is heard, as in life
+const LEAD = 0;                          // the page lines the mouth up with what is heard (speech.js); no extra lead here
 const ROUND = new Set(["E", "F"]);       // o and u round the lips already on the consonant before them
 // Letters that lose their accent in plain(): ę -> e (C), ó -> u-like (F), ą -> o-like (E), ł -> w-like (F).
 const ACCENTED: Record<string, string> = { "ó": "F", "ą": "E", "ł": "F" };
