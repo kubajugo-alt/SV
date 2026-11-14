@@ -36,6 +36,9 @@ export function memoryStore(seed: Record<string, unknown> = {}): Store & { data:
   };
 }
 
+/** An order the household likes: what, from where, and the page (Glovo, Uber Eats...) where it is ordered. */
+export type Favourite = { name: string; place: string; what: string; url: string; who: string; at: string; used?: string };
+
 export type Turn = { role: "user" | "assistant"; text: string; at: string };
 export type Talk = { notes: string; turns: Turn[] };
 export type Reminder = { id: number; person: string; kind: "timer" | "reminder"; due: string; text: string; done: boolean };
@@ -49,9 +52,10 @@ export type Own = {
   calls: Call[];                       // phone calls he made, newest last
   pendingCall: PendingCall | null;     // a call he proposed and waits to have confirmed
   placeNotes: PlaceNote[];             // what the household said about places
+  favourites: Favourite[];             // food the household orders again and again, with the link to order it
   events: OwnEvent[];                  // his own calendar
 };
 
-export const emptyOwn = (): Own => ({ seq: 0, reminders: [], lists: {}, facts: {}, jottings: {}, place: null, calls: [], pendingCall: null, placeNotes: [], events: [] });
+export const emptyOwn = (): Own => ({ seq: 0, reminders: [], lists: {}, facts: {}, jottings: {}, place: null, calls: [], pendingCall: null, placeNotes: [], events: [], favourites: [] });
 export const loadOwn = async (store: Store): Promise<Own> => ({ ...emptyOwn(), ...((await store.get<Own>("own")) ?? {}) });
 export const loadTalk = async (store: Store, person: string): Promise<Talk> => (await store.get<Talk>(`talk/${person}`)) ?? { notes: "", turns: [] };
