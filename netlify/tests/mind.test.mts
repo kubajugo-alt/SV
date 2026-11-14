@@ -115,7 +115,11 @@ test("the password opens a signed session and nothing else does", () => {
 test("mouth shapes follow the letters and rest in pauses", () => {
   const chars = [..."Mam, o!"];
   const starts = chars.map((_, i) => i * 0.1), ends = starts.map((s, i) => (i === 3 ? s + 0.4 : s + 0.1));
-  assert.deepEqual(cuesFromCharacters(chars, starts, ends), [[0, "X"], [0, "A"], [0.1, "D"], [0.2, "A"], [0.3, "X"], [0.5, "E"], [0.7, "X"]]);
+  // The lips lead the sound by a moment.
+  assert.deepEqual(cuesFromCharacters(chars, starts, ends), [[0, "X"], [0, "A"], [0.07, "D"], [0.17, "A"], [0.27, "X"], [0.47, "E"], [0.7, "X"]]);
+  // "tu": the lips round already on the t; a quick "a" opens only half way.
+  const quick = [..."tu ta"], at = quick.map((_, i) => i * 0.06), till = at.map((t) => t + 0.06);
+  assert.deepEqual(cuesFromCharacters(quick, at, till).map(([, shape]) => shape), ["X", "F", "B", "C", "X"]);
 });
 
 test("a streamed answer is handed over sentence by sentence, across tool rounds", async () => {

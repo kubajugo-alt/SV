@@ -51,18 +51,62 @@ e = Image.open('kit/blink.png').convert('RGBA').crop(EYES)
 mask = Image.new('L', e.size, 0); ImageDraw.Draw(mask).ellipse((14, 12, e.width - 14, e.height - 12), fill=255)
 e.putalpha(mask.filter(ImageFilter.GaussianBlur(9))); e.save(f'{OUT}/blink.webp', quality=92, alpha_quality=100, method=6)
 
-# Mouth shapes (Rhubarb's A-H; A is the painting itself): only the mouth is cut out, with a soft edge,
-# so the eyes, brows and hair of the one neutral face stay perfectly still while he speaks.
-mw, mh = MOUTH[2] - MOUTH[0], MOUTH[3] - MOUTH[1]
-soft = Image.new('L', (mw, mh), 0); ImageDraw.Draw(soft).ellipse((22, 18, mw - 22, mh - 14), fill=255)
-soft = soft.filter(ImageFilter.GaussianBlur(14))
-for shape, source in {'B': 'B2', 'C': 'C2', 'D': 'D2', 'E': 'E', 'F': 'F', 'G': 'G', 'H': 'H'}.items():
-    m = Image.open(f'kit/{source}.png').convert('RGBA').crop(MOUTH); m.putalpha(soft)
-    m.save(f'{OUT}/m_{shape}.webp', quality=94, alpha_quality=100, method=6)
+# Patches laid over the one neutral face: the mouth (Rhubarb's shapes; A, the smile, is the painting itself;
+# N is a calm closed mouth for pauses in speech) and the eyes (half-closed lids, glances, raised brows).
+# Each is sharpened and its colours matched to the body painting, so it does not show as a softer, different
+# patch, and it is kept inside the body's own outline, so no grey from the generated picture's background shows.
+body_rgba = np.asarray(body).astype(np.float32)
+
+def patch(source, box, soft, name):
+    if not os.path.exists(source): return
+    p = Image.open(source).convert('RGB').crop(box)
+    edges = lambda im: np.asarray(im.convert('L').filter(ImageFilter.FIND_EDGES)).astype(np.float32).var()
+    if edges(p) < 0.7 * edges(body.convert('RGB').crop(box)):   # a softer picture than the body: sharpen it to match
+        p = p.filter(ImageFilter.UnsharpMask(radius=2.2, percent=170, threshold=2))
+    a = np.asarray(p).astype(np.float32)
+    ref = body_rgba[box[1]:box[3], box[0]:box[2]]
+    m = np.asarray(soft).astype(np.float32) / 255 * (ref[..., 3] / 255)
+    yy, xx = np.mgrid[0:m.shape[0], 0:m.shape[1]]
+    cy, cx = m.shape[0] * 0.47, m.shape[1] * 0.5
+    inner = (m > 0.5) & (((xx - cx) / (m.shape[1] * 0.3)) ** 2 + ((yy - cy) / (m.shape[0] * 0.25)) ** 2 > 1)   # skin around the feature, not the feature itself
+    for c in range(3):                                   # same light and colour as the face around it
+        mu, sd = a[..., c][inner].mean(), a[..., c][inner].std() + 1e-3
+        rmu, rsd = ref[..., c][inner].mean(), ref[..., c][inner].std() + 1e-3
+        a[..., c] = (a[..., c] - mu) * (0.5 + 0.5 * rsd / sd) + rmu
+    out = np.dstack([np.clip(a, 0, 255), m * 255]).astype(np.uint8)
+    Image.fromarray(out, 'RGBA').save(f'{OUT}/{name}.webp', quality=95, alpha_quality=100, method=6)
+
+def oval(box, inset):
+    w, h = box[2] - box[0], box[3] - box[1]
+    o = Image.new('L', (w, h), 0); ImageDraw.Draw(o).ellipse((inset[0], inset[1], w - inset[0], h - inset[1]), fill=255)
+    return o.filter(ImageFilter.GaussianBlur(inset[2]))
+
+mouth_soft = oval(MOUTH, (22, 18, 14))
+for shape, source in {'N': 'N', 'B': 'B2', 'C': 'C2', 'D': 'D2', 'E': 'E', 'F': 'F', 'G': 'G', 'H': 'H'}.items():
+    patch(f'kit/{source}.png', MOUTH, mouth_soft, f'm_{shape}')
+EYES_WIDE = (EYES[0], EYES[1] - 40, EYES[2], EYES[3])   # the brows sit above the eyes
+eyes_soft = oval(EYES_WIDE, (14, 10, 9))
+for name in ('half', 'left', 'right', 'brows'):
+    patch(f'kit/eyes_{name}.png', EYES_WIDE, eyes_soft, f'e_{name}')
 
 # Whole figures for what he does when nobody is talking to him.
 for name in ('read', 'coffee', 'sip', 'smoke', 'drag', 'light', 'stretch', 'write'):
     if not os.path.exists(f'kit/{name}.png'): continue
     cut(f'kit/{name}.png').save(f'{OUT}/{name}.webp', quality=92, alpha_quality=100, method=6)
+# Animated steps: frames generated with Ludo (animateSpriteKeyframes, True Size, margin "none") from a crop
+# of the scene's paintings, laid back over the base painting at the crop's place. Their edges fade where the
+# crop cut through the figure, so they melt into the painting around them.
+ANIMS = {'sip': ((60, 0, 1084, 976), 'kit/sip_frames')}
+for name, (box, folder) in ANIMS.items():
+    if not os.path.isdir(folder): continue
+    os.makedirs(f'{OUT}/{name}', exist_ok=True)
+    w, h = box[2] - box[0], box[3] - box[1]
+    edge = np.ones((h, w), np.float32)
+    ramp = np.linspace(0, 1, 48, dtype=np.float32)
+    edge[:, :48] *= ramp[None, :]; edge[:, -48:] *= ramp[::-1][None, :]; edge[-48:, :] *= ramp[::-1][:, None]
+    for i, path in enumerate(sorted(os.listdir(folder))):
+        f = np.asarray(Image.open(f'{folder}/{path}').convert('RGBA')).astype(np.float32)
+        f[..., 3] *= edge
+        Image.fromarray(f.astype(np.uint8), 'RGBA').save(f'{OUT}/{name}/{i:02d}.webp', quality=86, alpha_quality=90, method=6)
 for name in ('room_day', 'room_dusk'):
     Image.open(f'kit/{name}.png').convert('RGB').save(f'{OUT}/../{name}.jpg', quality=88)
