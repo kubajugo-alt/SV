@@ -8,6 +8,7 @@ const KEYS = [
   ['M', 'mikrofon: przytrzymanie spacji albo „Alan…” bez rąk'],
   ['P', 'zmień rozmówcę'],
   ['I', 'Alan zagaduje sam albo nie'],
+  ['O', 'oczy: kamera laptopa, Alan poznaje, kto przyszedł (nic nie wychodzi z przeglądarki)'],
   ['S', 'studio: czarny ekran i cisza'],
 ];
 const CLOUD = [

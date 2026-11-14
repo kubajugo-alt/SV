@@ -8,10 +8,13 @@
 // of speech is recognised on this machine, and it reaches him only if it starts
 // with "Alan" — or follows within a few seconds of his own answer, so a
 // conversation needs the name once. Everything else is dropped unread. He does
-// not listen while he is speaking, so he never answers himself.
+// not listen while he is speaking, so he never answers himself — but talking over
+// him (or pressing Space) stops him at once, and what you say is heard (barge-in).
+// While you talk to him at length he nods, and now and then says "mhm".
 
-import { store, mode } from './store.js';
-import { level, hush } from './speech.js';
+import { store, mode, signal } from './store.js';
+import { level, hush, interrupt, talking, murmur, murmuring } from './speech.js';
+import { BACKCHANNEL } from './chat.js';
 
 const RATE = 16000;          // what the recogniser wants
 const MIN_SECONDS = 0.35;    // shorter than this is a stray key press
@@ -21,6 +24,13 @@ const PAUSE_MS = 800;        // this much silence ends a stretch of speech
 const MAX_SECONDS = 20;
 const FOLLOW_MS = 12000;     // after his answer, the next thing said needs no name
 const NAME_MS = 8000;        // after a bare "Alan?", he waits this long for the rest
+// Barge-in: this long of a voice louder than the room, and louder than what is left of his own
+// voice after echo cancellation, while he speaks.
+const BARGE_MS = 300;
+const BARGE_MIN = 0.025;
+// Backchannel: a nod after this much voice in one stretch, again every NOD_EVERY; one "mhm" per stretch.
+const LONG_MS = 4000;
+const NOD_EVERY = 6000;
 // What the recogniser tends to "hear" in noise and silence; never a message for him.
 const PHANTOM = /dzięk\p{L}* za (oglądanie|uwagę)|napisy (stworzone|wykonane)|subskryb|zapraszam na|www\.|^\W*(dziękuję|dzięki|tak|no|aha|mhm)?\W*$/iu;
 
@@ -55,6 +65,15 @@ async function resample(chunks, from) {
   return (await offline.startRendering()).getChannelData(0);
 }
 
+/** Someone has been talking to him for a while: a nod, and (once per stretch, if recorded) a quiet "mhm". */
+function attentive(stretch, voicedMs) {
+  if (voicedMs < LONG_MS || voicedMs < stretch.nextNod) return;
+  stretch.nextNod = voicedMs + NOD_EVERY;
+  signal.nodAt = performance.now();
+  if (!stretch.murmured) { stretch.murmured = true; murmur(BACKCHANNEL); }
+}
+const freshStretch = () => ({ nextNod: 0, murmured: false });
+
 export function startMic(config, ask) {
   if (!config.stt || !ask || !navigator.mediaDevices?.getUserMedia) return;
 
@@ -64,9 +83,12 @@ export function startMic(config, ask) {
   let chunks = [];
   let held = false;
 
+  let pressed = freshStretch();   // backchannel state of the push-to-talk recording
+  let pressedVoiced = 0;
+
   async function begin() {
     held = true;
-    hush();                                   // talking over him stops him
+    interrupt();                              // talking over him stops him, and the server learns where
     dispatchEvent(new Event('alan:chat'));
     try {
       stream ||= await navigator.mediaDevices.getUserMedia({
@@ -81,14 +103,20 @@ export function startMic(config, ask) {
     ctx ||= new AudioContext();
     await ctx.resume();
     chunks = [];
+    pressed = freshStretch();
+    pressedVoiced = 0;
     const source = ctx.createMediaStreamSource(stream);
     const node = ctx.createScriptProcessor(4096, 1, 1);
     node.onaudioprocess = (e) => {
       const data = new Float32Array(e.inputBuffer.getChannelData(0));
+      if (murmuring()) data.fill(0);          // his own "mhm" is not part of what you said
       chunks.push(data);
       let sum = 0;
       for (const s of data) sum += s * s;
-      level(Math.sqrt(sum / data.length) * 5);
+      const rms = Math.sqrt(sum / data.length);
+      level(rms * 5);
+      if (rms > 0.012) pressedVoiced += (data.length / ctx.sampleRate) * 1000;
+      attentive(pressed, pressedVoiced);
     };
     source.connect(node);
     node.connect(ctx.destination);            // a processor only runs when connected; it outputs silence
@@ -133,6 +161,11 @@ export function startMic(config, ask) {
   let silent = 0;             // ms of silence since the last sound
   let awakeUntil = 0;         // until then, what is said is for him without his name
   let wasSpeaking = false;
+  let stretch = freshStretch();
+  let echo = 0.004;           // what the microphone hears of his own voice while he speaks
+  let barge = [];             // chunks while someone may be talking over him
+  let bargeLoud = 0;          // ms of that voice
+  let bargeQuiet = 0;
 
   async function recognise(recorded, rate, wake) {
     try {
@@ -148,7 +181,9 @@ export function startMic(config, ask) {
   async function heard(recorded, rate) {
     const awake = Date.now() < awakeUntil;
     if (awake) store.set({ alan: 'thinking' });
-    const text = await recognise(recorded, rate, !awake);
+    const heardText = await recognise(recorded, rate, !awake);
+    // The tone of voice comes first, in brackets ("[śmiech] Alan, ..."): kept, but not in the way of his name.
+    const [, tone, text] = /^((?:\[[^\]\n]{1,24}\]\s*)*)([\s\S]*)$/.exec(heardText || '');
     const forHim = addressed(text);
     if (forHim !== null) dispatchEvent(new Event('alan:wake'));   // e.g. the TV switches over to him
     if (forHim === '') {                        // just his name: he turns to listen
@@ -158,10 +193,28 @@ export function startMic(config, ask) {
       setTimeout(() => { if (Date.now() >= awakeUntil && store.get().alan === 'listening' && !tap) store.set({ alan: 'idle' }); }, NAME_MS + 100);
     } else if (forHim || (awake && text && !PHANTOM.test(text))) {
       awakeUntil = 0;
-      ask(forHim || text);
+      ask(tone + (forHim || text));
     } else if (awake) {
       store.set({ alan: 'idle' });
     }
+  }
+
+  /** While he speaks: is someone talking over him? Then he stops, and the stretch is kept from its first syllable. */
+  function bargeIn(data, ms, rms) {
+    const loud = rms > Math.max(BARGE_MIN, floor * 5, echo * 3);
+    if (!loud) echo = echo * 0.95 + rms * 0.05;
+    barge.push(data);
+    if (loud) { bargeLoud += ms; bargeQuiet = 0; } else if ((bargeQuiet += ms) > 200) { barge = []; bargeLoud = 0; }
+    if (bargeLoud < BARGE_MS) return;
+    interrupt();
+    speech = barge;
+    voiced = bargeLoud;
+    silent = 0;
+    barge = []; bargeLoud = 0; bargeQuiet = 0;
+    stretch = freshStretch();
+    wasSpeaking = false;
+    awakeUntil = Date.now() + FOLLOW_MS;      // he stopped for you: what you say needs no name
+    store.set({ alan: 'listening' });
   }
 
   function listenOn(e) {
@@ -171,20 +224,28 @@ export function startMic(config, ask) {
     const m = mode(s);
     if (m === 'speaking') wasSpeaking = true;
     else if (wasSpeaking) { wasSpeaking = false; awakeUntil = Date.now() + FOLLOW_MS; }   // he has just finished: your turn
-    if (tap || s.busy || s.flat === 'studio' || m === 'speaking' || s.preparing) { speech = []; voiced = 0; return; }
     let sum = 0;
     for (const v of data) sum += v * v;
     const rms = Math.sqrt(sum / data.length);
+    if (!tap && s.flat !== 'studio' && (m === 'speaking' || talking())) {
+      bargeIn(data, ms, rms);                 // if he stopped, the stretch has begun; the next chunk carries it on
+      if (mode(store.get()) === 'speaking' || talking()) { speech = []; voiced = 0; }
+      return;
+    }
+    barge = []; bargeLoud = 0;
+    if (tap || s.busy || s.flat === 'studio' || m === 'speaking' || s.preparing) { speech = []; voiced = 0; return; }
+    if (murmuring()) { if (speech.length) speech.push(new Float32Array(data.length)); return; }   // his own "mhm": neither your voice nor a pause
     const loud = rms > Math.max(0.012, floor * 3.5);
     if (!loud && !speech.length) floor = floor * 0.97 + rms * 0.03;
     if (Date.now() < awakeUntil) level(rms * 5);       // his face follows you while he is listening
     if (!speech.length) {
       if (!loud) { lead.push(data); if (lead.length > 4) lead.shift(); return; }
-      speech = [...lead, data]; lead = []; voiced = ms; silent = 0;
+      speech = [...lead, data]; lead = []; voiced = ms; silent = 0; stretch = freshStretch();
       return;
     }
     speech.push(data);
     if (loud) { voiced += ms; silent = 0; } else silent += ms;
+    if (Date.now() < awakeUntil) attentive(stretch, voiced);   // only when it is meant for him
     const seconds = (speech.length * data.length) / ctx.sampleRate;
     if (silent < PAUSE_MS && seconds < MAX_SECONDS) return;
     const done = speech;

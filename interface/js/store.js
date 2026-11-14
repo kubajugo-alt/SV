@@ -38,7 +38,9 @@ export const store = {
 
 // 60 Hz audio level lives outside the store so it never triggers UI renders.
 // `mouth` is the current Rhubarb shape (A-H, X) while a line with cues plays, else null.
-export const signal = { level: 0, mouth: null };
+// `nodAt`: performance.now() of the latest nod (he is listening to a long stretch); `gaze`: -1..1, where
+// the face the camera sees is (eyes.js), + towards the right of the screen.
+export const signal = { level: 0, mouth: null, nodAt: -Infinity, gaze: 0 };
 
 /** Studio discipline: black screen, no rendering — unless something is on fire. */
 export function isDark(config, s = state) {
