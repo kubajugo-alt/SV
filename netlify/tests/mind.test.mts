@@ -377,3 +377,18 @@ test("favourite orders are saved, found by words and shown as links to order on 
   assert.match(await runTool("favourite_food", { action: "find", query: "burger" }, ctx), /nic takiego nie ma\. Są: pizza z Romy, sushi\./);
   assert.match(await runTool("favourite_food", { action: "forget", query: "sushi" }, ctx), /^Wykonano: usunięto z ulubionych: sushi\./);
 });
+
+test("a map of a place and a picture of a thing are put on the screen", async () => {
+  const asked: string[] = [];
+  const fetcher = (async (url: any) => {
+    asked.push(String(url));
+    if (String(url).includes("nominatim")) return Response.json([{ lat: "50.5772", lon: "21.6795", display_name: "Zamek Tarnowskich, Dzików, Tarnobrzeg, województwo podkarpackie, Polska" }]);
+    if (String(url).startsWith("https://pl.wikipedia")) return Response.json({ query: { pages: { "1": { index: 2, title: "Inne" }, "2": { index: 1, title: "Zamek Krzyżtopór", thumbnail: { source: "https://upload.wikimedia.org/k.jpg" } } } } });
+    return Response.json({});
+  }) as typeof fetch;
+  const ctx = { store: memoryStore(), ...at, calendars: [], fetcher };
+  assert.equal(await runTool("show_map", { place: "Zamek Tarnowskich, Tarnobrzeg" }, ctx), "Wykonano: mapa na ekranie: Zamek Tarnowskich, Dzików, Tarnobrzeg @50.57720,21.67950");
+  assert.equal(await runTool("show_picture", { query: "Zamek Krzyżtopór" }, ctx), "Wykonano: obraz na ekranie: Zamek Krzyżtopór https://upload.wikimedia.org/k.jpg");
+  assert.equal(await runTool("show_picture", { query: "pierogi", url: "https://example.org/p.webp" }, ctx), "Wykonano: obraz na ekranie: pierogi https://example.org/p.webp");
+  assert.match(asked[1], /generator=search&gsrsearch=Zamek\+Krzy%C5%BCtop%C3%B3r/);
+});

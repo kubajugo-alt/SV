@@ -2,6 +2,7 @@
 
 import { store, mode, isDark } from './store.js';
 import qrcode from './vendor/qrcode.js';
+import { tv } from './avatar.js';
 
 const codes = new Map();   // address -> image source, so a redraw does not compute the code again
 
@@ -118,27 +119,94 @@ function type(text, duration) {
 // --- what he did, as cards beside him --------------------------------------
 // Each thing he did (or could not do), a link to open on the phone, a reminder coming due: one card,
 // sliding in at the right and leaving on its own after a while (links stay longer: they are for scanning).
-const NOTE_MS = { done: 20000, failed: 25000, link: 120000, reminder: 60000 };
+const NOTE_MS = { done: 20000, failed: 25000, link: 120000, reminder: 60000, map: 90000, picture: 90000 };
 const KIND = {
   done: ['ZROBIONE', '✓'], failed: ['NIE WYSZŁO', '!'], link: ['DO ZESKANOWANIA TELEFONEM', '↗'], reminder: ['PRZYPOMNIENIE', '◷'],
+  map: ['NA MAPIE', '⌖'], picture: ['TAK TO WYGLĄDA', '◩'],
 };
 const noteSeen = new Map();     // text -> when it first showed
 let noteTimer = 0;
 
+/** A small map from OpenStreetMap's tiles, the place marked with a brass pin. */
+function mapCard(text) {
+  const [, name, lat, lon] = /^mapa na ekranie:\s*(.*?)\s*@(-?[\d.]+),(-?[\d.]+)/i.exec(text) || [];
+  const box = document.createElement('figure');
+  box.className = 'map';
+  const caption = document.createElement('figcaption');
+  caption.textContent = name || '';
+  if (!lat) { box.append(caption); return box; }
+  const W = 360, H = 220, Z = 15;
+  const canvas = document.createElement('canvas');
+  canvas.width = W * 2; canvas.height = H * 2;               // sharp on a large screen
+  const g = canvas.getContext('2d');
+  g.scale(2, 2);
+  const n = 2 ** Z;
+  const x = ((+lon + 180) / 360) * n;
+  const rad = (+lat * Math.PI) / 180;
+  const y = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n;
+  const px = x * 256 - W / 2, py = y * 256 - H / 2;          // the top-left corner, in world pixels
+  const pin = () => {
+    g.fillStyle = 'rgba(30, 16, 6, .35)';
+    g.beginPath(); g.ellipse(W / 2, H / 2 + 2, 7, 3, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#c9963f'; g.strokeStyle = '#2a1608'; g.lineWidth = 2;
+    g.beginPath(); g.arc(W / 2, H / 2 - 16, 9, Math.PI, 0); g.lineTo(W / 2, H / 2); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#f8ead0'; g.beginPath(); g.arc(W / 2, H / 2 - 16, 3.5, 0, Math.PI * 2); g.fill();
+  };
+  g.fillStyle = '#e8dcc4'; g.fillRect(0, 0, W, H);
+  let waiting = 0;
+  for (let tx = Math.floor(px / 256); tx <= Math.floor((px + W) / 256); tx++) {
+    for (let ty = Math.floor(py / 256); ty <= Math.floor((py + H) / 256); ty++) {
+      const img = new Image();
+      waiting++;
+      img.onload = img.onerror = () => {
+        if (img.naturalWidth) g.drawImage(img, tx * 256 - px, ty * 256 - py);
+        if (--waiting === 0) { g.fillStyle = 'rgba(120, 70, 20, .12)'; g.fillRect(0, 0, W, H); pin(); }   // a warm wash so it sits in the room
+      };
+      img.src = `https://tile.openstreetmap.org/${Z}/${((tx % n) + n) % n}/${ty}.png`;
+    }
+  }
+  const credit = document.createElement('small');
+  credit.textContent = '© OpenStreetMap';
+  box.append(canvas, caption, credit);
+  return box;
+}
+
+/** A picture from the web, with what it shows. */
+function pictureCard(text) {
+  const [, title, url] = /^obraz na ekranie:\s*(.*?)\s+(https:\/\/\S+)$/i.exec(text) || [];
+  const box = document.createElement('figure');
+  box.className = 'picture';
+  const img = document.createElement('img');
+  img.alt = title || '';
+  img.referrerPolicy = 'no-referrer';
+  img.src = url || '';
+  img.onerror = () => { img.hidden = true; };
+  const caption = document.createElement('figcaption');
+  caption.textContent = title || '';
+  box.append(img, caption);
+  return box;
+}
+
 function kindOf(a) {
   if (!a.ok) return 'failed';
+  if (/^mapa na ekranie:/i.test(a.text)) return 'map';
+  if (/^obraz na ekranie:/i.test(a.text)) return 'picture';
   if (/https:\/\//.test(a.text)) return 'link';
   if (/^(minutnik|przypomnienie|\p{L}+, przypomnienie|za \d+ min)/iu.test(a.text)) return 'reminder';
   return 'done';
 }
 
+const pictures = new Map();   // map and picture cards, kept so they are not fetched again on every redraw
+
 function drawNotes(actions) {
   const now = Date.now();
+  for (const key of pictures.keys()) if (!actions.some((a) => a.text === key)) pictures.delete(key);
   for (const key of noteSeen.keys()) if (!actions.some((a) => a.text === key)) noteSeen.delete(key);
   const live = actions.filter((a) => {
     if (!noteSeen.has(a.text)) noteSeen.set(a.text, now);
     return now - noteSeen.get(a.text) < NOTE_MS[kindOf(a)];
-  });
+  }).filter((a, i, all) => !/^(mapa|obraz) na ekranie:/i.test(a.text)            // one map or picture at a time: the newest
+    || !all.slice(i + 1).some((b) => /^(mapa|obraz) na ekranie:/i.test(b.text)));
   $('actions').replaceChildren(...live.slice(-3).reverse().map((a) => {   // the newest three, newest on top
     const kind = kindOf(a);
     const li = document.createElement('li');
@@ -153,6 +221,18 @@ function drawNotes(actions) {
     head.querySelector('.when').textContent = new Date(noteSeen.get(a.text)).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
     const body = document.createElement('div');
     body.className = 'note-body';
+    if (kind === 'map' || kind === 'picture') {
+      if (!pictures.has(a.text)) {                     // made once, and put on the television in the room as well
+        const fig = kind === 'map' ? mapCard(a.text) : pictureCard(a.text);
+        pictures.set(a.text, fig);
+        tv.picture = fig.querySelector('canvas, img');   // a newer one takes the television over
+        tv.on = performance.now();
+        tv.off = tv.on + left;
+      }
+      body.append(pictures.get(a.text));
+      li.append(head, body);
+      return li;
+    }
     const text = a.text.replace(/^link na ekranie:\s*/i, '').replace(/^(\p{L}+), przypomnienie:\s*/u, '$1: ');
     for (const part of text.split(/(https:\/\/\S+)/)) {
       if (!part.startsWith('https://')) { if (part.trim()) body.append(part.replace(/\s+oraz\s*$/, '')); continue; }

@@ -68,6 +68,11 @@ export const TOOLS: Anthropic.Tool[] = [
       name: text("save: krótka nazwa, którą domownicy będą tego szukać, np. pizza z Romy"),
       place: text("save: restauracja albo sklep"), what: text("save: co dokładnie zamawiają, z dodatkami"),
       url: text("save: pełny adres https:// strony z tym daniem albo restauracją w Glovo lub Uber Eats, wzięty z wyszukiwania lub od rozmówcy") }, ["action"]),
+  tool("show_map", "Pokazuje na ekranie małą mapę z zaznaczonym miejscem: gdy pytają, gdzie coś jest, jak daleko, albo mówisz o miejscu, które warto zobaczyć na mapie.",
+    { place: text("adres albo nazwa miejsca z miastem, np. Zamek Tarnowskich, Tarnobrzeg") }, ["place"]),
+  tool("show_picture", "Pokazuje na ekranie zdjęcie: gdy pytają, jak coś albo ktoś wygląda (budynek, zwierzę, potrawa, dzieło, miejsce, postać). " +
+    "Szuka zdjęcia w Wikipedii; jeśli masz z wyszukiwania bezpośredni adres obrazka (.jpg, .png, .webp), możesz go podać. Opisz krótko, co widać.",
+    { query: text("czego zdjęcie, np. Zamek Krzyżtopór, pierogi ruskie, kot syjamski"), url: text("opcjonalnie: bezpośredni adres https:// obrazka") }, ["query"]),
   tool("ride_link", "Przygotowuje przejazd: pokazuje na ekranie link z kodem QR, który otwiera w telefonie aplikację Uber z wpisanym celem (odbiór z miejsca, gdzie jest telefon). " +
     "Przejazd zamawia i potwierdza rozmówca w telefonie. W Tarnobrzegu Uber jeździ, ale aut jest mniej niż w Bolcie, a Bolt nie ma takiego linku: " +
     "pokaż link do Ubera i dodaj, że w Bolcie będzie pewnie szybciej, albo zaproponuj telefon po taksówkę.",
@@ -442,6 +447,31 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         for (const f of hits) f.used = ctx.now.toISOString();
         await save();
         return `Wykonano: link na ekranie: ${hits.map((f) => `${f.name}, ${f.what} ${f.url}`).join(" oraz ")}`;
+      }
+      case "show_map": {
+        const place = String(input.place ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+        if (place.length < 3) return "Błąd: podaj, jakie miejsce pokazać.";
+        const res = await (ctx.fetcher ?? fetch)(`https://nominatim.openstreetmap.org/search?${new URLSearchParams({ q: place, format: "jsonv2", limit: "1", "accept-language": "pl" })}`,
+          { headers: { "User-Agent": "alan-home-assistant/1.0" }, signal: AbortSignal.timeout(6000) });
+        const found = res.ok ? ((await res.json()) as { lat: string; lon: string; display_name: string }[])[0] : undefined;
+        if (!found) return `Błąd: nie znalazłem na mapie miejsca „${place}”.`;
+        const name = found.display_name.split(",").slice(0, 3).join(",").trim();
+        return `Wykonano: mapa na ekranie: ${name} @${Number(found.lat).toFixed(5)},${Number(found.lon).toFixed(5)}`;
+      }
+      case "show_picture": {
+        const query = String(input.query ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+        if (query.length < 2) return "Błąd: podaj, czego zdjęcie pokazać.";
+        const direct = String(input.url ?? "").trim();
+        if (/^https:\/\/[^\s]+\.(jpe?g|png|webp|gif)(\?\S*)?$/i.test(direct)) return `Wykonano: obraz na ekranie: ${query} ${direct}`;
+        for (const lang of ["pl", "en"]) {
+          const res = await (ctx.fetcher ?? fetch)(`https://${lang}.wikipedia.org/w/api.php?${new URLSearchParams({ action: "query", format: "json", generator: "search", gsrsearch: query,
+            gsrlimit: "5", prop: "pageimages", piprop: "thumbnail", pithumbsize: "800" })}`, { headers: { "User-Agent": "alan-home-assistant/1.0" }, signal: AbortSignal.timeout(6000) });
+          if (!res.ok) continue;
+          const pages = Object.values(((await res.json()) as any).query?.pages ?? {}) as { index: number; title: string; thumbnail?: { source: string } }[];
+          const best = pages.filter((p) => p.thumbnail?.source).sort((a, b) => a.index - b.index)[0];
+          if (best) return `Wykonano: obraz na ekranie: ${best.title} ${best.thumbnail!.source}`;
+        }
+        return `Błąd: nie znalazłem zdjęcia „${query}”.`;
       }
       case "ride_link": {
         const to = String(input.destination ?? "").replace(/\s+/g, " ").trim().slice(0, 160);
