@@ -9,6 +9,8 @@
 
 import { store, signal } from './store.js';
 
+// Extra delay between the computer and the speakers that the browser cannot know (a TV's own sound path).
+const LATENCY = Number(new URLSearchParams(location.search).get('lipsync') || 0) / 1000;
 let ttsUrl = '';       // e.g. '/tts?text=' — emptied if the endpoint turns out to be absent
 let ctx = null;
 let source = null;
@@ -88,7 +90,8 @@ function playAudio(text, buffer, radio, cues) {
     for (const s of samples) sum += s * s;
     signal.level = Math.min(1, Math.sqrt(sum / samples.length) * 4); // speech RMS sits around 0.05–0.25
     if (cues?.length) {
-      const at = ctx.currentTime - startedAt;
+      // What is heard now left the browser a little earlier (the sound card, the TV): the mouth follows the ear.
+      const at = ctx.currentTime - startedAt - (ctx.outputLatency || ctx.baseLatency || 0) - LATENCY;
       while (next < cues.length && cues[next][0] <= at) signal.mouth = cues[next++][1];
     }
     raf = requestAnimationFrame(tick);

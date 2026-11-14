@@ -297,9 +297,18 @@ export async function startAvatar(canvas, isDark) {
     if (painting) { f.drawImage(art[painting], 0, 0); return; }
     f.drawImage(body, 0, 0);
     // The head: the older expression first, the newer one melting in over it.
-    const [x, y] = HEAD_BOX;
-    if (face.from !== 'A' && kf < 1) { f.globalAlpha = face.to === 'A' ? 1 - kf : 1; f.drawImage(art[face.from], x, y); }
-    if (face.to !== 'A') { f.globalAlpha = kf; f.drawImage(art[face.to], x, y); }
+    const [x, y, w, h] = HEAD_BOX;
+    if (face.from !== 'A' || face.to !== 'A') {
+      // An expression is a whole other head: the painted one is taken away under it, or its hair and outline show
+      // round the edges of a head that is turned or tilted. Above the patch's soft bottom edge only.
+      const head = (name) => (name === 'A' ? () => f.drawImage(body, x, y, w, h - 50, x, y, w, h - 50) : () => f.drawImage(art[name], x, y));
+      f.clearRect(x, y, w, h - 50);
+      f.globalAlpha = 1;
+      if (kf < 1) head(face.from)();
+      f.globalAlpha = kf;
+      head(face.to)();
+      f.globalAlpha = 1;
+    }
     // The mouth, the same way.
     if (mouth.from !== 'A' && km < 1) { f.globalAlpha = mouth.to === 'A' ? 1 - km : 1; f.drawImage(art[mouth.from], MOUTH_BOX[0], MOUTH_BOX[1]); }
     if (mouth.to !== 'A') { f.globalAlpha = km; f.drawImage(art[mouth.to], MOUTH_BOX[0], MOUTH_BOX[1]); }
@@ -516,7 +525,7 @@ export async function startAvatar(canvas, isDark) {
     // Him: the figure and the armchair stay put; the head leans in to listen, bobs with his voice and rises with each breath.
     paintFigure(m, now);
     pose.lean += ((m === 'listening' ? 1 : m === 'alert' ? 0.6 : 0) - pose.lean) * 0.06;
-    pose.nod += ((m === 'speaking' ? signal.level : 0) - pose.nod) * 0.18;
+    pose.nod += ((m === 'speaking' ? Math.min(0.6, signal.level) : 0) - pose.nod) * 0.06;
     g.save();
     g.beginPath();
     g.rect(0, 0, ROOM.w, SEAT.desk);          // the desk hides his legs
@@ -529,8 +538,8 @@ export async function startAvatar(canvas, isDark) {
     if (settle < 1) { g.globalAlpha = 1 - settle; g.drawImage(before, -BODY.centre, -BODY.lap); g.globalAlpha = 1; }
     g.globalAlpha = settle;
     const breath = Math.sin(t * 1.25) * 2;
-    const lift = painting ? breath * 0.6 : pose.nod * 8 + Math.sin(t * 7.1) * pose.nod * 2.5 - breath + pose.lean * 12;   // + is down
-    const sway = painting ? 0 : Math.sin(t * 0.37) * 2.2 + Math.sin(t * 2.3) * pose.nod * 3;                             // sideways, at the crown
+    const lift = painting ? breath * 0.6 : pose.nod * 5 - breath + pose.lean * 12;   // + is down; follows the voice slowly, never shakes
+    const sway = painting ? 0 : Math.sin(t * 0.37) * 2.2 + Math.sin(t * 0.9) * pose.nod * 2;                             // sideways, at the crown
     g.drawImage(figure, 0, NECK, BODY.w, BODY.h - NECK, -BODY.centre, NECK - BODY.lap, BODY.w, BODY.h - NECK);
     for (let y = 0; y < NECK; y += BAND) {
       const k = Math.min(1, (NECK - y) / BEND);

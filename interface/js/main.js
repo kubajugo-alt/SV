@@ -11,6 +11,7 @@ import { signIn, startHousehold } from './login.js';
 import { startProposals } from './proposals.js';
 import { startFeed } from './feed.js';
 import { startHelp } from './help.js';
+import { startTV } from './tv.js';
 import { startDemo } from './feeds/demo.js';
 import { startSolo } from './feeds/solo.js';
 import { startInitiative } from './initiative.js';
@@ -29,6 +30,9 @@ const config = {
 };
 if (params.has('feed')) config.feed = params.get('feed');
 if (params.has('boot')) config.boot = params.get('boot') !== '0';
+// The Mac mini by the TV opens the page as ?handsfree=1&tv=http://127.0.0.1:8765 (scripts/mac-kiosk.sh).
+if (params.has('handsfree')) config.handsfree = params.get('handsfree') !== '0';
+if (params.has('tv')) config.tv = params.get('tv');
 
 configureVoice(config);
 if (config.boot) await boot(config);
@@ -44,6 +48,7 @@ startHousehold(config);
 startProposals(config);
 startFeed(config);
 startHelp(config);
+startTV(config);
 
 // Keys that work everywhere (not while typing to him): S studio, P person.
 store.set({ person: config.person });

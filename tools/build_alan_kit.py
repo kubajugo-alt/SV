@@ -59,7 +59,15 @@ body_rgba = np.asarray(body).astype(np.float32)
 
 def patch(source, box, soft, name):
     if not os.path.exists(source): return
-    p = Image.open(source).convert('RGB').crop(box)
+    whole = Image.open(source).convert('RGB')
+    # A generated painting can sit a few pixels off the body: find where its cheeks and chin match best.
+    g = np.asarray(whole.convert('L')).astype(np.float32)
+    r = np.asarray(body.convert('L')).astype(np.float32)[box[1]:box[3], box[0]:box[2]]
+    w, h = box[2] - box[0], box[3] - box[1]
+    ring = np.ones((h, w), bool); ring[int(h * .2):int(h * .83), int(w * .19):int(w * .81)] = False
+    shift = min(((np.abs(g[box[1] + dy:box[3] + dy, box[0] + dx:box[2] + dx] - r)[ring].mean(), dx, dy)
+                 for dy in range(-6, 7) for dx in range(-6, 7)))[1:]
+    p = whole.crop((box[0] + shift[0], box[1] + shift[1], box[2] + shift[0], box[3] + shift[1]))
     edges = lambda im: np.asarray(im.convert('L').filter(ImageFilter.FIND_EDGES)).astype(np.float32).var()
     if edges(p) < 0.7 * edges(body.convert('RGB').crop(box)):   # a softer picture than the body: sharpen it to match
         p = p.filter(ImageFilter.UnsharpMask(radius=2.2, percent=170, threshold=2))
