@@ -7,7 +7,7 @@ import json
 def render(listings: list[dict], meta: dict) -> str:
     data = json.dumps({"listings": listings, "meta": meta}, ensure_ascii=False, separators=(",", ":"))
     data = data.replace("</", "<\\/")
-    return PAGE.replace("__DATA__", data)
+    return "<!doctype html>\n<html lang=\"en\">\n" + PAGE.replace("__DATA__", data)
 
 
 PAGE = r"""<title>Gostoso Property Scout</title>

@@ -45,6 +45,14 @@ listings and price changes. GitHub emails new issues to people who watch the rep
 so watching it is enough to get an alert. It can also be started by hand from the
 Actions tab ("property scout", Run workflow).
 
+## On Netlify
+
+The page is published at https://gostoso-property-scout.netlify.app. The daily run
+updates it once the repository has a secret named `NETLIFY_AUTH_TOKEN`: create a personal
+access token at Netlify (User settings → Applications → Personal access tokens), then add
+it on GitHub under Settings → Secrets and variables → Actions → New repository secret.
+Without the secret the run skips this step.
+
 ## Where the listings come from
 
 [Chaves na Mão](https://www.chavesnamao.com.br), one of the big Brazilian portals, which

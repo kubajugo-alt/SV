@@ -28,6 +28,8 @@ jobs:
   scout:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}   # optional: publishes the page to Netlify
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -62,6 +64,14 @@ jobs:
           git commit -m "Property scout: listings of $(date -u +%F)"
           # if the branch moved on while this ran, leave it: the next run scouts again from there
           git push || echo "::warning::branch changed during the run; history not saved this time"
+
+      - name: Publish to gostoso-property-scout.netlify.app
+        if: env.NETLIFY_AUTH_TOKEN != ''
+        env:
+          NETLIFY_SITE_ID: ab2e504c-2c83-4928-ac85-6a92b037e1ed
+        run: |
+          mkdir -p site && cp property_scout/report/index.html site/index.html
+          npx -y netlify-cli@17 deploy --prod --dir site --site "$NETLIFY_SITE_ID" --message "Listings of $(date -u +%F)"
 
       - name: Report what changed
         if: github.event_name != 'push'

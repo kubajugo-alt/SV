@@ -152,7 +152,7 @@ class Tracking(unittest.TestCase):
         self.assertIn("Price drops (1)", md)
         self.assertIn("€60,800", md)
         page = report.render(list(self.state["listings"].values()), self.state["meta"])
-        self.assertTrue(page.startswith("<title>Gostoso Property Scout</title>"))
+        self.assertIn("<title>Gostoso Property Scout</title>", page[:200])
         self.assertNotIn("__DATA__", page)
 
 
