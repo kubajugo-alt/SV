@@ -60,7 +60,8 @@ jobs:
           git add property_scout/data/listings.json property_scout/report/index.html
           if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
           git commit -m "Property scout: listings of $(date -u +%F)"
-          git push
+          # if the branch moved on while this ran, leave it: the next run scouts again from there
+          git push || echo "::warning::branch changed during the run; history not saved this time"
 
       - name: Report what changed
         if: github.event_name != 'push'
