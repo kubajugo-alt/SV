@@ -8,5 +8,6 @@ vendor/
 netlify/lib/texts.gen.mjs
 .netlify/
 .claude/worktrees/
+!property_scout/data/
 property_scout/data/photos/
 property_scout/data/*.tmp

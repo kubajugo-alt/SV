@@ -136,6 +136,7 @@ footer { margin-top: 40px; font-size: 13px; color: var(--muted); display: grid; 
 footer table { border-collapse: collapse; font-size: 12px; }
 footer td, footer th { padding: 3px 10px 3px 0; text-align: left; border-bottom: 1px solid var(--line); }
 .tablewrap { overflow-x: auto; }
+@media (max-width: 700px) { .filters { position: static; } }
 @media (prefers-reduced-motion: no-preference) { .card { transition: transform .15s ease; } .card:hover { transform: translateY(-2px); } }
 </style>
 
@@ -182,6 +183,8 @@ const eur = v => v == null ? "price on request" : "€" + Math.round(v).toLocale
 const brl = v => v == null ? "" : "R$ " + Math.round(v).toLocaleString("pt-BR");
 const m2 = v => v ? Math.round(v).toLocaleString("en-GB") + " m²" : "";
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const isLand = r => /^(Land|Farm|Smallholding)/.test(r.type || "");
+const clean = v => /n[ãa]o (dispon[ií]vel|informad|encontrad)/i.test(String(v ?? "")) ? "" : v;
 const daysBetween = (a, b) => (new Date(b) - new Date(a)) / 864e5;
 const lastRun = (M.last_run || "").slice(0, 10);
 const isNew = r => r.first_seen > (M.first_run || "") && daysBetween(r.first_seen, lastRun) <= 7;
@@ -257,8 +260,9 @@ function specs(r) {
   const s = [`<span class="t">${esc(r.type)}</span>`];
   if (r.bedrooms) s.push(`${r.bedrooms} bed`);
   if (r.bathrooms) s.push(`${r.bathrooms} bath`);
+  if (isLand(r)) { const a = r.total_area_m2 || r.area_m2; if (a) s.push(`${m2(a)} plot`); return s.join("<span aria-hidden='true'>·</span>"); }
   if (r.area_m2) s.push(`${m2(r.area_m2)} built`);
-  if (r.total_area_m2 && r.total_area_m2 !== r.area_m2) s.push(`${m2(r.total_area_m2)} ${r.type.startsWith("Land") ? "plot" : "total"}`);
+  if (r.total_area_m2 && r.total_area_m2 !== r.area_m2) s.push(`${m2(r.total_area_m2)} total`);
   return s.join("<span aria-hidden='true'>·</span>");
 }
 function badges(r) {
@@ -270,7 +274,7 @@ function badges(r) {
   if (c > 0) b.push(`<span class="badge up">Price ↑</span>`);
   return b.join("");
 }
-const where = r => [r.neighbourhood && r.neighbourhood.split(",")[0], r.town].filter(Boolean).join(", ") + (r.km_from_home != null && r.town !== M.home?.name ? ` · ~${r.km_from_home} km from Gostoso` : "");
+const where = r => [clean(r.neighbourhood) && r.neighbourhood.split(",")[0], r.town].filter(Boolean).join(", ") + (r.km_from_home != null && r.town !== M.home?.name ? ` · ~${r.km_from_home} km from Gostoso` : "");
 
 function card(r) {
   const n = r.photos.length;
@@ -322,9 +326,9 @@ function open(r, start) {
   const hist = (r.price_history || []).filter(h => h.brl);
   const facts = [
     ["Price", eur(r.price_eur)], ["Price in reais", brl(r.price_brl)], ["€ per m²", r.eur_per_m2 ? "€" + r.eur_per_m2.toLocaleString("en-GB") : ""],
-    ["Type", r.type], ["Built area", m2(r.area_m2)], [r.type.startsWith("Land") ? "Plot size" : "Total area", m2(r.total_area_m2)],
+    ["Type", r.type], ...(isLand(r) ? [["Plot size", m2(r.total_area_m2 || r.area_m2)]] : [["Built area", m2(r.area_m2)], ["Total area", m2(r.total_area_m2)]]),
     ["Bedrooms", r.bedrooms], ["Bathrooms", r.bathrooms], ["Parking", r.parking],
-    ["Neighbourhood", r.neighbourhood], ["Street", r.street], ["Town", r.town],
+    ["Neighbourhood", clean(r.neighbourhood)], ["Street", clean(r.street)], ["Town", r.town],
     ["From Gostoso centre", r.km_from_home != null && r.town !== M.home?.name ? `~${r.km_from_home} km` : ""],
     ["Agency", r.agency], ["Agency reference", r.agency_ref],
     ["Listed on site", r.date_posted], ["Updated on site", r.date_modified], ["First seen by scout", r.first_seen],

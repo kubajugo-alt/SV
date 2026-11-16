@@ -509,17 +509,36 @@ def changes_markdown(events: list[dict], state: dict) -> str:
 # --------------------------------------------------------------------------- photos for a self-contained report
 
 
-def embed_photos(http: Http, rec: dict, n: int) -> list[str]:
+EMBED_BUDGET_BYTES = 10_000_000   # keeps a self-contained page under the 16 MB many hosts accept
+
+
+def photo_bytes(http: Http, rec: dict, i: int) -> bytes | None:
     PHOTO_CACHE.mkdir(parents=True, exist_ok=True)
-    out = []
-    for i, url in enumerate((rec.get("photos") or [])[:n]):
-        path = PHOTO_CACHE / f"{rec['id']}-{i}.jpg"
-        if not path.exists():
-            data = http.get(small_photo(url), binary=True)
+    path = PHOTO_CACHE / f"{rec['id']}-{i}.jpg"
+    if not path.exists():
+        data = http.get(small_photo(rec["photos"][i]), binary=True)
+        if not data:
+            return None
+        path.write_bytes(data)
+    return path.read_bytes()
+
+
+def embed_photos(http: Http, recs: list[dict], n: int) -> dict[str, list[str]]:
+    """Up to n photos per listing as data: URIs, cover photos first for every listing, then
+    second photos, and so on, stopping when the page would get too heavy."""
+    out: dict[str, list[str]] = {r["id"]: [] for r in recs}
+    used = 0
+    for i in range(n):
+        for r in recs:
+            if i >= len(r.get("photos") or []) or len(out[r["id"]]) < i:
+                continue
+            data = photo_bytes(http, r, i)
             if not data:
                 continue
-            path.write_bytes(data)
-        out.append("data:image/jpeg;base64," + base64.b64encode(path.read_bytes()).decode())
+            if used + len(data) > EMBED_BUDGET_BYTES and i > 0:
+                return out
+            used += len(data)
+            out[r["id"]].append("data:image/jpeg;base64," + base64.b64encode(data).decode())
     return out
 
 
@@ -527,6 +546,11 @@ def build_report(state: dict, out: Path, http: Http | None, embed: int):
     from report import render  # local module
 
     listings = []
+    embedded = {}
+    if embed and http is not None:
+        shown = [r for r in state["listings"].values() if r.get("status") == "active" and not r.get("outside_filters")]
+        shown.sort(key=lambda r: r.get("first_seen") or "", reverse=True)
+        embedded = embed_photos(http, shown, embed)
     for rec in state["listings"].values():
         r = {k: rec.get(k) for k in (
             "id", "url", "title", "type", "town", "neighbourhood", "street", "price_brl", "price_eur",
@@ -535,8 +559,8 @@ def build_report(state: dict, out: Path, http: Http | None, embed: int):
             "last_seen", "status", "removed_on", "price_history", "price_change_pct", "km_from_home",
             "lat", "lon", "source", "outside_filters")}
         photos = rec.get("photos") or []
-        if embed and http is not None and rec.get("status") == "active":
-            r["photos"] = embed_photos(http, rec, embed)
+        if embedded:
+            r["photos"] = embedded.get(rec["id"], [])
             r["more_photos"] = max(0, len(photos) - len(r["photos"]))
         else:
             r["photos"] = [big_photo(p) for p in photos]
