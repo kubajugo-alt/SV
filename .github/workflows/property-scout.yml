@@ -1,0 +1,78 @@
+name: property scout
+
+# Once a day: look for property for sale in and around São Miguel do Gostoso, keep the
+# history in property_scout/data/listings.json, rebuild the report, and open an issue
+# listing what is new or cheaper (GitHub emails issues to the repository's watchers).
+
+on:
+  schedule:
+    - cron: "17 9 * * *"        # 06:17 in Brazil, 09:17 UTC
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths:
+      - "property_scout/scout.py"
+      - "property_scout/report.py"
+      - "property_scout/config.json"
+      - ".github/workflows/property-scout.yml"
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: property-scout-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Reuse photos downloaded on earlier runs
+        uses: actions/cache@v4
+        with:
+          path: property_scout/data/photos
+          key: scout-photos-${{ github.run_id }}
+          restore-keys: scout-photos-
+
+      - name: Scout listings
+        run: python property_scout/scout.py --changes changes.md
+
+      - name: Self-contained report with photos
+        run: python property_scout/scout.py --report-only --embed-photos 4 --report gostoso-property-scout.html
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gostoso-property-scout
+          path: gostoso-property-scout.html
+          retention-days: 30
+
+      - name: Save history and report
+        run: |
+          git config user.name "property-scout"
+          git config user.email "property-scout@users.noreply.github.com"
+          git add property_scout/data/listings.json property_scout/report/index.html
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git commit -m "Property scout: listings of $(date -u +%F)"
+          git push
+
+      - name: Report what changed
+        if: github.event_name != 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -s changes.md ] || { echo "no changes"; exit 0; }
+          {
+            cat changes.md
+            echo
+            echo "Report with photos: the **gostoso-property-scout** file under Artifacts on ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > body.md
+          new=$(grep -m1 -oP '(?<=### New listings \()\d+' changes.md || echo 0)
+          drops=$(grep -m1 -oP '(?<=### Price drops \()\d+' changes.md || echo 0)
+          gh issue create --title "Gostoso property: ${new} new, ${drops} price drops ($(date -u +%F))" --body-file body.md
