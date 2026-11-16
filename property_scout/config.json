@@ -1,0 +1,32 @@
+{
+  "home": {
+    "name": "São Miguel do Gostoso",
+    "lat": -5.1236,
+    "lon": -35.6355
+  },
+  "towns": [
+    {"name": "São Miguel do Gostoso", "slug": "rn-sao-miguel-do-gostoso"},
+    {"name": "Touros", "slug": "rn-touros"},
+    {"name": "São Bento do Norte", "slug": "rn-sao-bento-do-norte"},
+    {"name": "Pedra Grande", "slug": "rn-pedra-grande"},
+    {"name": "Parazinho", "slug": "rn-parazinho"}
+  ],
+  "categories": [
+    {"label": "House", "slug": "casas-a-venda"},
+    {"label": "House in condominium", "slug": "casas-em-condominio-a-venda"},
+    {"label": "Land", "slug": "terrenos-a-venda"},
+    {"label": "Apartment", "slug": "apartamentos-a-venda"},
+    {"label": "Smallholding", "slug": "chacaras-a-venda"},
+    {"label": "Farm", "slug": "fazendas-a-venda"},
+    {"label": "Commercial", "slug": "imoveis-comerciais-a-venda"}
+  ],
+  "filters": {
+    "max_price_eur": null,
+    "min_price_eur": 5000
+  },
+  "fx_fallback_brl_to_eur": 0.16,
+  "request_delay_seconds": 1.5,
+  "detail_refresh_days": 7,
+  "max_detail_fetches_per_run": 400,
+  "user_agent": "PropertyScout/1.0 (personal property search; runs once a day)"
+}
