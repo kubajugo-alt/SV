@@ -70,8 +70,13 @@ jobs:
         env:
           NETLIFY_SITE_ID: ab2e504c-2c83-4928-ac85-6a92b037e1ed
         run: |
-          mkdir -p site && cp property_scout/report/index.html site/index.html
-          npx -y netlify-cli@17 deploy --prod --dir site --site "$NETLIFY_SITE_ID" --message "Listings of $(date -u +%F)"
+          # deploy from a folder of its own, so the repository's netlify.toml (ALAN's site and
+          # functions) is not picked up
+          mkdir -p "$RUNNER_TEMP/scout-site/public" "$RUNNER_TEMP/scout-site/functions"
+          cp property_scout/report/index.html "$RUNNER_TEMP/scout-site/public/index.html"
+          printf '[build]\n  publish = "public"\n  functions = "functions"\n' > "$RUNNER_TEMP/scout-site/netlify.toml"
+          cd "$RUNNER_TEMP/scout-site"
+          npx -y netlify-cli@17 deploy --prod --dir public --functions functions --site "$NETLIFY_SITE_ID" --message "Listings of $(date -u +%F)"
 
       - name: Report what changed
         if: github.event_name != 'push'
