@@ -2,6 +2,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { DEFAULT_CAMERAS, parseCameras } from "./cameras.mts";
 import { safeZone } from "./clock.mts";
+import { homeAssistant } from "./homeassistant.mts";
 import type { Mind } from "./mind.mts";
 import { blobStore } from "./store.mts";
 import { parsePeople, type WhatsApp } from "./whatsapp.mts";
@@ -43,6 +44,8 @@ export function mind(): Mind {
     cameras: Netlify.env.get("WINDY_API_KEY")
       ? { key: Netlify.env.get("WINDY_API_KEY")!, list: parseCameras(Netlify.env.get("ALAN_WEBCAMS") ?? DEFAULT_CAMERAS) } : undefined,
     youtube: Netlify.env.get("YOUTUBE_API_KEY") || undefined,
+    // The flat: Home Assistant on the Mac mini, its public https address and a long-lived access token.
+    home: homeAssistant(Netlify.env.get("HOME_ASSISTANT_URL") ?? "", Netlify.env.get("HOME_ASSISTANT_TOKEN") ?? ""),
     background: Netlify.env.get("ALAN_BACKGROUND_MODEL") || "claude-haiku-5-5",
     webSearch: (Netlify.env.get("ALAN_WEB_SEARCH") ?? "on") !== "off",
   };

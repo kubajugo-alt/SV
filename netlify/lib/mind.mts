@@ -8,6 +8,7 @@ import { runTool, TOOLS, type Builder, type Ctx } from "./tools.mts";
 import type { Google } from "./gcal.mts";
 import type { Phone } from "./phone.mts";
 import { lookOutside, type Cameras } from "./cameras.mts";
+import type { HomeAssistant } from "./homeassistant.mts";
 import { SYSTEM } from "./texts.gen.mjs";
 import { fillerPrompt, parseTopic } from "./fillers.mts";
 import { absorb, anniversaries, lifeText, loadLife, tickPrompt } from "./life.mts";
@@ -35,7 +36,7 @@ const NUDGES: Record<string, string> = {
 
 export type Mind = {
   client: Anthropic; store: Store; model: string; effort: "low" | "medium" | "high";
-  calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; youtube?: string; webSearch: boolean;
+  calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; youtube?: string; home?: HomeAssistant; webSearch: boolean;
   fetcher?: typeof fetch;
   background?: string;   // the cheapest model, for his own hours (life-tick), which nobody waits for
 };
@@ -129,7 +130,7 @@ async function ask(mind: Mind, sys: Anthropic.Beta.BetaTextBlockParam[] | string
 }
 
 async function converse(mind: Mind, req: Request, talk: Talk, said: string, onText?: (delta: string) => void) {
-  const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, youtube: mind.youtube, fetcher: mind.fetcher };
+  const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, youtube: mind.youtube, home: mind.home, fetcher: mind.fetcher };
   const messages: Anthropic.Beta.BetaMessageParam[] = [...withGaps(talk.turns, req.tz), { role: "user", content: said }];
   const sys = await system(mind, req, talk);
   const actions: { ok: boolean; text: string }[] = [];
@@ -275,7 +276,7 @@ export async function nudge(mind: Mind, req: Request, kind: string, away = 0) {
   let said = `[To nie jest wiadomość od domownika. ${NUDGES[kind].replace("{person}", capital(req.person))}`;
   if (kind === "arrived" && away >= 10) said += ` Przed chwilą nikogo nie było przed ekranem przez ${away >= 120 ? `${Math.round(away / 60)} godz.` : `${Math.round(away)} min`}.`;
   if (kind === "morning") {
-    const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, youtube: mind.youtube, fetcher: mind.fetcher };
+    const ctx: Ctx = { store: mind.store, person: req.person, tz: req.tz, now: req.now, calendars: mind.calendars, google: mind.google, builder: mind.builder, phone: mind.phone, youtube: mind.youtube, home: mind.home, fetcher: mind.fetcher };
     said += ` Dane do odprawy: ${await runTool("briefing", {}, ctx)}`;
   }
   const messages: Anthropic.Beta.BetaMessageParam[] = [...withGaps(talk.turns, req.tz), { role: "user", content: said + "]" }];

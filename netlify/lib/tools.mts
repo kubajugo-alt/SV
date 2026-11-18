@@ -9,13 +9,14 @@ import { callOutcome, CALLS_A_DAY, placeCall, polishNumber, type Phone } from ".
 import { bestSections, parseMemories, recallPast } from "./past.mts";
 import { findPlaces, loadPlaces, TOWNS } from "./places.mts";
 import type { Cameras } from "./cameras.mts";
+import { homeControl, homeState, type HomeAssistant } from "./homeassistant.mts";
 import { moved, newEvent, onDay, toIcs, whenText } from "./owncal.mts";
 import { placeOf, loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
 import { keepMoment } from "./bond.mts";
 import { MEMORIES, TRAVEL } from "./texts.gen.mjs";
 
-export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; youtube?: string; fetcher?: typeof fetch };
+export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; youtube?: string; home?: HomeAssistant; fetcher?: typeof fetch };
 /**
  * Who changes his own code. Either a Claude Code routine (its id, trig_..., and the token of its API trigger),
  * or the repository on GitHub: he opens an issue titled [ALAN] and a GitHub Actions workflow runs Claude Code on it.
@@ -111,6 +112,15 @@ export const TOOLS: Anthropic.Tool[] = [
   tool("look_outside", "Patrzysz przez kamerę internetową, jak naprawdę wygląda teraz na dworze w Tarnobrzegu (nad jeziorem) albo w Sandomierzu: dostajesz zdjęcie. " +
     "Używaj, gdy rozmówca pyta, jak jest na dworze, czy pada, czy trzeba parasol, czy jest mgła; dobrze łączyć z prognozą (weather).",
     { where: text("Tarnobrzeg albo Sandomierz; domyślnie Tarnobrzeg") }),
+  tool("home_state", "Odczytuje z Home Assistanta, co się dzieje w mieszkaniu: temperatury i wilgotność, czujniki, światła, gniazdka, ogrzewanie, kto jest w domu. " +
+    "Używaj, gdy pytają o dom, i zawsze przed sterowaniem, gdy nie wiesz, jak nazywa się urządzenie.",
+    { query: text("czego dotyczy, np. salon, temperatura, światło; puste = wszystko") }),
+  tool("home_control", "Steruje urządzeniem w mieszkaniu przez Home Assistanta: włącza, wyłącza albo przełącza światło, gniazdko lub wentylator, ustawia jasność światła albo temperaturę ogrzewania. " +
+    "Tylko gdy rozmówca wyraźnie o to prosi. Zamków, alarmu, drzwi, bram, rolet ani kamer nie obsługujesz.",
+    { device: text("nazwa urządzenia tak, jak podaje home_state, np. Światło salon"),
+      action: { type: "string", enum: ["on", "off", "toggle"], description: "on: włącz; off: wyłącz; toggle: przełącz; przy ustawianiu temperatury można pominąć" },
+      brightness: { type: "integer", description: "jasność światła w procentach, 1-100" },
+      temperature: { type: "number", description: "temperatura ogrzewania w °C, 5-28" } }, ["device"]),
   tool("briefing", "Odprawa na dziś: pogoda, kalendarz i przypomnienia naraz ('co dziś', 'plan dnia', 'co mnie czeka')."),
 ];
 
@@ -638,6 +648,15 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
         own.placeNotes = [...own.placeNotes, { name: known?.name ?? name, town, text: note, who: capital(person), at: ctx.now.toISOString() }].slice(-400);
         await save();
         return `Wykonano: zapisano o miejscu ${known?.name ?? name} (${town})${known ? "" : ", którego nie było w bazie"}: ${note}`;
+      }
+      case "home_state":
+      case "home_control": {
+        if (!ctx.home) return "Błąd: nie masz jeszcze dostępu do domu; Kuba musi podłączyć Home Assistanta na Macu mini (instrukcja: docs/home-assistant-mac-mini.pl.md).";
+        try {
+          return name === "home_state" ? await homeState(ctx.home, String(input.query ?? ""), ctx.fetcher) : await homeControl(ctx.home, input, ctx.fetcher);
+        } catch (err) {
+          return `Błąd: Home Assistant nie odpowiada (${(err as Error).message}).`;
+        }
       }
       case "look_outside":
         return "Błąd: nie masz podłączonych kamer.";       // with cameras, the mind answers this one itself: the result is a picture
