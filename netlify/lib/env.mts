@@ -5,11 +5,19 @@ import { safeZone } from "./clock.mts";
 import type { Mind } from "./mind.mts";
 import { blobStore } from "./store.mts";
 import { parsePeople, type WhatsApp } from "./whatsapp.mts";
+import { ROGER, type Voice } from "./voice.mts";
 
 /** The phone: an ElevenLabs agent and the number it calls from. */
 export function phone() {
   const p = { key: Netlify.env.get("ELEVENLABS_API_KEY") ?? "", agent: Netlify.env.get("ALAN_CALL_AGENT_ID") ?? "", number: Netlify.env.get("ALAN_CALL_NUMBER_ID") ?? "" };
   return p.key && p.agent && p.number ? p : undefined;
+}
+
+/** His voice (ElevenLabs): the fast model for ordinary lines, the expressive one for lines with a voice tag. */
+export function voice(): Voice | undefined {
+  const key = Netlify.env.get("ELEVENLABS_API_KEY") ?? "";
+  return key ? { key, voice: Netlify.env.get("ALAN_ELEVEN_VOICE") ?? ROGER, fast: Netlify.env.get("ALAN_ELEVEN_MODEL") ?? "eleven_flash_v2_5",
+    expressive: Netlify.env.get("ALAN_ELEVEN_EXPRESSIVE") ?? "" } : undefined;   // expressive off: v3 made bad mistakes in Polish; set e.g. eleven_v3 to try again
 }
 
 /** Alan's WhatsApp number (lib/whatsapp.mts): all five settings, or none. */
@@ -40,6 +48,7 @@ export function mind(): Mind {
     google: google.email && google.key && google.calendar ? google : undefined,
     builder: builder(),
     phone: phone(),
+    voice: voice(),
     cameras: Netlify.env.get("WINDY_API_KEY")
       ? { key: Netlify.env.get("WINDY_API_KEY")!, list: parseCameras(Netlify.env.get("ALAN_WEBCAMS") ?? DEFAULT_CAMERAS) } : undefined,
     youtube: Netlify.env.get("YOUTUBE_API_KEY") || undefined,

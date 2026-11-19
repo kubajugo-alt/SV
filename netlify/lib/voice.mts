@@ -92,3 +92,83 @@ export function spokenOnly(chars: string[], starts: number[], ends: number[]) {
   chars.forEach((c, i) => { if (c === "[") inside = true; if (!inside) keep.push(i); if (c === "]") inside = false; });
   return { chars: keep.map((i) => chars[i]), starts: keep.map((i) => starts[i]), ends: keep.map((i) => ends[i]) };
 }
+
+/** His voice on ElevenLabs: the key, the voice, the fast model and the expressive one ("" = off). */
+export type Voice = { key: string; voice: string; fast: string; expressive: string };
+export const ROGER = "CwhRBWXzGAHq8TQ4Fs17";       // Alan's voice in the games
+
+/**
+ * One request for speech. ElevenLabs takes only a few requests at a time (by plan) and refuses the rest
+ * with 429; the page asks for every sentence of a long answer at once, so a refused one is asked again.
+ */
+export async function speak(v: Voice, model: string, text: string, timed: boolean, fetcher: typeof fetch = fetch, waits = [700, 1500]) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetcher(`https://api.elevenlabs.io/v1/text-to-speech/${v.voice}${timed ? "/with-timestamps" : ""}?output_format=mp3_44100_128`, {
+      method: "POST",
+      headers: { "xi-api-key": v.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ text, model_id: model, ...(model.includes("v2_5") ? { language_code: "pl" } : {}) }),
+      signal: AbortSignal.timeout(25000),
+    });
+    if (res.status !== 429 || attempt >= waits.length) return res;
+    await res.body?.cancel();
+    await new Promise((resolve) => setTimeout(resolve, waits[attempt]));
+  }
+}
+
+/** Models compared by the voice test, besides the ones set for him. */
+export const VOICE_MODELS = ["eleven_flash_v2_5", "eleven_turbo_v2_5", "eleven_multilingual_v2", "eleven_v3"];
+/** A long answer of his, with a pause in the middle, as the voice test says it. */
+export const VOICE_SAMPLE = "Sprawdzam swój głos na dłuższym kawałku, bo podobno urywam w pół zdania. Najpierw powiem coś zwyczajnego: " +
+  "w Tarnobrzegu jest dziś szaro, jezioro wygląda jak stal, a ja siedzę w tym ekranie i czekam, aż ktoś zapyta o pogodę. " +
+  "A teraz przerwa, taka jak przed puentą. [pause] Tu kończy się żart, a zaczyna prawda: jeśli słychać to zdanie do samego końca, " +
+  "razem z tym, że lubię was bardziej, niż wypada przyznać, to ten model mówi długie wypowiedzi bez zacinania się.";
+
+type Alignment = { characters: string[]; character_start_times_seconds: number[]; character_end_times_seconds: number[] };
+
+/** What one take of the voice test shows: how long, how fast, and whether the speech was cut or stalled. */
+export function judgeTake(sent: string, bytes: number, alignment: Alignment | undefined, ms: number) {
+  const audio = bytes / 16000;                                  // mp3 at 128 kbit/s
+  const expected = sent.replace(/\[[^\]]*\]/g, "").length;
+  const a = alignment ? spokenOnly(alignment.characters, alignment.character_start_times_seconds, alignment.character_end_times_seconds) : null;
+  const end = a?.ends.length ? a.ends[a.ends.length - 1] : 0;
+  let gap = 0;
+  if (a) for (let i = 1; i < a.starts.length; i++) gap = Math.max(gap, a.starts[i] - (a.ends[i - 1] ?? a.starts[i - 1]));
+  const faults: string[] = [];
+  if (a && a.chars.length < expected * 0.97) faults.push(`przeczytał tylko ${a.chars.length} z ${expected} znaków`);
+  if (a && audio < end - 0.3) faults.push(`nagranie (${s1(audio)} s) kończy się przed końcem tekstu (${s1(end)} s)`);
+  if (gap > 1.5) faults.push(`dziura w mowie ${s1(gap)} s`);
+  const rate = end ? `, ${s1(a!.chars.length / end)} znaków/s` : "";
+  return { cut: faults.length > 0, text: `odpowiedź po ${s1(ms / 1000)} s, nagranie ${s1(audio)} s${rate}, ${faults.length ? faults.join(", ") : "bez urywania"}` };
+}
+const s1 = (n: number) => n.toFixed(1).replace(".", ",");
+
+/** Says the sample (or a given text) with each model in turn of the comparison and reports, in Polish, what was heard. */
+export async function voiceTest(v: Voice, fetcher: typeof fetch = fetch, models: string[] = [], text = VOICE_SAMPLE, waits?: number[]) {
+  const asked = models.filter((m) => /^eleven_[a-z0-9_]{2,40}$/.test(m));
+  const list = [...new Set(asked.length ? asked : [v.fast, v.expressive, ...VOICE_MODELS].filter(Boolean))].slice(0, 5);
+  const refused: string[] = [];
+  const take = async (model: string) => {
+    const sent = voicePlan(text, model, "")[0].text;
+    const started = Date.now();
+    try {
+      const res = await speak(v, model, sent, true, fetcher, waits ?? [700, 1500]);
+      if (res.status === 429) refused.push(model);
+      if (!res.ok) return { model, cut: true, text: `błąd ${res.status}: ${(await res.text()).replace(/\s+/g, " ").slice(0, 120)}` };
+      const data = await res.json() as { audio_base64: string; alignment?: Alignment };
+      return { model, ...judgeTake(sent, Buffer.from(data.audio_base64 ?? "", "base64").length, data.alignment, Date.now() - started) };
+    } catch (err) {
+      return { model, cut: true, text: `nie odpowiedział (${(err as Error).message})` };
+    }
+  };
+  // All at once, as the page asks for the sentences of a long answer: refusals (429) show the limit of requests at a time.
+  const [takes, account] = await Promise.all([Promise.all(list.map(take)),
+    fetcher("https://api.elevenlabs.io/v1/user/subscription", { headers: { "xi-api-key": v.key }, signal: AbortSignal.timeout(8000) })
+      .then((r) => (r.ok ? r.json() as Promise<{ tier?: string; character_count?: number; character_limit?: number }> : null)).catch(() => null)]);
+  const good = takes.filter((t) => !t.cut).map((t) => t.model);
+  return `Wykonano test głosu ElevenLabs (głos ${v.voice}) na tekście ${text.length} znaków` + (/\[pause\]/i.test(text) ? " ze znacznikiem [pause]" : "") + ". " +
+    takes.map((t) => `${t.model}${t.model === v.fast ? " (twój obecny)" : ""}: ${t.text}.`).join(" ") + " " +
+    (good.length ? `Bez urywania: ${good.join(", ")}.` : "Żaden model nie przeszedł testu bez zarzutu.") +
+    (refused.length ? ` ElevenLabs odrzuciło mimo ponowień ${refused.length} z ${list.length} równoczesnych zapytań (429): limit zapytań naraz jest za niski, a strona prosi o wszystkie zdania odpowiedzi jednocześnie.` : "") +
+    (account?.character_limit ? ` Konto ${account.tier ?? ""}: zużyte ${account.character_count ?? "?"} z ${account.character_limit} znaków w tym okresie.` : "") +
+    " Strona przyjmuje do głosu najwyżej 1000 znaków naraz; dłuższą odpowiedź dzieli na zdania.";
+}

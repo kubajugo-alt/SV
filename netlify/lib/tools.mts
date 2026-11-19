@@ -13,9 +13,10 @@ import { moved, newEvent, onDay, toIcs, whenText } from "./owncal.mts";
 import { placeOf, loadOwn, type Own, type Store } from "./store.mts";
 import { plain, stems } from "./words.mts";
 import { keepMoment } from "./bond.mts";
+import { voiceTest, type Voice } from "./voice.mts";
 import { MEMORIES, TRAVEL } from "./texts.gen.mjs";
 
-export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; cameras?: Cameras; youtube?: string; fetcher?: typeof fetch };
+export type Ctx = { store: Store; person: string; tz: string; now: Date; calendars: string[]; google?: Google; builder?: Builder; phone?: Phone; voice?: Voice; cameras?: Cameras; youtube?: string; fetcher?: typeof fetch };
 /**
  * Who changes his own code. Either a Claude Code routine (its id, trig_..., and the token of its API trigger),
  * or the repository on GitHub: he opens an issue titled [ALAN] and a GitHub Actions workflow runs Claude Code on it.
@@ -111,6 +112,10 @@ export const TOOLS: Anthropic.Tool[] = [
   tool("look_outside", "Patrzysz przez kamerę internetową, jak naprawdę wygląda teraz na dworze w Tarnobrzegu (nad jeziorem) albo w Sandomierzu: dostajesz zdjęcie. " +
     "Używaj, gdy rozmówca pyta, jak jest na dworze, czy pada, czy trzeba parasol, czy jest mgła; dobrze łączyć z prognozą (weather).",
     { where: text("Tarnobrzeg albo Sandomierz; domyślnie Tarnobrzeg") }),
+  tool("voice_test", "Diagnostyka twojego głosu (ElevenLabs): mówi długi tekst ze znacznikiem [pause] kilkoma modelami naraz i podaje, który urywa, zacina się albo odmawia, ile trwało i ile znaków zostało na koncie. " +
+    "Tylko gdy rozmówca wyraźnie prosi o sprawdzenie głosu; każdy test zużywa kilka tysięcy znaków z limitu ElevenLabs. Wynik streść krótko.",
+    { models: { type: "array", items: { type: "string" }, description: "opcjonalnie: modele do porównania, np. eleven_flash_v2_5, eleven_multilingual_v2; domyślnie twój obecny i cztery popularne, najwyżej pięć" },
+      text: text("opcjonalnie: własny tekst do przeczytania, do 1000 znaków; domyślnie przykładowa długa wypowiedź z [pause]") }),
   tool("briefing", "Odprawa na dziś: pogoda, kalendarz i przypomnienia naraz ('co dziś', 'plan dnia', 'co mnie czeka')."),
 ];
 
@@ -641,6 +646,12 @@ export async function runTool(name: string, input: Record<string, any>, ctx: Ctx
       }
       case "look_outside":
         return "Błąd: nie masz podłączonych kamer.";       // with cameras, the mind answers this one itself: the result is a picture
+      case "voice_test": {
+        if (!ctx.voice) return "Błąd: nie masz podłączonego głosu ElevenLabs (brak ELEVENLABS_API_KEY).";
+        const given = String(input.text ?? "").replace(/\s+/g, " ").trim();
+        if (given.length > 1000) return "Błąd: tekst do testu może mieć najwyżej 1000 znaków.";
+        return await voiceTest(ctx.voice, ctx.fetcher, Array.isArray(input.models) ? input.models.map(String) : [], given || undefined);
+      }
       case "briefing": {
         const parts = [(await weather(own, ctx)).split(/(?<=\.) (?=Jutro)/)[0]];
         parts.push(await calendar(ctx));
