@@ -73,7 +73,7 @@ Every variable the functions read (names only: after a disaster, this is what to
 - `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`
 - `ALAN_BACKUP_KEY` — the passphrase that encrypts the backups of his memory. **Keep it in a
   password manager too**: without it no backup can be read
-- optional: `ALAN_CLAUDE_MODEL` (default `claude-sonnet-5-5`: talk, notes, digests, his journal, the weekly
+- optional: `ALAN_CLAUDE_MODEL` (default `claude-haiku-5-5`: talk, notes, digests, his journal, the weekly
   reflection), `ALAN_BACKGROUND_MODEL` (default `claude-haiku-5-5`: his own hours), `ALAN_CLAUDE_EFFORT` (`low`),
   `ALAN_ELEVEN_MODEL` (fast voice, default `eleven_flash_v2_5`), `ALAN_ELEVEN_EXPRESSIVE` (for lines with a voice
   tag; off by default, as v3 mispronounced Polish badly), `ALAN_ELEVEN_VOICE`, `ALAN_ELEVEN_STT`, `ALAN_WEB_SEARCH=off`

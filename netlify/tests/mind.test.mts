@@ -566,3 +566,16 @@ test("the thinking line's topic is judged by the cheap model, and only a known t
   assert.equal(parseTopic(" None."), "none");
   assert.equal(parseTopic("pizza"), null);
 });
+
+test("on Haiku he gets the basic web search and no server-side fallback; other models keep theirs", async () => {
+  const { mind, seen } = fakeMind([[text("Jestem.")], "end_turn"], [[text("Jestem.")], "end_turn"]);
+  mind.model = "claude-haiku-5-5";
+  await respond(mind, at, "Hej");
+  assert.equal(seen[0].model, "claude-haiku-5-5");
+  assert.equal(seen[0].tools.at(-1).type, "web_search_20250305");
+  assert.equal(seen[0].fallbacks, undefined);
+  mind.model = "claude-sonnet-5-5";
+  await respond(mind, at, "Hej");
+  assert.equal(seen[1].tools.at(-1).type, "web_search_20260209");
+  assert.equal(seen[1].fallbacks, "default");
+});
