@@ -118,7 +118,7 @@ async function ask(mind: Mind, sys: Anthropic.Beta.BetaTextBlockParam[] | string
     output_config: { effort: mind.effort },
     // If a safety classifier declines the request, the API re-runs it on a fallback model in the same call (Haiku has no server-side fallback).
     ...(/haiku/.test(model) ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }),
-    ...(tools ? { tools: [...TOOLS, ...(mind.webSearch ? [{ type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 3 }] : [])] } : {}),
+    ...(tools ? { tools: [...TOOLS, ...(mind.webSearch ? [{ type: (/haiku/.test(model) ? "web_search_20250305" : "web_search_20260209") as "web_search_20260209", name: "web_search" as const, max_uses: 3 }] : [])] } : {}),
   } satisfies Anthropic.Beta.MessageCreateParamsNonStreaming;
   if (!onText) return mind.client.beta.messages.create(params);
   // Streaming: his words are handed over as they are written, so he can start speaking the first
