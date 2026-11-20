@@ -136,6 +136,7 @@ export async function startAvatar(canvas, isDark) {
   let blinkLen = 200;
   let smirkAt = performance.now() + 18000;
   const pose = { lean: 0, nod: 0, gaze: 0 };
+  let lastFrame = 0;
   let running = false;
 
   // A layer that melts from one painting to the next instead of jumping.
@@ -160,9 +161,23 @@ export async function startAvatar(canvas, isDark) {
 
   let shown = '';
   // What he does when left alone, and the look his last line left behind.
-  const before = document.createElement('canvas');   // the figure as it was, for a soft change of pose
-  before.width = BODY.w;
-  before.height = BODY.h;
+  // The figure with his head bent, breathing and swaying, composed whole off screen every frame and then
+  // drawn once: drawn strip by strip straight onto the room, a cross-fade doubled the strips' overlaps into
+  // faint lines and the daylight filter was worked out some eighty times a frame.
+  const PAD = 48;                                      // room round him for the head's movement
+  const posed = document.createElement('canvas');
+  posed.width = BODY.w + PAD * 2;
+  posed.height = BODY.h + PAD * 2;
+  const before = document.createElement('canvas');   // the figure as it was last shown, for a soft change of pose
+  before.width = posed.width;
+  before.height = posed.height;
+  const motion = { lift: 0, sway: 0 };               // eased, so a change of pose never makes the head jump
+  // By day he is lit by the window: the figure in that light, made only when his face or the light changes,
+  // because a filter worked out every frame is what made him stutter by day.
+  const daylit = document.createElement('canvas');
+  daylit.width = BODY.w;
+  daylit.height = BODY.h;
+  let litFor = '';
   let changedAt = -1e9;
   let dissolve = 380;
   let doing = null;
@@ -287,8 +302,8 @@ export async function startAvatar(canvas, isDark) {
     if (key === shown) return;
     if (painting !== was && (painting || was)) {         // picking something up, a drag, putting it down: dissolve
       const b = before.getContext('2d');
-      b.clearRect(0, 0, BODY.w, BODY.h);
-      b.drawImage(figure, 0, 0);
+      b.clearRect(0, 0, before.width, before.height);
+      b.drawImage(posed, 0, 0);                         // as it was on screen: bent and breathing, not as painted
       changedAt = now;
       dissolve = painting && was ? 160 : 380;           // within a scene the hand moves: quick, so no double arms linger
       if (painting && was && (painting[0] === '~' || was[0] === '~')) changedAt = -1e9;   // an animation moves by itself: no dissolve
@@ -591,20 +606,38 @@ export async function startAvatar(canvas, isDark) {
     g.translate(SEAT.x, SEAT.desk);
     g.scale(SEAT.scale, SEAT.scale);
     // By day the lamps are off: he is lit by the window, cooler and softer than by lamplight.
-    g.filter = roomNow === 'day' ? 'brightness(1.04) saturate(0.86) contrast(0.94) hue-rotate(-6deg)' : roomNow === 'dusk' ? 'saturate(0.95)' : 'none';
+    const light = roomNow === 'day' ? 'brightness(1.04) saturate(0.86) contrast(0.94) hue-rotate(-6deg)' : roomNow === 'dusk' ? 'saturate(0.95)' : 'none';
+    let source = figure;
+    if (light !== 'none') {
+      if (litFor !== shown + light) {
+        const l = daylit.getContext('2d');
+        l.clearRect(0, 0, BODY.w, BODY.h);
+        l.filter = light;
+        l.drawImage(figure, 0, 0);
+        l.filter = 'none';
+        litFor = shown + light;
+      }
+      source = daylit;
+    }
     const settle = Math.min(1, (now - changedAt) / dissolve);
-    if (settle < 1) { g.globalAlpha = 1 - settle; g.drawImage(before, -BODY.centre, -BODY.lap); g.globalAlpha = 1; }
-    g.globalAlpha = settle;
     const breath = Math.sin(t * 1.25) * 2;
     const lift = painting ? breath * 0.6 : pose.nod * 5 - breath + pose.lean * 12 + dip;   // + is down; follows the voice slowly, never shakes
     const sway = painting ? 0 : Math.sin(t * 0.37) * 2.2 + Math.sin(t * 0.9) * pose.nod * 2 + pose.gaze * 5;            // sideways, at the crown
-    g.drawImage(figure, 0, NECK, BODY.w, BODY.h - NECK, -BODY.centre, NECK - BODY.lap, BODY.w, BODY.h - NECK);
+    const glide = Math.min(1, (now - (lastFrame || now)) / 120);   // about a tenth of a second to settle into a new pose's motion
+    lastFrame = now;
+    motion.lift += (lift - motion.lift) * glide;
+    motion.sway += (sway - motion.sway) * glide;
+    const p = posed.getContext('2d');
+    p.clearRect(0, 0, posed.width, posed.height);
+    p.drawImage(source, 0, NECK, BODY.w, BODY.h - NECK, PAD, PAD + NECK, BODY.w, BODY.h - NECK);
     for (let y = 0; y < NECK; y += BAND) {
       const k = Math.min(1, (NECK - y) / BEND);
       const ease = k * k * (3 - 2 * k);
-      g.drawImage(figure, 0, y, BODY.w, BAND + 1, -BODY.centre + sway * ease, y - BODY.lap + lift * ease, BODY.w, BAND + 1);
+      p.drawImage(source, 0, y, BODY.w, BAND + 1, PAD + motion.sway * ease, PAD + y + motion.lift * ease, BODY.w, BAND + 1);
     }
-    g.filter = 'none';
+    if (settle < 1) { g.globalAlpha = 1 - settle; g.drawImage(before, -BODY.centre - PAD, -BODY.lap - PAD); }
+    g.globalAlpha = settle;
+    g.drawImage(posed, -BODY.centre - PAD, -BODY.lap - PAD);
     g.globalAlpha = 1;
     // Smoke: a thin thread from the cigarette, and a soft cloud when he breathes out. In the figure's own space.
     const tip = TIP[painting];
