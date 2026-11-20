@@ -12,7 +12,7 @@ export default {
 
   // Typed conversation with the local model (serve.py /chat). '' hides the prompt.
   chat: 'chat',
-  // Recorded lines he says while a slow answer is on its way (fillers.js). The cloud turns them off unless ALAN_FILLERS=on.
+  // Recorded lines he says while a slow answer is on its way (fillers.js). The cloud turns them off with ALAN_FILLERS=off.
   fillers: true,
   // Hold Space and speak (serve.py /stt). '' turns the microphone off.
   // Kiosk: add Chromium --use-fake-ui-for-media-stream to skip the permission prompt.
