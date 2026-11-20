@@ -23,7 +23,7 @@ export function startChat(config) {
   const recentFillers = [];
   // The first click or key unlocks the sound; a moment later his mutters are recorded, ready for the first question.
   let readied = false;
-  const ready = () => { if (!readied) { readied = true; setTimeout(() => prepare([...someFillers(2), ...BACKCHANNEL]), 600); } };
+  const ready = () => { if (!readied) { readied = true; setTimeout(() => prepare([...(config.fillers ? someFillers(2) : []), ...BACKCHANNEL]), 600); } };
   for (const type of ['pointerdown', 'keydown']) addEventListener(type, ready, { once: true });
   // Talked over (speech.js interrupt()): the reply still being written is abandoned, so the next question is heard.
   let cancel = null;
@@ -66,7 +66,7 @@ export function startChat(config) {
       if (recentFillers.length > 5) recentFillers.shift();
       speaker.push(line);
     };
-    const filler = setTimeout(() => {
+    const filler = !config.fillers ? null : setTimeout(() => {
       due = true;
       if (serverTopic) sayFiller(serverTopic);
       else lastChance = setTimeout(() => sayFiller(serverTopic ?? topicOf(text)), 700);
@@ -86,7 +86,7 @@ export function startChat(config) {
       if (!res.ok) throw new Error(`${res.status}`);
       const take = (data) => {
         if (data.error) throw new Error(data.error);
-        if (data.filler) {
+        if (data.filler && config.fillers) {
           serverTopic = data.filler;
           prepare(TOPIC_LINES[serverTopic] || []);   // the rest of this kind, for the next time
           if (due) { clearTimeout(lastChance); sayFiller(serverTopic); }
