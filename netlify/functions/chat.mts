@@ -33,7 +33,7 @@ export default async (req: Request, context: Context) => {
         const brain = mind();
         // In parallel: which thinking line fits, so the page can say one while he works it out.
         const asked = Date.now();
-        fillerTopic(brain, text).then((topic) => {
+        if (Netlify.env.get("ALAN_FILLERS") === "on") fillerTopic(brain, text).then((topic) => {
           // For checking the choice later: the topic, how fast, whether it came in time, and the start of the question.
           console.log(`Filler: ${topic ?? "?"} in ${Date.now() - asked} ms${saying ? " (too late)" : ""} for "${text.slice(0, 60)}"`);
           if (topic && !saying) send({ filler: topic });
