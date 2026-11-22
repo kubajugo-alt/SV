@@ -1085,9 +1085,9 @@ function doorbell(){ if(muted) return; try{ const A=window.AudioContext||window.
 // the guests arrive: Jugo, Gayzilla, Inez and her unexpected lover walk in from the left (past the tree) one by one, each with a voiced hello
 function arrival(next){
   const st=$('#stage'), cv=document.createElement('div'); cv.id='cine'; st.append(cv); st.classList.add('cine');
-  const G=[['jugo',67,true,'Cześć, kochani! Wpadłem tylko na chwilę. Przyniosłem nalewkę babci… i widelec. Gdzie są pierogi?'],
-           ['gayzilla',56.5,false,'Nie ruszajcie się! Selfie z choinką! A barszcz jest bezglutenowy, prawda?'],
-           ['inez',31,true,'Przepraszam za spóźnienie! Nowy nos jeszcze nie przywykł do mrozu. A, i nadal mam trzydzieści lat.'],
+  const G=[['jugo',67,false,'Cześć, kochani! Wpadłem tylko na chwilę. Przyniosłem nalewkę babci… i widelec. Gdzie są pierogi?'],
+           ['gayzilla',56.5,true,'Nie ruszajcie się! Selfie z choinką! A barszcz jest bezglutenowy, prawda?'],
+           ['inez',31,false,'Przepraszam za spóźnienie! Nowy nos jeszcze nie przywykł do mrozu. A, i nadal mam trzydzieści lat.'],
            ['kochanek',20,false,'Dobry wieczór. Jestem… z Inez. Imię? Na razie bez imion.']];
   const cap=document.createElement('div'); cap.className='cap'; const fade=document.createElement('div'); fade.className='fade';
   const skip=document.createElement('button'); skip.className='skip'; skip.textContent='Pomiń ▸';
@@ -1109,13 +1109,13 @@ function arrival(next){
       const dur=1.4+(x+24)*.012; w.style.transitionDuration=dur+'s'; w.classList.add('walk'); w.style.left=x+'%'; await wait(dur*1000); if(over) return;
       w.classList.remove('walk'); const b=w.querySelector('.gb'); b.textContent=hi; b.classList.add('on');
       await speak('hi_'+id); if(over) return; b.classList.remove('on'); }
-    // closing lines: Kaka is thrilled, Kaczor wants a quick lie-down
+    // closing lines: Kaka is thrilled, Kaczor tries to get up (the sofa won't let him)
     const say2=async(key,txt,pos)=>{ const b=document.createElement('div'); b.className='gb sb'; Object.assign(b.style,pos); b.textContent=txt; cv.insertBefore(b,cap);
       requestAnimationFrame(()=>b.classList.add('on')); await speak(key); b.classList.remove('on'); setTimeout(()=>b.remove(),400); };
     const K=$('#kaka'); K.src='art/kaka_cheer.webp'; K.classList.add('cheer');
     await say2('fin_kaka','Wszyscy są! Barszcz gorący, karp ma imię, a lista… odhaczona. Wesołych Świąt, kochani!',{left:'auto',right:'1%',bottom:'74%',transform:'none'}); if(over) return;
-    await say2('fin_kaczor','No dobra. Skoro wszyscy już są… to ja się tylko na chwilkę położę.',{left:'53%',bottom:'64%'}); if(over) return;
-    kzWake(false); cap.textContent='Wesołych Świąt! ✨'; cap.classList.add('on');
+    await say2('fin_kaczor','No dobra, goście są. Wstaję! …Pomoże mi ktoś? Kanapa mnie nie puszcza.',{left:'53%',bottom:'64%'}); if(over) return;
+    cap.textContent='Wesołych Świąt! ✨'; cap.classList.add('on');
     await wait(2600); finish(); })();
 }
 let endingStarted=false;
