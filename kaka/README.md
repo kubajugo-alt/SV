@@ -1,7 +1,7 @@
 # Świąteczna przygoda Kaki
 
 A short, cosy point-and-click Christmas game in Polish, built from *Kaka's Christmas Adventure — Game Bible*.
-One living room, five mini-games, and the first star at the end.
+One living room (with Kaka, Kaczor and their 4-year-old Mikołaj playing with his train by the tree), five mini-games, and the first star at the end.
 
 Live: https://swieta-kaki.netlify.app (Netlify site `swieta-kaki`, deployed from this folder, which has its own `netlify.toml`).
 
@@ -12,7 +12,7 @@ Or open `kaka/index.html` through any static server (e.g. `python3 -m http.serve
 | Upiec pierniczki | Kitchen door | Catch the ingredients in the bowl, avoid Kaczor's socks (15 to win) |
 | Ubrać choinkę | Tree | Repeat the order the baubles light up in (3 rounds) |
 | Dwanaście potraw | Sideboard (recipes) | Memory pairs of the twelve Wigilia dishes (2 × 6) |
-| Nakryć do stołu | Table | Put things down in order (sianko → obrus → opłatek → talerze → świeca), then count plates including the extra one |
+| Nakryć do stołu | Table | Step 1: lay the table in order (sianko → obrus → opłatek → talerze → świeca). Step 2: a seating puzzle for Kaka, Kaczor, Mikołaj and friends Jugo, Gayzilla, Inez and „Nieoczekiwany aktualny kochanek Inez” — seven wishes, one correct arrangement, each wish ticks green or red as you seat people |
 | Lampki z Kaczorem | Fireplace | Untangle the string of lights: drag bulbs until no wires cross (2 strings, 6 and 9 bulbs). Kaczor holds the cable — tap him when he dozes off, or he rolls onto it and tangles a couple of bulbs again |
 
 Each finished task changes the room. When all five are done, the sky goes dark and the first star appears in the window; click it for the ending.

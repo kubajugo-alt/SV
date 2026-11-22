@@ -34,6 +34,7 @@ img{user-select:none;-webkit-user-drag:none}
 @keyframes bob{50%{transform:translateY(-.4cqw)}}
 #oTree{left:1.5%;bottom:14%;width:20%;height:53%}
 #oFire{left:16.5%;top:42%;width:21.5%;height:34%}
+#mikolaj{position:absolute;left:11.5%;bottom:2%;width:22%;pointer-events:none;z-index:3;filter:drop-shadow(0 .4cqw .6cqw rgba(0,0,0,.35))}
 #oFire .tag{top:1cqw}
 #lightsMantel{position:absolute;left:16%;top:40.5%;width:23%;pointer-events:none;z-index:2}
 #lightsWindow{position:absolute;left:36.5%;top:10.5%;width:33%;pointer-events:none;z-index:2}
@@ -100,6 +101,28 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 .chip{border:0;background:#fff;border-radius:14px;padding:.6em 1em;font-size:clamp(15px,2vw,20px);box-shadow:0 3px 0 #d9c7a5}
 .stack{display:flex;gap:8px;flex-wrap:wrap;min-height:46px;justify-content:center;align-items:center;background:#f5e7cc;border-radius:12px;padding:8px}
 .stack span{background:#fff;border-radius:10px;padding:.3em .7em}
+.seatplan{position:relative;width:min(540px,100%);aspect-ratio:16/9;margin:40px auto 34px}
+.seatplan .stol{position:absolute;left:20%;right:20%;top:28%;bottom:28%;background:#fffdf6;border:4px solid #8a5a3a;border-radius:14px;box-shadow:inset 0 0 0 6px #f3e6c8,0 6px 14px rgba(0,0,0,.2);display:grid;place-items:center;font-size:clamp(18px,3vw,28px)}
+.seatplan .side{position:absolute;pointer-events:none;font-size:clamp(11px,1.6vw,14px);font-weight:600;opacity:.75}
+.s-top{left:50%;top:-14%;transform:translateX(-50%)}.s-bot{left:50%;bottom:-14%;transform:translateX(-50%)}
+.s-l{left:-1%;top:22%}.s-r{right:-1%;top:22%}
+.seat{position:absolute;transform:translate(-50%,-50%);width:clamp(58px,14%,80px);aspect-ratio:1;border-radius:50%;border:3px dashed #c9a877;background:#fff8ea;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;font-size:clamp(10px,1.4vw,13px);line-height:1.1}
+.seat.taken{border-style:solid;border-color:var(--green);background:#fff}
+.seat.sel,.chip.guest.sel{box-shadow:0 0 0 4px var(--gold)}
+.seat .free{font-size:22px;opacity:.5}
+.seat b,.chip.guest b{font-weight:600}
+.em{font-style:normal;font-size:1.7em;line-height:1}
+.fc{display:inline-block;width:2.2em;height:2.2em;border-radius:50%;background-repeat:no-repeat;border:2px solid var(--red)}
+.face-kaka{background-image:url(art/kaka.webp);background-size:250%;background-position:50% 1%}
+.face-kaczor{background-image:url(art/kaczor.webp);background-size:330%;background-position:21% 0%}
+.face-mikolaj{background-image:url(art/mikolaj.webp);background-size:280%;background-position:53% 6%;background-color:#fff}
+.chip.guest{display:flex;flex-direction:column;align-items:center;gap:2px;padding:.4em .7em;font-size:clamp(12px,1.6vw,15px)}
+.allin{opacity:.7;font-weight:600}
+.rules{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:4px;font-size:clamp(13px,1.6vw,15px)}
+.rules li{display:flex;gap:.5em;align-items:baseline;background:#f8eed9;border-radius:8px;padding:.3em .6em}
+.rules li span{font-weight:700;width:1em;flex:none}
+.rules li.ok{background:#e3f1e2}.rules li.ok span{color:var(--green)}
+.rules li.bad{background:#fbe1dd}.rules li.bad span{color:var(--red)}
 .tablepic{display:block;width:min(520px,90%);margin:0 auto}
 #treeSvg{width:min(340px,75%);display:block;margin:0 auto}
 .bb{cursor:pointer;transition:filter .15s}
@@ -127,6 +150,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
     <img id="lightsWindow" class="hidden twinkle" src="art/lights.webp" alt="">
 
     <button class="obj" id="oTree" data-task="tree" aria-label="Choinka"><img id="treeBare" src="art/tree_bare.webp" alt=""><img id="treeDeco" src="art/tree_deco.webp" alt="" style="opacity:0"><span class="tag">🎄 Choinka</span><span class="todo">!</span></button>
+    <img id="mikolaj" src="art/mikolaj.webp" alt="Mikołaj bawi się kolejką">
     <button class="obj" id="oFire" data-task="lights" aria-label="Kominek: lampki"><span class="tag">💡 Lampki z Kaczorem</span><span class="todo">!</span></button>
     <img id="lightsMantel" class="hidden twinkle" src="art/lights.webp" alt="">
     <button class="obj" id="oSofa" tabindex="-1" aria-hidden="true"><img id="kzSofa" src="art/kaczor_sleep.webp" alt=""><span id="zzz">Zzz</span></button>
@@ -351,30 +375,67 @@ dishes(card,win){
   deal();
   return ()=>timers.forEach(clearTimeout);
 },
-// 4. set the table: order + extra plate
+// 4. set the table: lay it in the right order, then solve the Wigilia seating plan
 table(card,win){
   card.append(el('<h2>🍽️ Nakrywamy do stołu</h2>'));
   const pic=el('<img class="tablepic" src="art/table_empty.webp" alt="Stół">');
-  const sub=el('<p class="sub">Co kładziemy najpierw? Wybieraj po kolei — od samego dołu.</p>'), stack=el('<div class="stack"></div>'), ch=el('<div class="choices"></div>'), msg=el('<div class="msg">&nbsp;</div>');
+  const sub=el('<p class="sub">Krok 1 z 2: co kładziemy najpierw? Wybieraj po kolei — od samego dołu.</p>'), stack=el('<div class="stack"></div>'), ch=el('<div class="choices"></div>'), msg=el('<div class="msg">&nbsp;</div>');
   card.append(pic,sub,stack,ch,msg);
   const ORDER=[['Sianko','🌾'],['Obrus','🤍'],['Opłatek','✨'],['Talerze','🍽️'],['Świeca','🕯️']];
   const HINT={Sianko:'Sianko idzie pod obrus!',Obrus:'Obrus przykrywa sianko.',Opłatek:'Opłatek kładziemy na obrusie.',Talerze:'Talerze — zaraz po opłatku.',Świeca:'Świeca na koniec, dla nastroju.'};
-  let step=0;
+  let step=0, timers=[];
   shuffle(ORDER.slice()).forEach(([n,e])=>{
     const b=el(`<button class="chip">${e} ${n}</button>`);
     b.onclick=()=>{ if(n===ORDER[step][0]){ step++; b.remove(); stack.append(el(`<span>${e} ${n}</span>`)); msg.style.color='var(--green)'; msg.textContent='Tak!';
-        if(step===ORDER.length) plates(); }
+        if(step===ORDER.length){ msg.textContent='Stół nakryty! Teraz najtrudniejsze — kto gdzie siedzi…'; timers.push(setTimeout(seating,1300)); } }
       else { b.classList.add('shake'); setTimeout(()=>b.classList.remove('shake'),400); msg.style.color='var(--red)'; msg.textContent='Hmm, nie teraz. '+HINT[ORDER[step][0]]; } };
     ch.append(b);
   });
-  function plates(){
-    sub.textContent='Goście: Kaka, Kaczor, Babcia, Dziadek i ciocia Ela. Ile talerzy postawić?';
-    ch.innerHTML=''; msg.innerHTML='&nbsp;';
-    [4,5,6,7].forEach(n=>{ const b=el(`<button class="chip">🍽️ ${n}</button>`);
-      b.onclick=()=>{ if(n===6){ msg.style.color='var(--green)'; msg.textContent='Tak! Jeden talerz więcej dla wędrowca. 🐈'; ch.innerHTML=''; pic.src='art/table_set.webp'; win(); }
-        else { b.classList.add('shake'); setTimeout(()=>b.classList.remove('shake'),400); msg.style.color='var(--red)'; msg.textContent=n<6?'Za mało… a niespodziewany gość?':'Aż tyle? Babcia nie przywiezie aż tylu gości.'; } };
-      ch.append(b); });
+  function seating(){
+    pic.remove(); stack.remove(); ch.remove(); msg.innerHTML='&nbsp;';
+    sub.textContent='Krok 2 z 2: rozsadź gości przy wigilijnym stole. Dotknij osoby, potem miejsca. Spełnij wszystkie życzenia rodziny!';
+    const G={kaka:['Kaka','face-kaka'],kaczor:['Kaczor','face-kaczor'],mikolaj:['Mikołaj','face-mikolaj'],jugo:['Jugo','🧔'],gay:['Gayzilla','🦖'],inez:['Inez','💃'],kochanek:['kochanek Inez','🌹']};
+    const SEATS={t1:[28,13],t2:[50,13],t3:[72,13],R:[92,50],b2:[64,87],b1:[36,87],L:[8,50]};
+    const RING=['t1','t2','t3','R','b2','b1','L'], WIN=['t1','t2','t3'], N=RING.length;
+    const adj=(a,b)=>{const i=RING.indexOf(a),j=RING.indexOf(b);return (i-j+N)%N===1||(j-i+N)%N===1;};
+    const RULES=[
+      [['kochanek'],s=>s.kochanek==='R','Talerz dla „Nieoczekiwanego aktualnego kochanka Inez” stoi przy drzwiach — w razie czego szybko się ewakuuje.'],
+      [['kaka'],s=>s.kaka==='L','Kaka siedzi przy kuchni — będzie donosić potrawy.'],
+      [['kaczor','kaka'],s=>WIN.includes(s.kaczor)&&adj(s.kaczor,s.kaka),'Kaczor siedzi obok Kaki, przy oknie — żeby nie zasnął.'],
+      [['mikolaj','kaka'],s=>adj(s.mikolaj,s.kaka),'Mikołaj siedzi obok mamy — ktoś musi mu obrać karpia z ości.'],
+      [['jugo','mikolaj'],s=>adj(s.jugo,s.mikolaj),'Jugo siedzi obok Mikołaja — obiecał mu pokazać sztuczkę z opłatkiem.'],
+      [['gay'],s=>WIN.includes(s.gay),'Gayzilla musi siedzieć przy oknie — tam jest najlepsze światło do selfie.'],
+      [['inez','kochanek'],s=>!adj(s.inez,s.kochanek),'Inez nie siedzi obok swojego kochanka — przy wszystkich udają, że się nie znają.'],
+    ];
+    const box=el('<div class="seatplan"><div class="stol">🕯️ ✨</div><span class="side s-top">🪟 okno</span><span class="side s-bot">🎄 choinka</span><span class="side s-l">🍳 kuchnia</span><span class="side s-r">🚪 drzwi</span></div>');
+    const pool=el('<div class="choices pool"></div>'), rl=el('<ul class="rules"></ul>');
+    card.insertBefore(box,msg); card.insertBefore(pool,msg); card.insertBefore(rl,msg);
+    const seatOf={}, at={}; let sel=null, solved=false;
+    const token=k=>{ const [n,f]=G[k]; const ic=f.startsWith('face-')?`<i class="fc ${f}"></i>`:`<i class="em">${f}</i>`; return `${ic}<b>${n}</b>`; };
+    const seatEls={};
+    Object.entries(SEATS).forEach(([id,[x,y]])=>{ const b=el(`<button class="seat" style="left:${x}%;top:${y}%" aria-label="miejsce"></button>`); b.onclick=()=>tapSeat(id); box.append(b); seatEls[id]=b; });
+    function tapSeat(id){ if(solved) return;
+      if(sel){ const prev=seatOf[sel], other=at[id];
+        if(prev) delete at[prev];
+        if(other){ if(prev){ at[prev]=other; seatOf[other]=prev; } else delete seatOf[other]; }
+        at[id]=sel; seatOf[sel]=id; sel=null; }
+      else if(at[id]){ sel=at[id]; }
+      draw(); }
+    function draw(){
+      Object.entries(seatEls).forEach(([id,b])=>{ const k=at[id]; b.innerHTML=k?token(k):'<span class="free">+</span>'; b.classList.toggle('sel',!!k&&k===sel); b.classList.toggle('taken',!!k); });
+      pool.innerHTML=''; Object.keys(G).filter(k=>!seatOf[k]).forEach(k=>{ const b=el(`<button class="chip guest">${token(k)}</button>`); b.classList.toggle('sel',k===sel); b.onclick=()=>{ if(solved) return; sel=sel===k?null:k; draw(); }; pool.append(b); });
+      if(!pool.children.length) pool.append(el('<span class="allin">Wszyscy siedzą — sprawdź życzenia poniżej.</span>'));
+      let ok=0; rl.innerHTML='';
+      RULES.forEach(([who,test,txt])=>{ const ready=who.every(k=>seatOf[k]); const pass=ready&&test(seatOf); if(pass) ok++;
+        rl.append(el(`<li class="${ready?(pass?'ok':'bad'):''}"><span>${ready?(pass?'✔':'✘'):'○'}</span>${txt}</li>`)); });
+      const all=Object.keys(G).every(k=>seatOf[k]);
+      if(all&&ok===RULES.length&&!solved){ solved=true; msg.style.color='var(--green)'; msg.textContent='Idealnie! Wszyscy zadowoleni — nawet kochanek Inez. 🎉'; win(); }
+      else if(all){ msg.style.color='var(--red)'; msg.textContent='Prawie! Ktoś jeszcze marudzi — zamień miejsca (dotknij osoby przy stole, potem innego miejsca).'; }
+      else { msg.style.color='var(--ink)'; msg.textContent=sel?`Gdzie posadzić: ${G[sel][0]}?`:'Wybierz osobę.'; }
+    }
+    draw();
   }
+  return ()=>timers.forEach(clearTimeout);
 },
 // 5. untangle the lights (no crossing wires) while keeping Kaczor from rolling onto the cable
 lights(card,win){
@@ -446,7 +507,7 @@ lights(card,win){
 function ending(){
   say(['star','kaczor_star'],()=>{
     $('#end').classList.remove('hidden');
-    $('#endTxt').textContent='Pierwsza gwiazdka zabłysła. Pierniczki upieczone, choinka ubrana, dwanaście potraw na stole, sianko pod obrusem, talerz dla wędrowca i lampki rozplątane. Kaczor nawet nie zasnął przy barszczu. Prawie.';
+    $('#endTxt').textContent='Pierwsza gwiazdka zabłysła. Pierniczki upieczone, choinka ubrana, dwanaście potraw na stole, sianko pod obrusem, talerz dla nieoczekiwanego kochanka Inez i lampki rozplątane. Kaczor nawet nie zasnął przy barszczu. Prawie.';
   });
 }
 $('#againBtn').onclick=()=>{done={};save();render();$('#end').classList.add('hidden');say(['hub']);};
