@@ -444,7 +444,7 @@ const LINES={
   done_bake:['kaka','Pierniczki gotowe! Pachnie jak w prawdziwej piekarni. Tylko nie mów Kaczorowi, ile ich jest.'],
   done_tree:['kaka','Choinka ubrana! Nawet gwiazda stoi prosto. … Prawie.'],
   done_dishes:['kaka','Dwanaście potraw zapamiętane. Trzynasta to cierpliwość do Kaczora.'],
-  done_table:['kaka','Wszyscy usadzeni i nikt się nie kłóci. … Na razie.'],
+  done_table:['kaka','Stół nakryty, plan miejsc gotowy. Teraz tylko żeby goście usiedli tam, gdzie im każę.'],
   done_lights:['kaka','Lampki świecą! Kaczor, widzisz? … Nie widzi. Śpi.'],
   done_train:['kaka','Brawo, maszynisto! Wszystkie prezenty dojechały pod choinkę.'],
   done_quiz:['kaka','Zdał! Bywało gorzej. Zapisuję w kalendarzu.'],
@@ -827,7 +827,7 @@ table(card,win){
       RULES.forEach(([who,test,txt])=>{ const ready=who.every(k=>seatOf[k]); const pass=ready&&test(seatOf); if(pass) ok++;
         rl.append(el(`<li class="${ready?(pass?'ok':'bad'):''}"><span>${ready?(pass?'✔':'✘'):'○'}</span>${txt}</li>`)); });
       const all=Object.keys(G).every(k=>seatOf[k]);
-      if(all&&ok===RULES.length&&!solved){ solved=true; msg.style.color='var(--green)'; msg.textContent='Idealnie! Wszyscy zadowoleni — nawet kochanek Inez. 🎉'; win(); }
+      if(all&&ok===RULES.length&&!solved){ solved=true; msg.style.color='var(--green)'; msg.textContent='Idealnie! Plan miejsc gotowy — wszyscy będą zadowoleni, nawet kochanek Inez. 🎉'; win(); }
       else if(all){ msg.style.color='var(--red)'; msg.textContent='Prawie! Ktoś jeszcze marudzi — zamień miejsca (dotknij osoby przy stole, potem innego miejsca).'; }
       else { msg.style.color='var(--ink)'; msg.textContent=sel?`Gdzie posadzić: ${G[sel][0]}?`:'Wybierz osobę.'; }
     }
