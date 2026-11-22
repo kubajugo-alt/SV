@@ -47,6 +47,23 @@ img{user-select:none;-webkit-user-drag:none}
 .tpad button{border:0;border-radius:12px;background:var(--green);color:#fff;font-size:22px;box-shadow:0 3px 0 #1d4a2e;touch-action:none}
 .tpad [data-d=up]{grid-column:2}.tpad [data-d=left]{grid-column:1;grid-row:2}.tpad [data-d=down]{grid-column:2;grid-row:2}.tpad [data-d=right]{grid-column:3;grid-row:2}
 #oFire .tag{top:1cqw}
+#oPoster{left:23.2%;top:11%;width:10.2%;height:28.2%;border-radius:.3cqw}
+.hotbox:hover,.hotbox:focus-visible{filter:none!important;box-shadow:0 0 0 .25cqw #ffd34e,0 0 1.6cqw .4cqw rgba(255,233,140,.75)}
+#oPoster .todo{right:-6%;top:-6%}
+.qz{display:grid;grid-template-columns:1fr minmax(120px,210px);gap:14px;align-items:center}
+@media (max-width:640px){.qz{grid-template-columns:1fr}.qz .qkz{max-width:170px;margin:0 auto}}
+.qmeta{display:flex;justify-content:space-between;font-weight:600;opacity:.75;font-size:14px;margin-bottom:6px}
+.qq{font-size:clamp(17px,2.3vw,22px);font-weight:600;margin:0 0 12px}
+.qopts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.qopts{grid-template-columns:1fr}}
+.qopts button{border:0;border-radius:14px;padding:.75em .9em;font-size:clamp(14px,1.8vw,17px);background:#fff;box-shadow:0 3px 0 #d9c7a5;text-align:left}
+.qopts button.right{background:#dff1dc;box-shadow:0 3px 0 #9fcf9a}
+.qopts button.wrong{background:#fbdcd7;box-shadow:0 3px 0 #e8a69c}
+.qopts button:disabled{cursor:default;opacity:1;color:var(--ink)}
+.qopts button:disabled:not(.right):not(.wrong){opacity:.55}
+.qkz{position:relative}.qkz img{width:100%;display:block;transition:filter .3s}
+.qkz .bub{position:absolute;left:50%;top:-8%;transform:translateX(-50%);background:#fff;border-radius:14px;padding:.25em .6em;font-weight:700;font-size:14px;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.qnext{margin-top:12px}
 #lightsMantel{position:absolute;left:16%;top:40.5%;width:23%;pointer-events:none;z-index:2}
 #lightsWindow{position:absolute;left:36.5%;top:10.5%;width:33%;pointer-events:none;z-index:2}
 .twinkle{animation:tw 2.7s linear infinite}
@@ -68,7 +85,7 @@ img{user-select:none;-webkit-user-drag:none}
 #zzz{position:absolute;left:30%;top:-2%;font-size:2.4cqw;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6);animation:zz 2.4s ease-in-out infinite;pointer-events:none}
 @keyframes zz{0%{opacity:0;transform:translateY(.5cqw)}50%{opacity:1}100%{opacity:0;transform:translateY(-1.5cqw)}}
 #oSideboard{left:66%;top:38%;width:17%;height:41%}
-#cookies{position:absolute;left:68.4%;top:45.9%;width:5.5%;pointer-events:none;z-index:2;filter:drop-shadow(0 .25cqw .2cqw rgba(60,30,10,.45))}
+#cookies{position:absolute;left:68.786%;top:46.680%;width:8.176%;pointer-events:none;z-index:2}
 #oKitchen{left:84.5%;top:9%;width:15.5%;height:70%}
 #oKitchen .tag{top:3cqw}
 #oTable{left:45%;bottom:-5%;width:41%;height:42%}
@@ -216,10 +233,11 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
     <img id="presents" class="hidden" src="art/presents.webp" alt="Prezenty pod choinką">
     <button class="obj" id="oMik" data-task="train" aria-label="Mikołaj: pociąg"><img src="art/mikolaj.webp" alt="Mikołaj bawi się kolejką"><span class="tag">🚂 Pociąg Mikołaja</span><span class="todo">!</span></button>
     <button class="obj" id="oFire" data-task="lights" aria-label="Kominek: lampki"><span class="tag">💡 Lampki z Kaczorem</span><span class="todo">!</span></button>
+    <button class="obj hotbox" id="oPoster" data-task="quiz" aria-label="Plakat z zamkiem: quiz"><span class="tag">🏰 Quiz z Kaczorem</span><span class="todo">!</span></button>
     <img id="lightsMantel" class="hidden twinkle" src="art/lights.webp" alt="">
     <button class="obj" id="oSofa" aria-label="Kaczor na kanapie"><img id="kzSofa" src="art/kaczor_sleep.webp" alt=""><span id="zzz">Zzz</span><span class="tag">💬 Kaczor</span></button>
     <button class="obj" id="oSideboard" data-task="dishes" aria-label="Kredens: przepisy"><span class="tag">📖 Dwanaście potraw</span><span class="todo">!</span></button>
-    <img id="cookies" class="hidden" src="art/cookies.webp" alt="Pierniczki">
+    <img id="cookies" class="hidden" src="art/cookies_on_sideboard.webp" alt="Pierniczki na komodzie">
     <button class="obj" id="oKitchen" data-task="bake" aria-label="Kuchnia: pierniczki"><span class="tag">🍪 Kuchnia</span><span class="todo">!</span></button>
     <button class="obj" id="oTable" data-task="table" aria-label="Stół wigilijny"><img id="tableEmpty" src="art/table_empty.webp" alt=""><img id="tableSet" src="art/table_set.webp" alt="" style="opacity:0"><span class="tag">🍽️ Stół</span><span class="todo">!</span></button>
     <img id="kaka" src="art/kaka.webp" alt="Kaka">
@@ -264,11 +282,15 @@ const TASKS=[
   {id:'table', name:'Nakryć do stołu'},
   {id:'lights',name:'Lampki (z Kaczorem)'},
   {id:'train', name:'Pociąg z Mikołajem'},
+  {id:'quiz',  name:'Quiz z Kaczorem'},
 ];
 const LINES={
   intro:['kaka','Kaczor! Święta tuż-tuż, a my mamy jedną listę i zero pierniczków. Święta będą idealne. Choćby nie wiem co.'],
   kaczor_intro:['kaczor','Mhm. Idealne. Obudź mnie na karpia.'],
-  hub:['kaka','Wybierz zadanie, jakiekolwiek! No dobra… wszystkie sześć.'],
+  hub:['kaka','Wybierz zadanie, jakiekolwiek! No dobra… wszystkie siedem.'],
+  quiz:['kaka','Kaczor, wstawaj! Quiz z Harry’ego Pottera. Jak odpowiesz dobrze na siedem pytań z dziesięciu, możesz wrócić na kanapę.'],
+  quiz_ok:['kaczor','No przecież wiem. Jestem w Gryffindorze. … Kanapowym.'],
+  quiz_bad:['kaczor','Ten rozdział… chyba przespałem.'],
   train:['kaka','Mikołaj, kochanie, prezenty rozjechały się po całym salonie! Poprowadź pociąg i zbierz je wszystkie pod choinkę. Tylko nie wjedź w kanapę taty!'],
   bake:['kaka','Pierniczki! Łap miód, mąkę i przyprawy. Nie skarpetki. Skąd tu się wzięły skarpetki?'],
   tree:['kaka','Choinka jest taka goła. Powieś bombki tam, gdzie błyszczą!'],
@@ -286,6 +308,10 @@ const LINES={
   kz4:['kaczor','Jeśli nie będę się ruszał… Kaka mnie nie zauważy.'],
   kz5:['kaczor','Przecież pomagam. Pilnuję kanapy, żeby nikt jej nie ukradł przed świętami.'],
   kz6:['kaczor','Mikołaj, pociąg jedzie za szybko. … Nie, nie wstanę. Tylko mówię.'],
+  kz7:['kaczor','Inez mówi, że to tylko dobry krem. A ja mówię, że ten krem ma bardzo dobrego chirurga.'],
+  kz8:['kaczor','Inez się ostatnio zdziwiła. Chyba. Botoks nie pozwala stwierdzić na pewno.'],
+  kz9:['kaczor','Kochanek Inez? Który? Tego z zeszłego tygodnia chyba już nie liczymy.'],
+  kz10:['kaczor','Inez zmienia kochanków częściej niż ja pozycję na kanapie. A to naprawdę coś znaczy.'],
 };
 // portrait crops: [image, background-size, background-position]
 const FACES={kaka:['art/kaka.webp','250%','50% 1%'],kaczor:['art/kaczor.webp','330%','21% 0%']};
@@ -347,7 +373,7 @@ function render(){
 document.querySelectorAll('.obj[data-task]').forEach(o=>o.addEventListener('click',()=>open(o.dataset.task)));
 $('#star').addEventListener('click',ending);
 $('#listToggle').onclick=()=>{ const o=$('#list').classList.toggle('open'); $('#listToggle').setAttribute('aria-expanded',o); };
-let kzLine=0; $('#oSofa').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say(['kz'+(kzLine%6+1)]); kzLine++; });
+let kzLine=0; $('#oSofa').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say(['kz'+(kzLine%10+1)]); kzLine++; });
 
 // ---------- minigame shell ----------
 let stopGame=null;
@@ -654,15 +680,57 @@ train(card,win){
   raf=requestAnimationFrame(loop);
   return ()=>{ cancelAnimationFrame(raf); removeEventListener('keydown',kd); };
 },
+// 7. Kaka quizzes Kaczor on Harry Potter (answer for him; 7/10 to pass)
+quiz(card,win){
+  const Q=[
+    ['Jak nazywa się szkoła magii, do której chodzi Harry?',['Hogwart','Durmstrang','Beauxbatons','Ilvermorny']],
+    ['Z którego peronu odjeżdża Ekspres do Hogwartu?',['9 i ¾','7 i ½','10 i ¼','13']],
+    ['Jak ma na imię sowa Harry’ego?',['Hedwiga','Errol','Świstoświnka','Krzywołap']],
+    ['Do którego domu trafia Harry?',['Gryffindor','Slytherin','Hufflepuff','Ravenclaw']],
+    ['Kto przydziela pierwszoroczniaków do domów?',['Tiara Przydziału','Dumbledore','Hagrid','Prawie Bezgłowy Nick']],
+    ['Ile punktów dostaje drużyna za złapanie Złotego Znicza?',['150','10','50','100']],
+    ['Jak brzmi zaklęcie rozbrajające?',['Expelliarmus','Wingardium Leviosa','Lumos','Accio']],
+    ['Kim jest Zgredek?',['skrzatem domowym','goblinem','centaurem','duchem']],
+    ['Na której ulicy czarodzieje robią zakupy przed szkołą?',['ulica Pokątna','ulica Nokturna','Privet Drive','Grimmauld Place']],
+    ['Co uczniowie piją w Hogsmeade, żeby się rozgrzać?',['kremowe piwo','barszcz z uszkami','kompot z suszu','grzaniec Kaczora']],
+  ];
+  const OK=['„No przecież wiem.”','„Widziałem wszystkie filmy. Z zamkniętymi oczami.”','„Proste. Następne.”','„Dziesięć punktów dla Kanapowego Gryffindoru!”'];
+  const BAD=['„Ten rozdział przespałem.”','„To było w filmie? Bo ja chyba drzemałem.”','„Mogę zadzwonić do przyjaciela? Do Jugo?”','„Sprawdzam tylko, czy uważasz.”'];
+  card.append(el('<h2>🏰 Quiz z Kaczorem</h2>'),el('<p class="sub">Kaka sprawdza, ile Kaczor pamięta z Harry’ego Pottera. Odpowiadasz za niego — 7 z 10, żeby wrócił na kanapę!</p>'));
+  const wrap=el('<div class="qz"><div><div class="qmeta"><span class="qn"></span><span class="qs"></span></div><p class="qq"></p><div class="qopts"></div><div class="msg">&nbsp;</div><button class="btn qnext hidden">Dalej ▸</button></div><div class="qkz"><img src="art/kaczor.webp" alt="Kaczor"><span class="bub">🤓 Pytaj!</span></div></div>');
+  card.append(wrap);
+  const $q=sel=>wrap.querySelector(sel), img=$q('.qkz img'), bub=$q('.bub'), msg=$q('.msg'), next=$q('.qnext');
+  let order, i, score, saidOk=false, saidBad=false, timers=[];
+  function start(){ order=shuffle(Q.map((_,k)=>k)); i=0; score=0; img.src='art/kaczor.webp'; bub.textContent='🤓 Pytaj!'; show(); }
+  function show(){ const [q,ans]=Q[order[i]]; $q('.qn').textContent=`Pytanie ${i+1} z ${Q.length}`; $q('.qs').textContent=`Kaczor: ${score} pkt`;
+    $q('.qq').textContent=q; msg.innerHTML='&nbsp;'; next.classList.add('hidden');
+    const box=$q('.qopts'); box.innerHTML='';
+    shuffle(ans.map((a,k)=>[a,k===0])).forEach(([a,right])=>{ const b=el(`<button></button>`); b.textContent=a; b.dataset.right=right?'1':'';
+      b.onclick=()=>pick(b,right); box.append(b); }); }
+  function pick(b,right){ const all=[...$q('.qopts').children]; all.forEach(x=>{x.disabled=true; if(x.dataset.right) x.classList.add('right');});
+    if(right){ score++; img.src='art/kaczor.webp'; bub.textContent='😎 Wiedziałem!'; msg.style.color='var(--green)'; msg.textContent='Kaczor: '+OK[Math.random()*OK.length|0];
+      if(!saidOk){ saidOk=true; play('quiz_ok'); } }
+    else { b.classList.add('wrong'); img.src='art/kaczor_sleep.webp'; bub.textContent='😴 Zzz…'; msg.style.color='var(--red)'; msg.textContent='Kaczor: '+BAD[Math.random()*BAD.length|0];
+      if(!saidBad){ saidBad=true; play('quiz_bad'); } }
+    $q('.qs').textContent=`Kaczor: ${score} pkt`;
+    next.textContent=i===Q.length-1?'Wynik ▸':'Dalej ▸'; next.classList.remove('hidden'); next.focus(); }
+  next.onclick=()=>{ i++; if(i<Q.length) return show(); finishQuiz(); };
+  function finishQuiz(){ $q('.qopts').innerHTML=''; next.classList.add('hidden'); $q('.qn').textContent='Koniec quizu'; $q('.qs').textContent='';
+    if(score>=7){ img.src='art/kaczor.webp'; bub.textContent='🏆 '+score+'/10'; $q('.qq').textContent=`Kaczor zdał! ${score} na 10. Dziesięć punktów dla Gryffindoru — i powrót na kanapę.`; msg.innerHTML='&nbsp;'; win(); }
+    else { img.src='art/kaczor_sleep.webp'; bub.textContent='😴 '+score+'/10'; $q('.qq').textContent=`Tylko ${score} na 10. Kaka nie odpuszcza — jeszcze raz!`; msg.innerHTML='&nbsp;';
+      const again=el('<button class="btn">Jeszcze raz 🔄</button>'); again.onclick=()=>{ again.remove(); start(); }; $q('.qopts').append(again); } }
+  start();
+  return ()=>timers.forEach(clearTimeout);
+},
 };
 
 // ---------- ending ----------
 function ending(){
   say(['star','kaczor_star'],()=>{
     $('#end').classList.remove('hidden');
-    const items=['🍪 pierniczki','🎄 choinka','📖 12 potraw','🍽️ stół i goście','💡 lampki','🚂 prezenty'];
+    const items=['🍪 pierniczki','🎄 choinka','📖 12 potraw','🍽️ stół i goście','💡 lampki','🚂 prezenty','🏰 quiz zdany'];
     $('#endList').innerHTML=items.map((t,i)=>`<li style="animation-delay:${1.4+i*.18}s">${t}</li>`).join('');
-    $('#endTxt').textContent='Pierwsza gwiazdka zabłysła. Wszystko gotowe: Kaczor nawet nie zasnął przy barszczu (prawie), Mikołaj dowiózł prezenty pod choinkę, a nieoczekiwany kochanek Inez zjadł za trzech.';
+    $('#endTxt').textContent='Pierwsza gwiazdka zabłysła. Wszystko gotowe: Kaczor nawet nie zasnął przy barszczu (prawie), Mikołaj dowiózł prezenty pod choinkę, Kaczor zdał quiz z Harry’ego Pottera, a nieoczekiwany kochanek Inez zjadł za trzech.';
   });
 }
 $('#againBtn').onclick=()=>{done={};save();render();$('#end').classList.add('hidden');say(['hub']);};
