@@ -366,7 +366,6 @@ body.short .tTag{max-width:min(640px,56%);font-size:12px}
 #cine .gb.sb[style*="right"]::after{left:80%}
 #cine .cap{position:absolute;left:50%;top:10%;transform:translateX(-50%);font-family:Lobster,cursive;font-size:4cqw;color:#fff6dc;text-shadow:0 .06em 0 #8e211b,0 0 .5em rgba(0,0,0,.7);opacity:0;transition:opacity .5s;white-space:nowrap}
 #cine .cap.on{opacity:1}
-#cine .skip{position:absolute;right:1.5%;bottom:8.5%;pointer-events:auto;border:0;background:rgba(255,250,240,.85);border-radius:99px;padding:.35em 1em;font-weight:700;font-size:1.2cqw;cursor:pointer}
 #cine .fade{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .9s}
 #cine .fade.on{opacity:1}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -1085,20 +1084,18 @@ function doorbell(){ if(muted) return; try{ const A=window.AudioContext||window.
 // the guests arrive: Jugo, Gayzilla, Inez and her unexpected lover walk in from the left (past the tree) one by one, each with a voiced hello
 function arrival(next){
   const st=$('#stage'), cv=document.createElement('div'); cv.id='cine'; st.append(cv); st.classList.add('cine');
-  const G=[['jugo',69.5,false,'Cześć, kochani! Wpadłem tylko na chwilę. Przyniosłem nalewkę babci… i widelec. Gdzie są pierogi?'],
-           ['gayzilla',59.5,true,'Nie ruszajcie się! Selfie z choinką! A barszcz jest gourmet? Z organicznych buraków, prawda?'],
+  const G=[['jugo',64,false,'Cześć, kochani! Wpadłem tylko na chwilę. Przyniosłem nalewkę babci… i widelec. Gdzie są pierogi?'],
+           ['gayzilla',54,true,'Nie ruszajcie się! Selfie z choinką! A barszcz jest gourmet? Z organicznych buraków, prawda?'],
            ['inez',32.5,false,'Przepraszam za spóźnienie, kochani! Nowy nos jeszcze nie przywykł do mrozu. Ale patrzcie, jak zajebiście wyglądam!'],
            ['kochanek',9,false,'Dobry wieczór. Jestem… z Inez. Mam nadzieję, że jeszcze do Sylwestra.']];
   const cap=document.createElement('div'); cap.className='cap'; const fade=document.createElement('div'); fade.className='fade';
-  const skip=document.createElement('button'); skip.className='skip'; skip.textContent='Pomiń ▸';
-  cv.append(cap,fade,skip); let over=false;
+  cv.append(cap,fade); let over=false;
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   // play a line and resolve when it ends (or after a fallback when muted / blocked)
   const speak=key=>new Promise(r=>{ play(key); const a=cur; let d=false; const go=()=>{ if(!d){ d=true; r(); } };
     if(a){ a.addEventListener('ended',()=>setTimeout(go,200)); a.addEventListener('error',go); setTimeout(go,10000); } else setTimeout(go,3800); });
   function finish(){ if(over) return; over=true; if(cur) cur.pause(); fade.classList.add('on');
     setTimeout(()=>{ next(); setTimeout(()=>{ cv.remove(); st.classList.remove('cine'); kzWake(false); $('#kaka').src='art/kaka.webp'; $('#kaka').classList.remove('cheer'); },400); },900); }
-  skip.onclick=e=>{ e.stopPropagation(); finish(); };
   const ws=G.map(([id,x,flip])=>{ const w=document.createElement('div'); w.className='gw'+(flip?' flip':''); w.style.left='-24%';
     w.innerHTML=`<img src="art/guest/walk_${id}.webp" alt=""><div class="gb"></div>`; cv.insertBefore(w,cap); return w; });
   requestAnimationFrame(()=>cv.classList.add('on'));
