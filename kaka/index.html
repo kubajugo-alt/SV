@@ -9,38 +9,66 @@
 <style>
 :root{
   --cream:#fbf3e4; --ink:#3b2a20; --red:#b8322a; --red-d:#8e211b; --green:#2f6b45; --gold:#e9b949;
-  --night:#14213d; --panel:#fffaf0; --shadow:0 10px 30px rgba(40,20,10,.25);
+  --panel:#fffaf0; --shadow:0 10px 30px rgba(40,20,10,.35);
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#1c1410;color:var(--ink);font-family:Fredoka,system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
 button{font:inherit;cursor:pointer}
-#app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
-#stage{position:relative;width:min(100vw,177.78vh);aspect-ratio:16/9;background:var(--cream);overflow:hidden;border-radius:6px}
-#room{position:absolute;inset:0;width:100%;height:100%}
-.hot{cursor:pointer}
-.hot:hover .glow,.hot:focus .glow{opacity:.9}
-.glow{opacity:0;transition:opacity .2s}
+img{user-select:none;-webkit-user-drag:none}
 .hidden{display:none!important}
-.done-hide{transition:opacity .8s}
-#kaka{position:absolute;right:1.5%;bottom:2%;height:46%;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.3));image-rendering:auto}
+#app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#stage{position:relative;width:min(100vw,179.1vh);aspect-ratio:1920/1072;background:#2a1d16 url(art/room.webp) center/cover;overflow:hidden;border-radius:6px;container-type:inline-size}
+/* window sky darkens as Wigilia approaches */
+#dusk{position:absolute;left:42.5%;top:18.5%;width:20.8%;height:34%;background:#0a1030;mix-blend-mode:multiply;opacity:0;transition:opacity 1.5s;pointer-events:none}
+#star{position:absolute;left:52%;top:22%;width:7%;aspect-ratio:1;border:0;background:none;padding:0;cursor:pointer;z-index:3}
+#star svg{width:100%;height:100%;filter:drop-shadow(0 0 1.2cqw #fff6b0);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.15)}}
+/* room objects */
+.obj{position:absolute;border:0;background:none;padding:0;cursor:pointer;transition:filter .2s,transform .2s}
+.obj img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transition:opacity .8s}
+.obj:hover,.obj:focus-visible{filter:drop-shadow(0 0 .6cqw #fff3a0) drop-shadow(0 0 .3cqw #ffd34e);outline:none}
+.obj .tag{position:absolute;left:50%;top:-1.2cqw;transform:translate(-50%,-100%);background:rgba(255,250,240,.95);color:var(--ink);font-weight:700;font-size:1.25cqw;padding:.25em .7em;border-radius:99px;white-space:nowrap;opacity:0;transition:opacity .2s;box-shadow:0 2px 8px rgba(0,0,0,.25);pointer-events:none}
+.obj:hover .tag,.obj:focus-visible .tag{opacity:1}
+.obj .todo{position:absolute;right:8%;top:6%;width:2.2cqw;height:2.2cqw;border-radius:50%;background:var(--red);color:#fff;font-size:1.3cqw;display:grid;place-items:center;font-weight:700;box-shadow:0 0 0 .25cqw #fff;animation:bob 1.6s ease-in-out infinite}
+.obj.done .todo{display:none}
+@keyframes bob{50%{transform:translateY(-.4cqw)}}
+#oTree{left:1.5%;bottom:14%;width:20%;height:53%}
+#oFire{left:16.5%;top:42%;width:21.5%;height:34%}
+#oFire .tag{top:1cqw}
+#lightsMantel{position:absolute;left:16%;top:40.5%;width:23%;pointer-events:none;z-index:2}
+#lightsWindow{position:absolute;left:36.5%;top:10.5%;width:33%;pointer-events:none;z-index:2}
+.twinkle{animation:tw 1.4s ease-in-out infinite alternate}
+@keyframes tw{to{filter:brightness(1.35) drop-shadow(0 0 .5cqw #ffe9a0)}}
+#oSofa{left:36%;top:44%;width:30%;height:37%;cursor:default}
+#oSofa:hover{filter:none}
+#zzz{position:absolute;left:30%;top:-2%;font-size:2.4cqw;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6);animation:zz 2.4s ease-in-out infinite;pointer-events:none}
+@keyframes zz{0%{opacity:0;transform:translateY(.5cqw)}50%{opacity:1}100%{opacity:0;transform:translateY(-1.5cqw)}}
+#oSideboard{left:66%;top:38%;width:17%;height:41%}
+#cookies{position:absolute;left:66.5%;top:47.5%;width:6.5%;pointer-events:none;z-index:2}
+#oKitchen{left:84.5%;top:9%;width:15.5%;height:70%}
+#oKitchen .tag{top:3cqw}
+#oTable{left:51%;bottom:-2%;width:32%;height:33%}
+#oTree .tag{top:auto;bottom:-1cqw;transform:translate(-50%,100%)}
+#kaka{position:absolute;right:1%;bottom:1%;height:50%;pointer-events:none;filter:drop-shadow(0 .6cqw .8cqw rgba(0,0,0,.35));z-index:4}
 /* checklist */
-#list{position:absolute;left:1.5%;top:3%;width:23%;background:#fffdf6;border-radius:10px;padding:1.2% 1.4%;box-shadow:var(--shadow);font-size:clamp(10px,1.35vw,18px);transform:rotate(-1.5deg)}
-#list h2{margin:0 0 .4em;font-size:1.15em;color:var(--red)}
-#list button{display:flex;align-items:center;gap:.5em;width:100%;text-align:left;border:0;background:none;padding:.25em .1em;color:var(--ink);font-size:1em;border-radius:6px}
+#list{position:absolute;left:1.2%;top:2.5%;width:21%;background:#fffdf6;border-radius:.8cqw;padding:.9cqw 1.1cqw;box-shadow:var(--shadow);font-size:1.25cqw;transform:rotate(-1.5deg);z-index:5}
+#list h2{margin:0 0 .3em;font-size:1.2em;color:var(--red)}
+#list button{display:flex;align-items:center;gap:.5em;width:100%;text-align:left;border:0;background:none;padding:.2em .1em;color:var(--ink);font-size:1em;border-radius:6px}
 #list button:hover{background:#f6ead3}
 #list .box{width:1.1em;height:1.1em;border:2px solid var(--ink);border-radius:4px;flex:none;display:grid;place-items:center;font-size:.8em;color:var(--green)}
 #list .ok{text-decoration:line-through;opacity:.6}
-#starhint{position:absolute;left:50%;top:2%;transform:translateX(-50%);background:var(--gold);color:var(--ink);padding:.4em 1em;border-radius:20px;font-weight:700;font-size:clamp(11px,1.5vw,20px);box-shadow:var(--shadow);animation:bob 1.6s ease-in-out infinite}
-@keyframes bob{50%{transform:translate(-50%,-6px)}}
+#starhint{position:absolute;left:52%;top:3%;transform:translateX(-50%);background:var(--gold);color:var(--ink);padding:.4em 1em;border-radius:20px;font-weight:700;font-size:1.5cqw;box-shadow:var(--shadow);animation:bobx 1.6s ease-in-out infinite;z-index:5}
+@keyframes bobx{50%{transform:translate(-50%,-6px)}}
+#mute{position:absolute;right:1%;top:2%;z-index:10;border:0;background:rgba(255,250,240,.9);border-radius:50%;width:2.6em;height:2.6em;font-size:1.3cqw}
 /* dialogue */
-#dlg{position:absolute;left:3%;right:3%;bottom:3%;display:flex;gap:2%;align-items:center;background:rgba(255,250,240,.97);border-radius:14px;padding:1.4% 2%;box-shadow:var(--shadow);font-size:clamp(12px,1.7vw,24px);cursor:pointer;z-index:20}
-#dlg .face{width:9%;aspect-ratio:1;border-radius:50%;background:#f1dfc0 center/cover no-repeat;flex:none;border:3px solid var(--red)}
+#dlg{position:absolute;left:3%;right:3%;bottom:3%;display:flex;gap:2%;align-items:center;background:rgba(255,250,240,.97);border-radius:1.2cqw;padding:1.2% 2%;box-shadow:var(--shadow);font-size:1.7cqw;cursor:pointer;z-index:20}
+#dlg .face{width:8.5%;aspect-ratio:1;border-radius:50%;background:#f1dfc0 no-repeat;flex:none;border:.25cqw solid var(--red)}
 #dlg .who{font-weight:700;color:var(--red);margin-bottom:.15em}
 #dlg .next{margin-left:auto;font-size:.8em;opacity:.6;white-space:nowrap}
 /* overlays */
-.ov{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(20,12,8,.6);padding:12px}
-.card{background:var(--panel);border-radius:18px;box-shadow:var(--shadow);width:min(940px,100%);max-height:100%;overflow:auto;padding:18px 20px;position:relative}
-.card h2{margin:0 0 4px;color:var(--red);font-size:clamp(20px,3vw,30px)}
+.ov{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(20,12,8,.65);padding:12px}
+.card{background:var(--panel);border-radius:18px;box-shadow:var(--shadow);width:min(960px,100%);max-height:100%;overflow:auto;padding:18px 20px;position:relative}
+.card h2{margin:0 0 4px;color:var(--red);font-size:clamp(20px,3vw,30px);padding-right:40px}
 .card .sub{margin:0 0 12px;opacity:.8}
 .x{position:absolute;right:12px;top:10px;border:0;background:#efe2c9;border-radius:50%;width:36px;height:36px;font-size:18px}
 .btn{background:var(--red);color:#fff;border:0;border-radius:999px;padding:.6em 1.4em;font-weight:600;font-size:clamp(15px,2vw,20px);box-shadow:0 4px 0 var(--red-d)}
@@ -50,179 +78,60 @@ button{font:inherit;cursor:pointer}
 .shake{animation:shake .35s}
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 /* title */
-#title{background:radial-gradient(ellipse at 50% 30%,#2b3d6b,#0d1426 70%);flex-direction:column;color:#fff;text-align:center;gap:14px}
+#title{background:linear-gradient(rgba(10,14,30,.55),rgba(10,14,30,.8)),url(art/room.webp) center/cover;flex-direction:column;color:#fff;text-align:center;gap:12px}
 #title h1{font-size:clamp(30px,6vw,64px);margin:0;color:#ffe9a8;text-shadow:0 4px 0 #8e211b}
-#title p{margin:0;max-width:560px;opacity:.9;font-size:clamp(14px,2vw,20px)}
-#title img{height:min(38vh,320px);filter:drop-shadow(0 8px 14px rgba(0,0,0,.5))}
-.snow{position:fixed;inset:0;pointer-events:none;z-index:31}
+#title p{margin:0;max-width:580px;opacity:.95;font-size:clamp(14px,2vw,20px);text-shadow:0 1px 4px #000}
+#title .duo{display:flex;align-items:flex-end;gap:2vw;height:min(40vh,340px)}
+#title .duo img{height:100%;filter:drop-shadow(0 8px 14px rgba(0,0,0,.5))}
+#title .duo img.k2{height:62%}
 /* minigames */
-canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#fff6e5,#f3dfbc);touch-action:none}
+canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#fff6e5,#f0d9b0);touch-action:none}
 .bar{height:16px;background:#ecdcbf;border-radius:10px;overflow:hidden;margin:8px 0}
 .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green),#56a46f);transition:width .2s}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 @media (min-width:700px){.grid{grid-template-columns:repeat(6,1fr)}}
-.mc{aspect-ratio:1;border:0;border-radius:12px;background:var(--green);color:#fff;font-size:clamp(12px,1.8vw,17px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px;box-shadow:0 4px 0 #1d4a2e;transition:transform .25s,background .25s}
-.mc .e{font-size:2.2em}
-.mc.up{background:#fff;color:var(--ink);box-shadow:0 4px 0 #d9c7a5}
-.mc.got{background:#fdf0c9;color:var(--ink);box-shadow:none;opacity:.75}
-.mc .back{font-size:2.2em}
+.mc{aspect-ratio:4/5;border:0;border-radius:12px;color:var(--ink);font-size:clamp(11px,1.5vw,15px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px;transition:transform .25s;
+  background:var(--red) radial-gradient(circle at 50% 50%,#d4483d 0 30%,transparent 31%) center/34px 34px;box-shadow:0 4px 0 var(--red-d),inset 0 0 0 4px #e9b949}
+.mc .back{font-size:2em;filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))}
+.mc img{width:88%;height:68%;object-fit:contain}
+.mc.up{background:#fff;box-shadow:0 4px 0 #d9c7a5,inset 0 0 0 3px #f0e2c4}
+.mc.got{background:#fdf0c9;box-shadow:inset 0 0 0 3px var(--gold);opacity:.85}
 .choices{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:10px 0}
 .chip{border:0;background:#fff;border-radius:14px;padding:.6em 1em;font-size:clamp(15px,2vw,20px);box-shadow:0 3px 0 #d9c7a5}
-.stack{display:flex;gap:8px;flex-wrap:wrap;min-height:54px;justify-content:center;align-items:center;background:#f5e7cc;border-radius:12px;padding:8px}
+.stack{display:flex;gap:8px;flex-wrap:wrap;min-height:46px;justify-content:center;align-items:center;background:#f5e7cc;border-radius:12px;padding:8px}
 .stack span{background:#fff;border-radius:10px;padding:.3em .7em}
-#treeSvg{width:min(380px,80%);display:block;margin:0 auto}
+.tablepic{display:block;width:min(520px,90%);margin:0 auto}
+#treeSvg{width:min(340px,75%);display:block;margin:0 auto}
 .bb{cursor:pointer;transition:filter .15s}
-.bb.on{filter:brightness(1.8) drop-shadow(0 0 10px #fff6a0)}
-#kz{font-size:clamp(70px,14vw,130px);text-align:center;cursor:pointer;user-select:none;line-height:1.1}
-#kz small{display:block;font-size:16px;opacity:.7}
+.bb.on{filter:brightness(1.9) drop-shadow(0 0 10px #fff6a0)}
+.kzWrap{position:relative;width:min(520px,90%);margin:0 auto;cursor:pointer;user-select:none}
+.kzWrap img{width:100%;display:block;transition:filter .3s}
+.kzWrap.sleep img{filter:brightness(.75) saturate(.8)}
+.kzWrap .bub{position:absolute;left:18%;top:-4%;background:#fff;border-radius:16px;padding:.2em .6em;font-weight:700;font-size:clamp(18px,3vw,30px);box-shadow:0 3px 10px rgba(0,0,0,.25)}
 #end{flex-direction:column;background:#0d1426;color:#fff;text-align:center;gap:12px}
 #end h1{color:#ffe9a8;font-size:clamp(30px,6vw,60px);margin:0}
-#endArt{width:min(900px,94vw);border-radius:14px;box-shadow:0 0 60px rgba(255,220,120,.3)}
-#mute{position:absolute;right:1%;top:2%;z-index:10;border:0;background:rgba(255,250,240,.9);border-radius:50%;width:2.6em;height:2.6em;font-size:clamp(12px,1.4vw,18px)}
+#endArt{width:min(900px,94vw);max-height:58vh;object-fit:cover;border-radius:14px;box-shadow:0 0 60px rgba(255,220,120,.3)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="stage">
-    <svg id="room" viewBox="0 0 1600 900" aria-label="Salon Kaki">
-      <defs>
-        <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4e3c5"/><stop offset="1" stop-color="#e9d1a8"/></linearGradient>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop id="sky1" offset="0" stop-color="#4b6aa8"/><stop id="sky2" offset="1" stop-color="#e9a982"/></linearGradient>
-        <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8774f"/><stop offset="1" stop-color="#7c5235"/></linearGradient>
-        <radialGradient id="fire"><stop offset="0" stop-color="#ffe27a"/><stop offset=".6" stop-color="#ff8a2a"/><stop offset="1" stop-color="#c2361a" stop-opacity="0"/></radialGradient>
-        <radialGradient id="starglow"><stop offset="0" stop-color="#fff7c2"/><stop offset="1" stop-color="#fff7c2" stop-opacity="0"/></radialGradient>
-      </defs>
-      <rect width="1600" height="720" fill="url(#wall)"/>
-      <rect y="700" width="1600" height="200" fill="url(#floor)"/>
-      <g stroke="#6d4730" stroke-width="2" opacity=".35"><path d="M0 760H1600M0 830H1600"/></g>
-      <rect x="0" y="690" width="1600" height="14" fill="#c99d6e"/>
-      <!-- rug -->
-      <ellipse cx="820" cy="800" rx="380" ry="55" fill="#b8322a" opacity=".85"/>
-      <ellipse cx="820" cy="800" rx="330" ry="40" fill="none" stroke="#f2d38a" stroke-width="5" stroke-dasharray="14 10"/>
+  <div id="stage" aria-label="Salon Kaki">
+    <div id="dusk"></div>
+    <button id="star" class="hidden" aria-label="Pierwsza gwiazdka"><svg viewBox="0 0 100 100"><path d="M50 4 L61 37 L96 37 L68 58 L78 92 L50 71 L22 92 L32 58 L4 37 L39 37Z" fill="#fff4b0"/></svg></button>
+    <img id="lightsWindow" class="hidden twinkle" src="art/lights.webp" alt="">
 
-      <!-- window -->
-      <g id="window">
-        <rect x="640" y="110" width="340" height="300" rx="10" fill="#7a5235"/>
-        <rect x="656" y="126" width="308" height="268" fill="url(#sky)"/>
-        <g id="snowWin" fill="#fff" opacity=".85">
-          <circle cx="690" cy="170" r="3"/><circle cx="760" cy="220" r="2.5"/><circle cx="840" cy="160" r="3"/><circle cx="920" cy="240" r="2"/><circle cx="710" cy="300" r="2.5"/><circle cx="880" cy="320" r="3"/><circle cx="800" cy="280" r="2"/>
-        </g>
-        <path d="M656 360 Q730 330 800 352 T964 345 V394 H656Z" fill="#f4f6fb"/>
-        <g id="star" class="hidden hot" tabindex="0" role="button" aria-label="Pierwsza gwiazdka">
-          <circle cx="890" cy="180" r="60" fill="url(#starglow)"><animate attributeName="r" values="45;65;45" dur="2s" repeatCount="indefinite"/></circle>
-          <path d="M890 155 L897 174 L917 175 L901 187 L907 206 L890 195 L873 206 L879 187 L863 175 L883 174Z" fill="#fff4b0"/>
-        </g>
-        <rect x="806" y="126" width="8" height="268" fill="#7a5235"/>
-        <rect x="656" y="256" width="308" height="8" fill="#7a5235"/>
-        <path d="M620 100 H1000" stroke="#7a5235" stroke-width="10" stroke-linecap="round"/>
-        <path d="M630 104 q20 160 -6 330 h52 q-30 -170 6 -330z" fill="#b8322a"/>
-        <path d="M990 104 q-20 160 6 330 h-52 q30 -170 -6 -330z" fill="#b8322a"/>
-        <g id="winLights" class="hidden">
-          <path d="M630 112 Q720 150 810 112 T990 112" fill="none" stroke="#2c3b2c" stroke-width="3"/>
-          <g class="twinkle"><circle cx="660" cy="124" r="7" fill="#ff5a4e"/><circle cx="700" cy="135" r="7" fill="#ffd34e"/><circle cx="740" cy="138" r="7" fill="#5ad1ff"/><circle cx="780" cy="128" r="7" fill="#7dff7a"/><circle cx="840" cy="124" r="7" fill="#ff5a4e"/><circle cx="880" cy="135" r="7" fill="#ffd34e"/><circle cx="920" cy="138" r="7" fill="#5ad1ff"/><circle cx="960" cy="127" r="7" fill="#7dff7a"/></g>
-        </g>
-      </g>
+    <button class="obj" id="oTree" data-task="tree" aria-label="Choinka"><img id="treeBare" src="art/tree_bare.webp" alt=""><img id="treeDeco" src="art/tree_deco.webp" alt="" style="opacity:0"><span class="tag">🎄 Choinka</span><span class="todo">!</span></button>
+    <button class="obj" id="oFire" data-task="lights" aria-label="Kominek: lampki"><span class="tag">💡 Lampki z Kaczorem</span><span class="todo">!</span></button>
+    <img id="lightsMantel" class="hidden twinkle" src="art/lights.webp" alt="">
+    <button class="obj" id="oSofa" tabindex="-1" aria-hidden="true"><img src="art/kaczor.webp" alt=""><span id="zzz">Zzz</span></button>
+    <button class="obj" id="oSideboard" data-task="dishes" aria-label="Kredens: przepisy"><span class="tag">📖 Dwanaście potraw</span><span class="todo">!</span></button>
+    <img id="cookies" class="hidden" src="art/cookies.webp" alt="Pierniczki">
+    <button class="obj" id="oKitchen" data-task="bake" aria-label="Kuchnia: pierniczki"><span class="tag">🍪 Kuchnia</span><span class="todo">!</span></button>
+    <button class="obj" id="oTable" data-task="table" aria-label="Stół wigilijny"><img id="tableEmpty" src="art/table_empty.webp" alt=""><img id="tableSet" src="art/table_set.webp" alt="" style="opacity:0"><span class="tag">🍽️ Stół</span><span class="todo">!</span></button>
+    <img id="kaka" src="art/kaka.webp" alt="Kaka">
 
-      <!-- fireplace (lights task) -->
-      <g id="hFire" class="hot" tabindex="0" role="button" aria-label="Lampki z Kaczorem">
-        <rect class="glow" x="250" y="410" width="320" height="300" rx="20" fill="#fff3a8"/>
-        <rect x="270" y="440" width="280" height="260" fill="#b9826a"/>
-        <g fill="#a06c56"><rect x="270" y="470" width="280" height="4"/><rect x="270" y="530" width="280" height="4"/><rect x="270" y="590" width="280" height="4"/><rect x="270" y="650" width="280" height="4"/></g>
-        <rect x="320" y="520" width="180" height="180" rx="80" ry="80" fill="#2a1712"/>
-        <rect x="320" y="610" width="180" height="90" fill="#2a1712"/>
-        <ellipse cx="410" cy="660" rx="70" ry="50" fill="url(#fire)"><animate attributeName="ry" values="45;58;45" dur="1.2s" repeatCount="indefinite"/></ellipse>
-        <rect x="250" y="425" width="320" height="22" rx="4" fill="#6e4a33"/>
-        <!-- tangled lights box before -->
-        <g id="lightsBox"><rect x="460" y="385" width="80" height="40" rx="4" fill="#c8a777"/><path d="M470 390 q20 -30 30 0 q10 -25 25 0" fill="none" stroke="#2c3b2c" stroke-width="3"/><circle cx="485" cy="378" r="5" fill="#ff5a4e"/><circle cx="512" cy="382" r="5" fill="#ffd34e"/></g>
-        <g id="fireLights" class="hidden">
-          <path d="M255 447 Q300 480 345 450 T435 452 T525 450 T568 448" fill="none" stroke="#2c3b2c" stroke-width="3"/>
-          <g class="twinkle"><circle cx="275" cy="460" r="8" fill="#ffd34e"/><circle cx="315" cy="470" r="8" fill="#ff5a4e"/><circle cx="360" cy="458" r="8" fill="#5ad1ff"/><circle cx="405" cy="466" r="8" fill="#7dff7a"/><circle cx="450" cy="460" r="8" fill="#ffd34e"/><circle cx="495" cy="466" r="8" fill="#ff5a4e"/><circle cx="540" cy="458" r="8" fill="#5ad1ff"/></g>
-        </g>
-        <text x="410" y="405" text-anchor="middle" font-size="26" fill="#6e4a33" font-weight="700" class="glow">Lampki</text>
-      </g>
-
-      <!-- tree (baubles task) -->
-      <g id="hTree" class="hot" tabindex="0" role="button" aria-label="Choinka">
-        <ellipse class="glow" cx="150" cy="450" rx="150" ry="290" fill="#fff3a8"/>
-        <rect x="135" y="640" width="30" height="50" fill="#6e4a33"/>
-        <path d="M150 650 H260 L150 560 L40 650Z M150 560 H240 L150 450 L60 560Z M150 460 H220 L150 340 L80 460Z M150 350 H200 L150 230 L100 350Z" fill="#2f6b45" transform="translate(0,0)"/>
-        <path d="M150 230 L260 650 H40Z" fill="#2f6b45"/>
-        <path d="M100 350 L150 230 L200 350 M80 460 L150 340 L220 460 M60 560 L150 450 L240 560" fill="none" stroke="#24563a" stroke-width="6"/>
-        <rect x="95" y="680" width="110" height="30" rx="6" fill="#b8322a"/>
-        <g id="treeDeco" class="hidden">
-          <path d="M115 330 Q150 345 185 330 M95 430 Q150 455 205 430 M75 530 Q150 560 225 530 M55 625 Q150 660 245 625" fill="none" stroke="#e9b949" stroke-width="5"/>
-          <circle cx="130" cy="380" r="13" fill="#b8322a"/><circle cx="175" cy="400" r="12" fill="#3c6fd1"/><circle cx="110" cy="480" r="13" fill="#e9b949"/><circle cx="190" cy="500" r="13" fill="#d2569b"/><circle cx="90" cy="590" r="14" fill="#3c6fd1"/><circle cx="150" cy="580" r="13" fill="#b8322a"/><circle cx="210" cy="600" r="14" fill="#e9b949"/><circle cx="150" cy="300" r="10" fill="#d2569b"/>
-          <path d="M150 200 l9 20 22 2 -17 14 6 21 -20 -12 -20 12 6 -21 -17 -14 22 -2z" fill="#ffd34e"/>
-        </g>
-        <text x="150" y="215" text-anchor="middle" font-size="26" fill="#2f6b45" font-weight="700" class="glow">Choinka</text>
-      </g>
-
-      <!-- kitchen door (gingerbread) -->
-      <g id="hKitchen" class="hot" tabindex="0" role="button" aria-label="Kuchnia: pierniczki">
-        <rect class="glow" x="1275" y="190" width="230" height="520" rx="16" fill="#fff3a8"/>
-        <rect x="1290" y="210" width="200" height="490" fill="#5a3a26"/>
-        <rect x="1305" y="225" width="170" height="475" fill="#f2c88f"/>
-        <rect x="1325" y="245" width="130" height="140" fill="#fff6dc"/>
-        <text x="1390" y="330" text-anchor="middle" font-size="60">🍪</text>
-        <text x="1390" y="200" text-anchor="middle" font-size="26" fill="#5a3a26" font-weight="700">Kuchnia</text>
-      </g>
-
-      <!-- sideboard (12 dishes) -->
-      <g id="hDishes" class="hot" tabindex="0" role="button" aria-label="Kredens: dwanaście potraw">
-        <rect class="glow" x="1040" y="380" width="230" height="330" rx="16" fill="#fff3a8"/>
-        <rect x="1055" y="470" width="200" height="230" rx="6" fill="#8a5a3a"/>
-        <rect x="1070" y="490" width="80" height="190" rx="4" fill="#a06d49"/><rect x="1160" y="490" width="80" height="190" rx="4" fill="#a06d49"/>
-        <circle cx="1140" cy="585" r="6" fill="#e9b949"/><circle cx="1170" cy="585" r="6" fill="#e9b949"/>
-        <rect x="1045" y="455" width="220" height="18" rx="4" fill="#6e4a33"/>
-        <text x="1155" y="440" text-anchor="middle" font-size="36">📖</text>
-        <text x="1155" y="400" text-anchor="middle" font-size="22" fill="#6e4a33" font-weight="700" class="glow">Przepisy</text>
-      </g>
-
-      <!-- sofa + Kaczor -->
-      <g id="sofa">
-        <rect x="640" y="520" width="360" height="110" rx="40" fill="#3f7a55"/>
-        <rect x="620" y="590" width="400" height="90" rx="30" fill="#4c8d63"/>
-        <rect x="605" y="560" width="60" height="130" rx="25" fill="#3f7a55"/><rect x="975" y="560" width="60" height="130" rx="25" fill="#3f7a55"/>
-        <g id="kaczorHub">
-          <ellipse cx="815" cy="625" rx="95" ry="42" fill="#a3342c"/>
-          <path d="M730 620 q40 -14 85 0 q45 -14 85 0" stroke="#7d221c" stroke-width="3" fill="none" opacity=".6"/>
-          <rect x="787" y="522" width="56" height="100" rx="22" fill="#8d939b"/>
-          <path d="M790 540 q-22 30 -10 62 M840 540 q22 30 10 62" stroke="#8d939b" stroke-width="12" fill="none" stroke-linecap="round"/>
-          <circle cx="815" cy="490" r="45" fill="#f0c9a5"/>
-          <path d="M770 480 q45 -60 90 0 q-5 -45 -45 -50 q-40 5 -45 50z" fill="#3a2a22"/>
-          <path d="M790 495 q8 6 16 0 M824 495 q8 6 16 0" stroke="#3a2a22" stroke-width="4" fill="none" stroke-linecap="round"/>
-          <path d="M800 515 q15 10 30 0" stroke="#3a2a22" stroke-width="3" fill="none"/>
-          <path d="M760 640 h40 v40 h-28z M830 640 h40 l-12 40 h-28z" fill="#a3342c"/>
-          <rect x="836" y="588" width="34" height="12" rx="4" fill="#222"/>
-          <text id="zzz" x="870" y="440" font-size="30" fill="#3a2a22" opacity=".7">z<tspan dy="-12" font-size="36">z</tspan><tspan dy="-12" font-size="44">Z</tspan><animate attributeName="opacity" values=".2;.8;.2" dur="2.5s" repeatCount="indefinite"/></text>
-        </g>
-      </g>
-
-      <!-- dining table (table-setting task) -->
-      <g id="hTable" class="hot" tabindex="0" role="button" aria-label="Stół wigilijny">
-        <rect class="glow" x="1000" y="610" width="400" height="200" rx="20" fill="#fff3a8"/>
-        <rect x="1030" y="700" width="16" height="110" fill="#6e4a33"/><rect x="1355" y="700" width="16" height="110" fill="#6e4a33"/>
-        <rect x="1010" y="680" width="380" height="26" rx="6" fill="#8a5a3a"/>
-        <g id="tableCloth" class="hidden">
-          <path d="M1003 676 H1397 L1405 740 H995Z" fill="#fffdf6"/>
-          <path d="M1000 740 l8 -10 6 12 7 -11 5 10" stroke="#e6c35c" stroke-width="3" fill="none"/>
-          <ellipse cx="1060" cy="680" rx="22" ry="7" fill="#fff" stroke="#cfc4ad" stroke-width="2"/><ellipse cx="1130" cy="680" rx="22" ry="7" fill="#fff" stroke="#cfc4ad" stroke-width="2"/><ellipse cx="1270" cy="680" rx="22" ry="7" fill="#fff" stroke="#cfc4ad" stroke-width="2"/><ellipse cx="1340" cy="680" rx="22" ry="7" fill="#fff" stroke="#cfc4ad" stroke-width="2"/>
-          <ellipse cx="1200" cy="680" rx="22" ry="7" fill="#fff" stroke="#e9b949" stroke-width="3"/>
-          <rect x="1195" y="640" width="10" height="36" fill="#fff3d0"/><path d="M1200 628 q6 8 0 13 q-6 -5 0 -13" fill="#ffb347"/>
-        </g>
-        <g id="tableDishes" class="hidden" font-size="34" text-anchor="middle">
-          <text x="1060" y="668">🥣</text><text x="1100" y="660">🥟</text><text x="1150" y="668">🐟</text><text x="1250" y="668">🍄</text><text x="1300" y="660">🍰</text><text x="1345" y="668">🍹</text>
-        </g>
-        <g id="tableCookies" class="hidden"><ellipse cx="1240" cy="648" rx="38" ry="10" fill="#fff" stroke="#cfc4ad" stroke-width="2"/><text x="1240" y="645" font-size="30" text-anchor="middle">🍪🍪</text></g>
-        <text x="1200" y="625" text-anchor="middle" font-size="26" fill="#6e4a33" font-weight="700" class="glow">Stół</text>
-      </g>
-    </svg>
-    <img id="kaka" src="art/kaka.png" alt="Kaka">
-    <div id="list" aria-label="Lista Kaki">
-      <h2>📋 Lista Kaki</h2>
-      <div id="tasks"></div>
-    </div>
+    <div id="list" aria-label="Lista Kaki"><h2>📋 Lista Kaki</h2><div id="tasks"></div></div>
     <div id="starhint" class="hidden">⭐ Spójrz w okno!</div>
     <button id="mute" title="Dźwięk">🔊</button>
     <div id="dlg" class="hidden"><div class="face"></div><div><div class="who"></div><div class="txt"></div></div><div class="next">dalej ▸</div></div>
@@ -230,7 +139,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 </div>
 
 <div id="title" class="ov">
-  <img src="art/kaka.png" alt="">
+  <div class="duo"><img src="art/kaka.webp" alt=""><img class="k2" src="art/kaczor.webp" alt=""></div>
   <h1>Świąteczna przygoda Kaki</h1>
   <p>Józefosław, koniec listopada. Kaka ma miesiąc, listę zadań i męża, który zaprzyjaźnił się z kanapą. Święta będą idealne — choćby nie wiem co.</p>
   <button class="btn" id="startBtn">Zaczynamy! 🎄</button>
@@ -241,8 +150,8 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 
 <div id="end" class="ov hidden">
   <h1>Wesołych Świąt!</h1>
-  <img id="endArt" alt="Wigilia u Kaki">
-  <p id="endTxt" style="max-width:620px;font-size:clamp(15px,2vw,20px)"></p>
+  <img id="endArt" src="art/wigilia.webp" alt="Wigilia u Kaki">
+  <p id="endTxt" style="max-width:640px;font-size:clamp(15px,2vw,20px)"></p>
   <button class="btn" id="againBtn">Zagraj jeszcze raz</button>
 </div>
 
@@ -250,11 +159,11 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 (()=>{
 const $=s=>document.querySelector(s);
 const TASKS=[
-  {id:'bake',  name:'Upiec pierniczki', hot:'#hKitchen'},
-  {id:'tree',  name:'Ubrać choinkę', hot:'#hTree'},
-  {id:'dishes',name:'Dwanaście potraw', hot:'#hDishes'},
-  {id:'table', name:'Nakryć do stołu', hot:'#hTable'},
-  {id:'lights',name:'Lampki (z Kaczorem)', hot:'#hFire'},
+  {id:'bake',  name:'Upiec pierniczki'},
+  {id:'tree',  name:'Ubrać choinkę'},
+  {id:'dishes',name:'Dwanaście potraw'},
+  {id:'table', name:'Nakryć do stołu'},
+  {id:'lights',name:'Lampki (z Kaczorem)'},
 ];
 const LINES={
   intro:['kaka','Kaczor! Jest dwudziesty drugi listopada. Mamy miesiąc, jedną listę i zero pierniczków. Święta będą idealne. Choćby nie wiem co.'],
@@ -271,8 +180,8 @@ const LINES={
   star:['kaka','Kaczor… patrz. Pierwsza gwiazdka. Wesołych Świąt, kochanie.'],
   kaczor_star:['kaczor','Wesołych Świąt. … To co… już karp?'],
 };
-const KACZOR_FACE='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#cfe3d5"/><rect x="20" y="70" width="60" height="40" rx="20" fill="#8d939b"/><circle cx="50" cy="50" r="28" fill="#f0c9a5"/><path d="M22 45q28-45 56 0q-4-28-28-30q-24 2-28 30z" fill="#3a2a22"/><path d="M36 52q5 4 10 0M56 52q5 4 10 0" stroke="#3a2a22" stroke-width="3" fill="none"/><path d="M42 64q8 5 16 0" stroke="#3a2a22" stroke-width="2.5" fill="none"/></svg>');
-const FACES={kaka:'art/kaka.png',kaczor:'art/kaczor.png'};
+// portrait crops: [image, background-size, background-position]
+const FACES={kaka:['art/kaka.webp','250%','50% 1%'],kaczor:['art/kaczor.webp','330%','21% 0%']};
 const NAMES={kaka:'Kaka',kaczor:'Kaczor'};
 
 let done={}; try{done=JSON.parse(localStorage.getItem('kaka-done')||'{}')}catch(e){}
@@ -281,19 +190,14 @@ let muted=false, cur=null;
 function play(key){ if(cur){cur.pause();cur=null} if(muted) return; const a=new Audio('audio/'+key+'.mp3'); cur=a; a.play().catch(()=>{}); return a; }
 $('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊'; if(muted&&cur)cur.pause();};
 
-// kaczor portrait: use art if present, else drawn face
-const kImg=new Image(); kImg.onerror=()=>{FACES.kaczor=KACZOR_FACE}; kImg.src=FACES.kaczor;
-
 // dialogue queue
 let dq=[], dcb=null;
 function say(keys,cb){ dq=keys.slice(); dcb=cb; nextLine(); }
 function nextLine(){
   const d=$('#dlg');
   if(!dq.length){ d.classList.add('hidden'); if(cur)cur.pause(); const c=dcb; dcb=null; c&&c(); return; }
-  const k=dq.shift(), [who,txt]=LINES[k];
-  d.querySelector('.face').style.backgroundImage=`url("${FACES[who]}")`;
-  d.querySelector('.face').style.backgroundPosition=who==='kaka'?'50% 8%':'24% 6%';
-  d.querySelector('.face').style.backgroundSize=who==='kaka'?'260%':'300%';
+  const k=dq.shift(), [who,txt]=LINES[k], f=FACES[who], face=d.querySelector('.face');
+  face.style.backgroundImage=`url("${f[0]}")`; face.style.backgroundSize=f[1]; face.style.backgroundPosition=f[2];
   d.querySelector('.who').textContent=NAMES[who];
   d.querySelector('.txt').textContent=txt;
   d.classList.remove('hidden');
@@ -311,18 +215,16 @@ function render(){
     t.appendChild(b);
   });
   const show=(sel,on)=>$(sel).classList.toggle('hidden',!on);
-  show('#tableCookies',done.bake); show('#treeDeco',done.tree); show('#tableDishes',done.dishes);
-  show('#tableCloth',done.table); show('#fireLights',done.lights); show('#winLights',done.lights); show('#lightsBox',!done.lights);
+  show('#cookies',done.bake); show('#lightsMantel',done.lights); show('#lightsWindow',done.lights);
+  $('#treeDeco').style.opacity=done.tree?1:0; $('#treeBare').style.opacity=done.tree?0:1;
+  $('#tableSet').style.opacity=done.table?1:0; $('#tableEmpty').style.opacity=done.table?0:1;
+  document.querySelectorAll('.obj[data-task]').forEach(o=>o.classList.toggle('done',!!done[o.dataset.task]));
   const all=TASKS.every(x=>done[x.id]);
   show('#star',all); show('#starhint',all);
-  const n=TASKS.filter(x=>done[x.id]).length;
-  // sky gets darker as Wigilia approaches
-  const mix=(a,b,p)=>'#'+[0,2,4].map(i=>Math.round(parseInt(a.substr(i,2),16)*(1-p)+parseInt(b.substr(i,2),16)*p).toString(16).padStart(2,'0')).join('');
-  $('#sky1').setAttribute('stop-color',mix('4b6aa8','0b1430',n/5));
-  $('#sky2').setAttribute('stop-color',mix('e9a982','2b3d6b',n/5));
+  $('#dusk').style.opacity=TASKS.filter(x=>done[x.id]).length/5*.7;
   $('#zzz').style.display=done.lights?'none':'';
 }
-TASKS.forEach(t=>{ const el=$(t.hot); el.addEventListener('click',()=>open(t.id)); el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')open(t.id)}); });
+document.querySelectorAll('.obj[data-task]').forEach(o=>o.addEventListener('click',()=>open(o.dataset.task)));
 $('#star').addEventListener('click',ending);
 
 // ---------- minigame shell ----------
@@ -339,40 +241,44 @@ function closeGame(){ if(stopGame)stopGame(); stopGame=null; $('#game').classLis
 function finish(id){
   setTimeout(()=>{
     closeGame(); done[id]=true; save(); render();
-    const all=TASKS.every(x=>done[x.id]);
-    say(['done'],()=>{ if(all) $('#starhint').classList.remove('hidden'); });
-  },900);
+    say(['done']);
+  },1100);
 }
-function el(html){const d=document.createElement('div');d.innerHTML=html;return d.firstElementChild||d;}
+function el(html){const d=document.createElement('div');d.innerHTML=html.trim();return d.firstElementChild;}
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const loadImg=src=>{const i=new Image();i.src=src;return i;};
 
 const GAMES={
 // 1. catch ingredients
 bake(card,win){
-  card.append(el('<h2>🍪 Pierniczki</h2>'),el('<p class="sub">Przesuwaj miskę (palcem, myszką albo strzałkami). Złap 15 składników — omijaj skarpetki!</p>'));
-  const bar=el('<div class="bar"><i></i></div>'), cv=document.createElement('canvas'), msg=el('<div class="msg"></div>');
+  card.append(el('<h2>🍪 Pierniczki</h2>'),el('<p class="sub">Przesuwaj miskę (palcem, myszką albo strzałkami). Złap 15 składników — omijaj skarpetki Kaczora!</p>'));
+  const bar=el('<div class="bar"><i></i></div>'), cv=document.createElement('canvas'), msg=el('<div class="msg">&nbsp;</div>');
   card.append(bar,cv,msg);
   const W=800,H=460; cv.width=W; cv.height=H; const c=cv.getContext('2d');
-  const GOOD=['🍯','🌾','🥚','🧈','🌰','🫚'], BAD='🧦';
-  let bx=W/2, items=[], score=0, t=0, raf, last=performance.now(), keys={}, over=false;
+  const GOOD=['miod','maka','jajko','maslo','orzechy'].map(n=>loadImg('art/ing/'+n+'.webp')), BAD=loadImg('art/ing/skarpetka.webp');
+  let bx=W/2, items=[], score=0, raf, last=performance.now(), keys={}, over=false;
   const mv=e=>{const r=cv.getBoundingClientRect(); bx=(e.clientX-r.left)/r.width*W;};
   cv.addEventListener('pointermove',mv); cv.addEventListener('pointerdown',mv);
   const kd=e=>{keys[e.key]=e.type==='keydown'}; addEventListener('keydown',kd); addEventListener('keyup',kd);
+  const S=64;
+  function draw(img,x,y,rot){ if(!img.complete||!img.naturalWidth) return; const r=img.naturalWidth/img.naturalHeight, w=r>1?S:S*r, h=r>1?S/r:S;
+    c.save(); c.translate(x,y); c.rotate(rot); c.drawImage(img,-w/2,-h/2,w,h); c.restore(); }
   function loop(now){
-    const dt=Math.min(.05,(now-last)/1000); last=now; t+=dt;
-    if(keys.ArrowLeft) bx-=600*dt; if(keys.ArrowRight) bx+=600*dt; bx=Math.max(60,Math.min(W-60,bx));
-    if(!over && Math.random()<dt*1.6){ const bad=Math.random()<.22; items.push({x:40+Math.random()*(W-80),y:-30,v:150+Math.random()*90+score*6,e:bad?BAD:GOOD[Math.random()*GOOD.length|0],bad}); }
+    const dt=Math.min(.05,(now-last)/1000); last=now;
+    if(keys.ArrowLeft) bx-=600*dt; if(keys.ArrowRight) bx+=600*dt; bx=Math.max(70,Math.min(W-70,bx));
+    if(!over && Math.random()<dt*1.6){ const bad=Math.random()<.22; items.push({x:50+Math.random()*(W-100),y:-40,v:150+Math.random()*90+score*6,img:bad?BAD:GOOD[Math.random()*GOOD.length|0],bad,rot:0,vr:(Math.random()-.5)*2}); }
     c.clearRect(0,0,W,H);
-    c.font='42px serif'; c.textAlign='center'; c.textBaseline='middle';
-    items.forEach(it=>{ it.y+=it.v*dt; c.fillText(it.e,it.x,it.y);
-      if(!it.hit && it.y>H-70 && it.y<H-20 && Math.abs(it.x-bx)<70){ it.hit=true;
+    items.forEach(it=>{ it.y+=it.v*dt; it.rot+=it.vr*dt; draw(it.img,it.x,it.y,it.rot);
+      if(!it.hit && it.y>H-80 && it.y<H-20 && Math.abs(it.x-bx)<75){ it.hit=true;
         if(it.bad){ score=Math.max(0,score-1); msg.textContent='Skarpetka Kaczora! 🧦 −1'; msg.style.color='var(--red)'; }
         else { score++; msg.textContent=['Mniam!','Pięknie!','Jeszcze!','Tak trzymać!'][score%4]; msg.style.color='var(--green)'; }
       }});
-    items=items.filter(it=>!it.hit&&it.y<H+40);
-    // bowl
-    c.fillStyle='#b8322a'; c.beginPath(); c.ellipse(bx,H-40,70,26,0,0,Math.PI); c.fill();
-    c.fillStyle='#8e211b'; c.fillRect(bx-72,H-44,144,8);
+    items=items.filter(it=>!it.hit&&it.y<H+50);
+    // mixing bowl
+    const g=c.createLinearGradient(0,H-70,0,H-10); g.addColorStop(0,'#d24a3f'); g.addColorStop(1,'#8e211b');
+    c.fillStyle=g; c.beginPath(); c.moveTo(bx-80,H-62); c.quadraticCurveTo(bx-70,H-8,bx,H-8); c.quadraticCurveTo(bx+70,H-8,bx+80,H-62); c.closePath(); c.fill();
+    c.fillStyle='#f6e7c8'; c.beginPath(); c.ellipse(bx,H-62,80,12,0,0,Math.PI*2); c.fill();
+    c.strokeStyle='#e9b949'; c.lineWidth=4; c.beginPath(); c.moveTo(bx-62,H-40); c.quadraticCurveTo(bx,H-30,bx+62,H-40); c.stroke();
     bar.firstChild.style.width=Math.min(100,score/15*100)+'%';
     if(score>=15 && !over){ over=true; msg.textContent='Ciasto gotowe! 🍪'; win(); }
     raf=requestAnimationFrame(loop);
@@ -380,13 +286,13 @@ bake(card,win){
   raf=requestAnimationFrame(loop);
   return ()=>{cancelAnimationFrame(raf); removeEventListener('keydown',kd); removeEventListener('keyup',kd);};
 },
-// 2. bauble sequence memory
+// 2. bauble sequence memory on the real tree
 tree(card,win){
   card.append(el('<h2>🎄 Choinka</h2>'),el('<p class="sub">Patrz, które bombki zabłysną, i dotknij ich w tej samej kolejności. Trzy rundy.</p>'));
-  const COL=['#b8322a','#3c6fd1','#e9b949','#d2569b','#2fa37a','#8a5ad2'];
-  const POS=[[150,120],[110,190],[195,200],[85,280],[150,270],[220,285]];
-  const svg=el(`<svg id="treeSvg" viewBox="0 0 300 380"><path d="M150 20 L280 340 H20Z" fill="#2f6b45"/><rect x="135" y="340" width="30" height="30" fill="#6e4a33"/>
-    ${POS.map((p,i)=>`<circle class="bb" data-i="${i}" cx="${p[0]}" cy="${p[1]}" r="24" fill="${COL[i]}" stroke="#fff" stroke-width="3"/>`).join('')}</svg>`);
+  const COL=['#c0392b','#2f6fd1','#e9b949','#d2569b','#2fa37a','#8a5ad2'];
+  const POS=[[150,190],[108,265],[195,280],[85,370],[152,355],[220,385]];
+  const svg=el(`<svg id="treeSvg" viewBox="0 0 300 490"><image href="art/tree_bare.webp" x="0" y="0" width="300" height="490" preserveAspectRatio="xMidYMid meet"/>
+    ${POS.map((p,i)=>`<g class="bb" data-i="${i}"><circle cx="${p[0]}" cy="${p[1]}" r="21" fill="${COL[i]}" stroke="#fff6d8" stroke-width="3"/><circle cx="${p[0]-7}" cy="${p[1]-7}" r="5" fill="#fff" opacity=".7"/><rect x="${p[0]-4}" y="${p[1]-27}" width="8" height="7" fill="#e9b949"/></g>`).join('')}</svg>`);
   const msg=el('<div class="msg">Patrz uważnie…</div>');
   card.append(svg,msg);
   const balls=[...svg.querySelectorAll('.bb')];
@@ -400,7 +306,7 @@ tree(card,win){
   function newRound(){ seq=Array.from({length:LEN[round]},()=>Math.random()*6|0); show(); }
   balls.forEach(b=>b.addEventListener('click',()=>{
     if(busy||dead) return; const i=+b.dataset.i; flash(i);
-    if(i===seq[inp]){ inp++; if(inp===seq.length){ round++; if(round===3){ busy=true; msg.textContent='Choinka błyszczy! ✨'; win(); } else { msg.textContent='Brawo! Następna runda…'; busy=true; timers.push(setTimeout(newRound,900)); } } }
+    if(i===seq[inp]){ inp++; if(inp===seq.length){ round++; if(round===3){ busy=true; msg.textContent='Choinka błyszczy! ✨'; svg.querySelector('image').setAttribute('href','art/tree_deco.webp'); win(); } else { msg.textContent='Brawo! Następna runda…'; busy=true; timers.push(setTimeout(newRound,900)); } } }
     else { msg.textContent='Ups, prawie! Pokażę jeszcze raz.'; msg.style.color='var(--red)'; svg.classList.add('shake'); setTimeout(()=>svg.classList.remove('shake'),400); busy=true; timers.push(setTimeout(show,1100)); }
   }));
   timers.push(setTimeout(newRound,2500));
@@ -408,20 +314,21 @@ tree(card,win){
 },
 // 3. memory pairs of the twelve dishes
 dishes(card,win){
-  const ALL=[['Barszcz','🥣'],['Uszka','🥟'],['Pierogi','🫓'],['Karp','🐟'],['Śledź','🐠'],['Ryba po grecku','🥕'],['Kapusta z grochem','🥬'],['Zupa grzybowa','🍄'],['Kutia','🌾'],['Makowiec','🍰'],['Piernik','🍪'],['Kompot z suszu','🍹']];
+  const ALL=[['Barszcz','barszcz'],['Uszka','uszka'],['Pierogi','pierogi'],['Karp','karp'],['Śledź','sledz'],['Ryba po grecku','ryba'],['Kapusta z grochem','kapusta'],['Zupa grzybowa','grzybowa'],['Kutia','kutia'],['Makowiec','makowiec'],['Piernik','piernik'],['Kompot z suszu','kompot']];
   card.append(el('<h2>📖 Dwanaście potraw</h2>'),el('<p class="sub">Odkrywaj karty i znajdź pary. Dwie tury po sześć potraw.</p>'));
-  const msg=el('<div class="msg"></div>'), grid=el('<div class="grid"></div>'); card.append(grid,msg);
+  const msg=el('<div class="msg">&nbsp;</div>'), grid=el('<div class="grid"></div>'); card.append(grid,msg);
   let part=0, open=[], lock=false, got=0, timers=[];
+  const BACK='<span class="back">⭐</span>';
   function deal(){
     const set=ALL.slice(part*6,part*6+6); got=0; grid.innerHTML='';
-    shuffle([...set,...set]).forEach(([n,e])=>{
-      const b=el(`<button class="mc" aria-label="karta"><span class="back">🎄</span></button>`); b.dataset.n=n; b.dataset.e=e;
+    shuffle([...set,...set]).forEach(([n,f])=>{
+      const b=el(`<button class="mc" aria-label="karta">${BACK}</button>`); b.dataset.n=n;
       b.onclick=()=>{ if(lock||b.classList.contains('up')||b.classList.contains('got')) return;
-        b.classList.add('up'); b.innerHTML=`<span class="e">${e}</span><span>${n}</span>`; open.push(b);
+        b.classList.add('up'); b.innerHTML=`<img src="art/dish/${f}.webp" alt=""><span>${n}</span>`; open.push(b);
         if(open.length===2){ lock=true; const [a,c]=open;
           if(a.dataset.n===c.dataset.n){ a.classList.add('got'); c.classList.add('got'); open=[]; lock=false; got++; msg.textContent=`${n} ✔ (${part*6+got}/12)`;
             if(got===6){ if(part===0){ part=1; msg.textContent='Połowa! Teraz desery i reszta…'; timers.push(setTimeout(deal,1200)); } else { msg.textContent='Wszystkie dwanaście! 🍽️'; win(); } } }
-          else timers.push(setTimeout(()=>{[a,c].forEach(x=>{x.classList.remove('up');x.innerHTML='<span class="back">🎄</span>'}); open=[]; lock=false;},850));
+          else timers.push(setTimeout(()=>{[a,c].forEach(x=>{x.classList.remove('up');x.innerHTML=BACK}); open=[]; lock=false;},900));
         }
       };
       grid.appendChild(b);
@@ -433,8 +340,9 @@ dishes(card,win){
 // 4. set the table: order + extra plate
 table(card,win){
   card.append(el('<h2>🍽️ Nakrywamy do stołu</h2>'));
-  const sub=el('<p class="sub">Co kładziemy najpierw? Wybieraj po kolei — od samego dołu.</p>'), stack=el('<div class="stack"></div>'), ch=el('<div class="choices"></div>'), msg=el('<div class="msg"></div>');
-  card.append(sub,stack,ch,msg);
+  const pic=el('<img class="tablepic" src="art/table_empty.webp" alt="Stół">');
+  const sub=el('<p class="sub">Co kładziemy najpierw? Wybieraj po kolei — od samego dołu.</p>'), stack=el('<div class="stack"></div>'), ch=el('<div class="choices"></div>'), msg=el('<div class="msg">&nbsp;</div>');
+  card.append(pic,sub,stack,ch,msg);
   const ORDER=[['Sianko','🌾'],['Obrus','🤍'],['Opłatek','✨'],['Talerze','🍽️'],['Świeca','🕯️']];
   const HINT={Sianko:'Sianko idzie pod obrus!',Obrus:'Obrus przykrywa sianko.',Opłatek:'Opłatek kładziemy na obrusie.',Talerze:'Talerze — zaraz po opłatku.',Świeca:'Świeca na koniec, dla nastroju.'};
   let step=0;
@@ -447,9 +355,9 @@ table(card,win){
   });
   function plates(){
     sub.textContent='Goście: Kaka, Kaczor, Babcia, Dziadek i ciocia Ela. Ile talerzy postawić?';
-    ch.innerHTML=''; msg.textContent='';
-    [4,5,6,7].forEach(n=>{ const b=el(`<button class="chip">${'🍽️'.repeat(1)} ${n}</button>`);
-      b.onclick=()=>{ if(n===6){ msg.style.color='var(--green)'; msg.textContent='Tak! Jeden talerz więcej dla wędrowca. 🐈'; ch.innerHTML=''; win(); }
+    ch.innerHTML=''; msg.innerHTML='&nbsp;';
+    [4,5,6,7].forEach(n=>{ const b=el(`<button class="chip">🍽️ ${n}</button>`);
+      b.onclick=()=>{ if(n===6){ msg.style.color='var(--green)'; msg.textContent='Tak! Jeden talerz więcej dla wędrowca. 🐈'; ch.innerHTML=''; pic.src='art/table_set.webp'; win(); }
         else { b.classList.add('shake'); setTimeout(()=>b.classList.remove('shake'),400); msg.style.color='var(--red)'; msg.textContent=n<6?'Za mało… a niespodziewany gość?':'Aż tyle? Babcia nie przywiezie aż tylu gości.'; } };
       ch.append(b); });
   }
@@ -457,10 +365,13 @@ table(card,win){
 // 5. keep Kaczor awake while he untangles the lights
 lights(card,win){
   card.append(el('<h2>💡 Lampki z Kaczorem</h2>'),el('<p class="sub">Kaczor rozplątuje lampki. Gdy przyśnie — dotknij go, żeby się obudził.</p>'));
-  const bar=el('<div class="bar"><i></i></div>'), kz=el('<div id="kz" role="button" tabindex="0">🙂🧶<small>pracuje…</small></div>'), msg=el('<div class="msg"></div>');
+  const bar=el('<div class="bar"><i></i></div>');
+  const kz=el('<div class="kzWrap" role="button" tabindex="0"><img src="art/kaczor.webp" alt="Kaczor"><span class="bub">🧶 …</span></div>');
+  const msg=el('<div class="msg">&nbsp;</div>');
   card.append(bar,kz,msg);
+  const bub=kz.querySelector('.bub');
   let p=0, asleep=false, nap=2.5+Math.random()*2, raf, last=performance.now(), wokeOnce=false, finished=false;
-  const draw=()=>{kz.innerHTML=asleep?'😴💤<small>śpi…</small>':(finished?'😊💡<small>gotowe!</small>':'🙂🧶<small>pracuje…</small>');};
+  const draw=()=>{kz.classList.toggle('sleep',asleep); bub.textContent=asleep?'😴 Zzz…':(finished?'💡 Gotowe!':'🧶 rozplątuję…');};
   function poke(){ if(finished) return;
     if(asleep){ asleep=false; nap=2+Math.random()*2.5; msg.style.color='var(--green)'; msg.textContent=['Pobudka!','Kaczor, lampki!','Hej, nie śpimy!'][Math.random()*3|0];
       if(!wokeOnce){ wokeOnce=true; play('kaczor_awake'); } draw(); }
@@ -481,8 +392,7 @@ lights(card,win){
 // ---------- ending ----------
 function ending(){
   say(['star','kaczor_star'],()=>{
-    const e=$('#end'); e.classList.remove('hidden');
-    const art=$('#endArt'); art.onerror=()=>art.classList.add('hidden'); art.src='art/wigilia.jpg';
+    $('#end').classList.remove('hidden');
     $('#endTxt').textContent='Pierwsza gwiazdka zabłysła. Pierniczki upieczone, choinka ubrana, dwanaście potraw na stole, sianko pod obrusem, talerz dla wędrowca i lampki rozplątane. Kaczor nawet nie zasnął przy barszczu. Prawie.';
   });
 }
