@@ -9,7 +9,7 @@ Or open `kaka/index.html` through any static server (e.g. `python3 -m http.serve
 
 | Task | Where in the room | Mini-game |
 | --- | --- | --- |
-| Upiec pierniczki | Kitchen door | Catch 15 ingredients in the bowl, including at least one of each of the five kinds (shown as a row of icons); avoid Kaczor's socks — a sock knocks the last caught ingredient back out of the bowl and Kaczor comments (`audio/sock1-3.mp3`) |
+| Upiec pierniczki | Kitchen door | Catch 20 ingredients in the bowl, including at least one of each of the five kinds (shown as a row of icons); avoid Kaczor's socks — a sock knocks the last caught ingredient back out of the bowl and Kaczor comments (`audio/sock1-3.mp3`) |
 | Ubrać choinkę | Tree | Level 1: decorate by Kaka's plan — drag 8 baubles onto the hooks in the colours from her sketch, then the garland, then the star. Level 2: on that freshly decorated tree, repeat the order in which baubles light up (3 rounds) |
 | Dwanaście potraw | Sideboard (recipes) | Memory pairs of the twelve Wigilia dishes (2 × 6) |
 | Nakryć do stołu | Table | Step 1: drag items onto the table, which changes stage by stage (sianko → obrus → opłatek → talerze → świeca). Step 2: a seating puzzle for Kaka, Kaczor, Mikołaj and friends Jugo, Gayzilla, Inez and „Nieoczekiwany aktualny kochanek Inez” — seven wishes, one correct arrangement, each wish ticks green or red as you seat people, and Kaka or Kaczor makes a joke about each guest as they sit down (`audio/seat_*.mp3`) |

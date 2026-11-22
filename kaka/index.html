@@ -570,7 +570,7 @@ const loadImg=src=>{const i=new Image();i.src=src;return i;};
 const GAMES={
 // 1. catch ingredients
 bake(card,win){
-  card.append(el('<h2>🍪 Pierniczki</h2>'),el('<p class="sub">Przesuwaj miskę (palcem, myszką albo strzałkami). Złap 15 składników — w tym <b>przynajmniej po jednym z każdego</b> — i omijaj skarpetki Kaczora!</p>'));
+  card.append(el('<h2>🍪 Pierniczki</h2>'),el('<p class="sub">Przesuwaj miskę (palcem, myszką albo strzałkami). Złap 20 składników — w tym <b>przynajmniej po jednym z każdego</b> — i omijaj skarpetki Kaczora!</p>'));
   const bar=el('<div class="bar"><i></i></div>'), cv=document.createElement('canvas'), msg=el('<div class="msg">&nbsp;</div>');
   card.append(bar,cv,msg);
   const W=800,H=460; cv.width=W; cv.height=H; const c=cv.getContext('2d');
@@ -579,7 +579,7 @@ bake(card,win){
   const need=el(`<div class="need">${ING.map(([n,l],i)=>`<span class="nd" data-i="${i}" title="${l}"><img src="art/ing/${n}.webp" alt="${l}"><b>0</b></span>`).join('')}</div>`);
   card.insertBefore(need,card.querySelector('.msg'));
   const missing=()=>ING.filter((_,i)=>!have[i]).map(x=>x[1]);
-  const caught=[]; let flyout=[], sockN=0;
+  const NEED=20, caught=[]; let flyout=[], sockN=0;
   let bx=W/2, items=[], score=0, raf, last=performance.now(), keys={}, over=false;
   const mv=e=>{const r=cv.getBoundingClientRect(); bx=(e.clientX-r.left)/r.width*W;};
   cv.addEventListener('pointermove',mv); cv.addEventListener('pointerdown',mv);
@@ -602,7 +602,7 @@ bake(card,win){
           else msg.textContent='Skarpetka Kaczora w pustej misce! Kaczor: '+SOCK[1]; }
         else { score++; const k=GOOD.indexOf(it.img); have[k]++; caught.push(k); const nd=need.querySelector(`[data-i="${k}"]`); nd.classList.add('got','pulse'); nd.querySelector('b').textContent=have[k]; setTimeout(()=>nd.classList.remove('pulse'),300);
           msg.textContent=['Mniam!','Pięknie!','Jeszcze!','Tak trzymać!'][score%4]; msg.style.color='var(--green)';
-          if(score>=15&&missing().length){ msg.style.color='var(--red)'; msg.textContent='Ciasto prawie gotowe, ale brakuje: '+missing().join(', ')+'!'; } }
+          if(score>=NEED&&missing().length){ msg.style.color='var(--red)'; msg.textContent='Ciasto prawie gotowe, ale brakuje: '+missing().join(', ')+'!'; } }
       }});
     items=items.filter(it=>!it.hit&&it.y<H+50);
     // ingredients thrown out of the bowl by a sock
@@ -613,8 +613,8 @@ bake(card,win){
     c.fillStyle=g; c.beginPath(); c.moveTo(bx-80,H-62); c.quadraticCurveTo(bx-70,H-8,bx,H-8); c.quadraticCurveTo(bx+70,H-8,bx+80,H-62); c.closePath(); c.fill();
     c.fillStyle='#f6e7c8'; c.beginPath(); c.ellipse(bx,H-62,80,12,0,0,Math.PI*2); c.fill();
     c.strokeStyle='#e9b949'; c.lineWidth=4; c.beginPath(); c.moveTo(bx-62,H-40); c.quadraticCurveTo(bx,H-30,bx+62,H-40); c.stroke();
-    bar.firstChild.style.width=Math.min(100,score/15*100)+'%';
-    if(score>=15 && !missing().length && !over){ over=true; msg.style.color='var(--green)'; msg.textContent='Ciasto gotowe! 🍪'; win(); }
+    bar.firstChild.style.width=Math.min(100,score/NEED*100)+'%';
+    if(score>=NEED && !missing().length && !over){ over=true; msg.style.color='var(--green)'; msg.textContent='Ciasto gotowe! 🍪'; win(); }
     raf=requestAnimationFrame(loop);
   }
   raf=requestAnimationFrame(loop);
