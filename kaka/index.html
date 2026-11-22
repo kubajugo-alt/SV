@@ -700,27 +700,33 @@ train(card,win){
 },
 // 7. Kaka quizzes Kaczor on Harry Potter (answer for him; 7/10 to pass)
 quiz(card,win){
-  const Q=[
-    ['Jak nazywa się szkoła magii, do której chodzi Harry?',['Hogwart','Durmstrang','Beauxbatons','Ilvermorny']],
-    ['Z którego peronu odjeżdża Ekspres do Hogwartu?',['9 i ¾','7 i ½','10 i ¼','13']],
-    ['Jak ma na imię sowa Harry’ego?',['Hedwiga','Errol','Świstoświnka','Krzywołap']],
-    ['Do którego domu trafia Harry?',['Gryffindor','Slytherin','Hufflepuff','Ravenclaw']],
-    ['Kto przydziela pierwszoroczniaków do domów?',['Tiara Przydziału','Dumbledore','Hagrid','Prawie Bezgłowy Nick']],
-    ['Ile punktów dostaje drużyna za złapanie Złotego Znicza?',['150','10','50','100']],
-    ['Jak brzmi zaklęcie rozbrajające?',['Expelliarmus','Wingardium Leviosa','Lumos','Accio']],
-    ['Kim jest Zgredek?',['skrzatem domowym','goblinem','centaurem','duchem']],
-    ['Na której ulicy czarodzieje robią zakupy przed szkołą?',['ulica Pokątna','ulica Nokturna','Privet Drive','Grimmauld Place']],
-    ['Co uczniowie piją w Hogsmeade, żeby się rozgrzać?',['kremowe piwo','barszcz z uszkami','kompot z suszu','grzaniec Kaczora']],
-  ];
+  // pool of hard questions (first answer is correct); each game draws 10
+  const Q=([
+    ['Jakim hasłem Harry po raz pierwszy wchodzi do pokoju wspólnego Gryffindoru?',['Caput Draconis','Fortuna Major','Świński ryj','Mimbulus mimbletonia']],
+    ['Z jakiego drewna jest różdżka Harry’ego?',['z ostrokrzewu','z cisu','z winorośli','z jesionu']],
+    ['Jaką postać przybiera patronus Hermiony?',['wydry','łani','zająca','teriera']],
+    ['Jak brzmi drugie imię Harry’ego?',['James','Albus','Syriusz','Artur']],
+    ['Jak nazywa się pies Hagrida?',['Kieł','Puszek','Hardodziob','Norbert']],
+    ['Co powstaje według Snape’a z korzenia asfodelusa i naparu z piołunu?',['Wywar Żywej Śmierci','Eliksir Wielosokowy','Felix Felicis','Amortencja']],
+    ['Jak brzmi pełne imię Dumbledore’a?',['Albus Percival Wulfric Brian','Albus Brian Percival Wulfric','Albus Wulfric Percival Brian','Albus Percival Brian Wulfric']],
+    ['W jakie zwierzę zmienia się animag profesor McGonagall?',['w pręgowanego kota','w sowę','w charta','w wydrę']],
+    ['Kto zabija Nagini?',['Neville Longbottom','Ron Weasley','Hermiona Granger','Harry Potter']],
+    ['W którym roku urodził się Harry?',['1980','1981','1979','1982']],
+    ['Jak nazywa się gospoda w Hogsmeade prowadzona przez Aberfortha?',['Pod Świńskim Łbem','Pod Trzema Miotłami','Dziurawy Kocioł','Miodowe Królestwo']],
+    ['Jaki rdzeń ma Czarna Różdżka?',['włos z ogona testrala','pióro feniksa','włókno ze smoczego serca','włos jednorożca']],
+    ['Które zaklęcie Księcia Półkrwi rani jak niewidzialny miecz?',['Sectumsempra','Levicorpus','Muffliato','Langlock']],
+    ['Jak nazywa się skrzat domowy rodu Blacków?',['Stworek','Zgredek','Mrużka','Hokey']],
+    ['Kto napisał „Historię magii”?',['Bathilda Bagshot','Gilderoy Lockhart','Newt Scamander','Rita Skeeter']],
+  ]);
   const OK=['„No przecież wiem.”','„Widziałem wszystkie filmy. Z zamkniętymi oczami.”','„Proste. Następne.”','„Dziesięć punktów dla Kanapowego Gryffindoru!”'];
   const BAD=['„Ten rozdział przespałem.”','„To było w filmie? Bo ja chyba drzemałem.”','„Mogę zadzwonić do przyjaciela? Do Jugo?”','„Sprawdzam tylko, czy uważasz.”'];
-  card.append(el('<h2>🏰 Quiz z Kaczorem</h2>'),el('<p class="sub">Kaka sprawdza, ile Kaczor pamięta z Harry’ego Pottera. Odpowiadasz za niego — 7 z 10, żeby wrócił na kanapę!</p>'));
+  card.append(el('<h2>🏰 Quiz z Kaczorem</h2>'),el('<p class="sub">Kaka jest ekspertką od Harry’ego Pottera i nie bierze jeńców. Odpowiadasz za Kaczora — 7 z 10, żeby wrócił na kanapę!</p>'));
   const wrap=el('<div class="qz"><div><div class="qmeta"><span class="qn"></span><span class="qs"></span></div><p class="qq"></p><div class="qopts"></div><div class="msg">&nbsp;</div><button class="btn qnext hidden">Dalej ▸</button></div><div class="qkz"><img src="art/kaczor.webp" alt="Kaczor"><span class="bub">🤓 Pytaj!</span></div></div>');
   card.append(wrap);
   const $q=sel=>wrap.querySelector(sel), img=$q('.qkz img'), bub=$q('.bub'), msg=$q('.msg'), next=$q('.qnext');
   let order, i, score, saidOk=false, saidBad=false, timers=[];
-  function start(){ order=shuffle(Q.map((_,k)=>k)); i=0; score=0; img.src='art/kaczor.webp'; bub.textContent='🤓 Pytaj!'; show(); }
-  function show(){ const [q,ans]=Q[order[i]]; $q('.qn').textContent=`Pytanie ${i+1} z ${Q.length}`; $q('.qs').textContent=`Kaczor: ${score} pkt`;
+  function start(){ order=shuffle(Q.map((_,k)=>k)).slice(0,10); i=0; score=0; img.src='art/kaczor.webp'; bub.textContent='🤓 Pytaj!'; show(); }
+  function show(){ const [q,ans]=Q[order[i]]; $q('.qn').textContent=`Pytanie ${i+1} z ${order.length}`; $q('.qs').textContent=`Kaczor: ${score} pkt`;
     $q('.qq').textContent=q; msg.innerHTML='&nbsp;'; next.classList.add('hidden');
     const box=$q('.qopts'); box.innerHTML='';
     shuffle(ans.map((a,k)=>[a,k===0])).forEach(([a,right])=>{ const b=el(`<button></button>`); b.textContent=a; b.dataset.right=right?'1':'';
@@ -731,8 +737,8 @@ quiz(card,win){
     else { b.classList.add('wrong'); bub.textContent='🤔 Hmm…'; msg.style.color='var(--red)'; msg.textContent='Kaczor: '+BAD[Math.random()*BAD.length|0];
       if(!saidBad){ saidBad=true; play('quiz_bad'); } }
     $q('.qs').textContent=`Kaczor: ${score} pkt`;
-    next.textContent=i===Q.length-1?'Wynik ▸':'Dalej ▸'; next.classList.remove('hidden'); next.focus(); }
-  next.onclick=()=>{ i++; if(i<Q.length) return show(); finishQuiz(); };
+    next.textContent=i===order.length-1?'Wynik ▸':'Dalej ▸'; next.classList.remove('hidden'); next.focus(); }
+  next.onclick=()=>{ i++; if(i<order.length) return show(); finishQuiz(); };
   function finishQuiz(){ $q('.qopts').innerHTML=''; next.classList.add('hidden'); $q('.qn').textContent='Koniec quizu'; $q('.qs').textContent='';
     if(score>=7){ img.src='art/kaczor.webp'; bub.textContent='🏆 '+score+'/10'; $q('.qq').textContent=`Kaczor zdał! ${score} na 10. Dziesięć punktów dla Gryffindoru — i powrót na kanapę.`; msg.innerHTML='&nbsp;'; win(); }
     else { bub.textContent='😅 '+score+'/10'; $q('.qq').textContent=`Tylko ${score} na 10. Kaka nie odpuszcza — jeszcze raz!`; msg.innerHTML='&nbsp;';

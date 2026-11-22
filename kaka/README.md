@@ -15,7 +15,7 @@ Or open `kaka/index.html` through any static server (e.g. `python3 -m http.serve
 | Nakryć do stołu | Table | Step 1: lay the table in order (sianko → obrus → opłatek → talerze → świeca). Step 2: a seating puzzle for Kaka, Kaczor, Mikołaj and friends Jugo, Gayzilla, Inez and „Nieoczekiwany aktualny kochanek Inez” — seven wishes, one correct arrangement, each wish ticks green or red as you seat people |
 | Lampki z Kaczorem | Fireplace | Untangle the string of lights: drag bulbs until no wires cross (2 strings, 6 and 9 bulbs). Kaczor holds the cable — tap him when he dozes off, or he rolls onto it and tangles a couple of bulbs again |
 | Pociąg z Mikołajem | Mikołaj by the tree | Steer Mikołaj's toy train (arrows, swipe or on-screen buttons) to collect 10 presents; each adds a wagon. Crashing only costs a couple of wagons. Presents appear under the tree when done |
-| Quiz z Kaczorem | Castle poster above the fireplace | Kaka quizzes Kaczor on Harry Potter (10 questions, Polish edition names); you answer for him, 7/10 to pass, unlimited retries |
+| Quiz z Kaczorem | Castle poster above the fireplace | Kaka, a Harry Potter expert, quizzes Kaczor with hard questions (10 drawn from a pool of 15, Polish edition names); you answer for him, 7/10 to pass, unlimited retries |
 
 Click Kaczor on the sofa for one of ten lazy one-liners. Kaka sways while idle, bounces while she talks and jumps for joy when a task is done. Each finished task changes the room. When all seven are done, the sky goes dark and the first star appears in the window; click it for the ending.
 
