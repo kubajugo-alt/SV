@@ -3,7 +3,9 @@
 A short, cosy point-and-click Christmas game in Polish, built from *Kaka's Christmas Adventure — Game Bible*.
 One living room, five mini-games, and the first star at the end.
 
-Open `kaka/index.html` through any static server (e.g. `python3 -m http.server` inside `kaka/`). Single page, no build step, works on desktop and phone. Progress is saved in the browser.
+Live: https://swieta-kaki.netlify.app (Netlify site `swieta-kaki`, deployed from this folder, which has its own `netlify.toml`).
+
+Or open `kaka/index.html` through any static server (e.g. `python3 -m http.server` inside `kaka/`). Single page, no build step, works on desktop and phone. Progress is saved in the browser.
 
 | Task | Where in the room | Mini-game |
 | --- | --- | --- |

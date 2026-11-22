@@ -1,0 +1,4 @@
+# Static game, no build step.
+[build]
+  publish = "."
+  command = ""
