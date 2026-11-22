@@ -245,7 +245,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
     <div id="list" aria-label="Lista Kaki"><button id="listToggle" aria-expanded="false">📋 Lista Kaki <b id="listCount">0/6</b> <span class="chev">▾</span></button><div id="tasks"></div></div>
     <div id="starhint" class="hidden">⭐ Spójrz w okno!</div>
     <button id="mute" title="Dźwięk">🔊</button>
-    <div id="dlg" class="hidden"><div class="face"></div><div><div class="who"></div><div class="txt"></div></div><div class="next">dalej ▸</div></div>
+    <div id="dlg" class="hidden"><div class="face"></div><div><div class="who"></div><div class="txt"></div></div><div class="next">kliknij lub spacja ▸</div></div>
   </div>
 </div>
 
@@ -347,7 +347,10 @@ function nextLine(){
   d.classList.remove('hidden');
   play(k);
 }
-$('#dlg').onclick=nextLine;
+// while a line is showing: click anywhere or press Space/Enter to continue (and don't let that click reach the room)
+const dlgOpen=()=>!$('#dlg').classList.contains('hidden') && $('#game').classList.contains('hidden');
+document.addEventListener('click',e=>{ if(!dlgOpen()||e.target.closest('#mute')) return; e.preventDefault(); e.stopPropagation(); nextLine(); },true);
+document.addEventListener('keydown',e=>{ if(!dlgOpen()||e.repeat) return; if(e.code==='Space'||e.key==='Enter'){ e.preventDefault(); nextLine(); } },true);
 
 // hub state
 function render(){
@@ -373,7 +376,10 @@ function render(){
 document.querySelectorAll('.obj[data-task]').forEach(o=>o.addEventListener('click',()=>open(o.dataset.task)));
 $('#star').addEventListener('click',ending);
 $('#listToggle').onclick=()=>{ const o=$('#list').classList.toggle('open'); $('#listToggle').setAttribute('aria-expanded',o); };
-let kzLine=0; $('#oSofa').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say(['kz'+(kzLine%10+1)]); kzLine++; });
+// Kaczor's one-liners: shuffled deck of all 10 (classic + Inez), no immediate repeats
+let kzBag=[], kzLast=0;
+function nextKz(){ if(!kzBag.length){ kzBag=shuffle(Array.from({length:10},(_,i)=>i+1)); if(kzBag[0]===kzLast) kzBag.push(kzBag.shift()); } kzLast=kzBag.shift(); return 'kz'+kzLast; }
+$('#oSofa').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say([nextKz()]); });
 
 // ---------- minigame shell ----------
 let stopGame=null;
