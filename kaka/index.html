@@ -66,7 +66,8 @@ img{user-select:none;-webkit-user-drag:none}
 .qkz{position:relative}.qkz img{width:100%;display:block;transition:filter .3s}
 .qkz .bub{position:absolute;left:50%;top:-8%;transform:translateX(-50%);background:#fff;border-radius:14px;padding:.25em .6em;font-weight:700;font-size:14px;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.2)}
 .qnext{margin-top:12px}
-#lightsMantel{position:absolute;left:16%;top:40.5%;width:23%;pointer-events:none;z-index:2}
+#stocking{position:absolute;left:30.2%;top:46.5%;width:3.1%;pointer-events:none;z-index:2;transform-origin:50% 0;animation:sway 4s ease-in-out infinite;filter:drop-shadow(.1cqw .25cqw .2cqw rgba(60,30,10,.4))}
+@keyframes sway{50%{transform:rotate(3deg)}}
 #lightsWindow{position:absolute;left:36.5%;top:10.5%;width:33%;pointer-events:none;z-index:2}
 .twinkle{animation:tw 2.7s linear infinite}
 #lightsWindow.twinkle{animation-duration:3.3s;animation-delay:-1.1s}
@@ -189,7 +190,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 .em{font-style:normal;font-size:1.7em;line-height:1}
 .fc{display:inline-block;width:2.2em;height:2.2em;border-radius:50%;background-repeat:no-repeat;border:2px solid var(--red)}
 .face-kaka{background-image:url(art/kaka_face.webp);background-size:cover;background-position:center}
-.face-kaczor{background-image:url(art/kaczor.webp);background-size:330%;background-position:21% 0%}
+.face-kaczor{background-image:url(art/kaczor_face.webp);background-size:cover;background-position:center}
 .face-jugo{background:#fff url(art/guest/jugo.webp) 50% 22%/150% no-repeat}
 .face-gayzilla{background:#fff url(art/guest/gayzilla.webp) 50% 18%/150% no-repeat}
 .face-inez{background:#fff url(art/guest/inez.webp) 58% 22%/150% no-repeat}
@@ -249,7 +250,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
     <button class="obj" id="oMik" data-task="train" aria-label="Mikołaj: pociąg"><img src="art/mikolaj.webp" alt="Mikołaj bawi się kolejką"><span class="tag">🚂 Pociąg Mikołaja</span><span class="todo">!</span></button>
     <button class="obj" id="oFire" data-task="lights" aria-label="Kominek: lampki"><span class="tag">💡 Lampki z Kaczorem</span><span class="todo">!</span></button>
     <button class="obj hotbox" id="oPoster" data-task="quiz" aria-label="Plakat z zamkiem: quiz"><span class="tag">🏰 Quiz z Kaczorem</span><span class="todo">!</span></button>
-    <img id="lightsMantel" class="hidden twinkle" src="art/lights.webp" alt="">
+    <img id="stocking" class="hidden" src="art/stocking.webp" alt="Skarpeta na kominku">
     <button class="obj" id="oSofa" aria-label="Kaczor na kanapie"><img id="kzSofa" src="art/kaczor_sleep.webp" alt=""><span id="zzz">Zzz</span><span class="tag">💬 Kaczor</span></button>
     <button class="obj" id="oSideboard" data-task="dishes" aria-label="Kredens: przepisy"><span class="tag">📖 Dwanaście potraw</span><span class="todo">!</span></button>
     <img id="cookies" class="hidden" src="art/cookies_on_sideboard.webp" alt="Pierniczki na komodzie">
@@ -342,7 +343,7 @@ const LINES={
   kz10:['kaczor','Inez zmienia kochanków częściej niż ja pozycję na kanapie. A to naprawdę coś znaczy.'],
 };
 // portrait crops: [image, background-size, background-position]
-const FACES={kaka:['art/kaka_face.webp','cover','center'],kaczor:['art/kaczor.webp','330%','21% 0%']};
+const FACES={kaka:['art/kaka_face.webp','cover','center'],kaczor:['art/kaczor_face.webp','cover','center']};
 const NAMES={kaka:'Kaka',kaczor:'Kaczor'};
 
 let done={}; try{done=JSON.parse(localStorage.getItem('kaka-done')||'{}')}catch(e){}
@@ -393,7 +394,7 @@ function render(){
   });
   $('#listCount').textContent=`${TASKS.filter(x=>done[x.id]).length}/${TASKS.length}`;
   const show=(sel,on)=>$(sel).classList.toggle('hidden',!on);
-  show('#cookies',done.bake); show('#presents',done.train); show('#lightsMantel',done.lights); show('#lightsWindow',done.lights);
+  show('#cookies',done.bake); show('#presents',done.train); show('#stocking',done.lights); show('#lightsWindow',done.lights);
   $('#treeDeco').style.opacity=done.tree?1:0; $('#treeBare').style.opacity=done.tree?0:1;
   $('#tableSet').style.opacity=done.table?1:0; $('#tableEmpty').style.opacity=done.table?0:1;
   document.querySelectorAll('.obj[data-task]').forEach(o=>o.classList.toggle('done',!!done[o.dataset.task]));
@@ -672,11 +673,11 @@ train(card,win){
   const bar=el('<div class="bar"><i></i></div>'), cv=document.createElement('canvas'), msg=el('<div class="msg">&nbsp;</div>');
   const pad=el('<div class="tpad"><button data-d="up">▲</button><button data-d="left">◀</button><button data-d="down">▼</button><button data-d="right">▶</button></div>');
   card.append(bar,cv,pad,msg);
-  const C=40, COLS=20, ROWS=12, W=C*COLS, H=C*ROWS; cv.width=W; cv.height=H; cv.classList.add('trainCv'); const c=cv.getContext('2d');
-  const GOAL=10, giftImg=loadImg('art/gift.webp');
+  const C=50, COLS=16, ROWS=10, W=C*COLS, H=C*ROWS; cv.width=W; cv.height=H; cv.classList.add('trainCv'); const c=cv.getContext('2d');
+  const GOAL=10, giftImg=loadImg('art/gift.webp'), locoImg=loadImg('art/loco_top.webp'), wagonImg=loadImg('art/wagon_top.webp');
   const D={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
   let body, prev, dir, queue=[], gift, got=0, acc=0, pause=0, over=false, raf, last=performance.now(), crashFlash=0;
-  function reset(len){ body=[]; for(let i=0;i<len;i++) body.push({x:9-i,y:6}); prev=body.map(p=>({...p})); dir='right'; queue=[]; }
+  function reset(len){ body=[]; for(let i=0;i<len;i++) body.push({x:7-i,y:5}); prev=body.map(p=>({...p})); dir='right'; queue=[]; }
   function placeGift(){ for(let t=0;t<500;t++){ const g={x:1+Math.random()*(COLS-2)|0,y:1+Math.random()*(ROWS-2)|0}; if(!body.some(b=>b.x===g.x&&b.y===g.y)&&Math.abs(g.x-body[0].x)+Math.abs(g.y-body[0].y)>3){gift=g;return;} } }
   reset(1); placeGift();
   const opposite={up:'down',down:'up',left:'right',right:'left'};
@@ -708,21 +709,23 @@ train(card,win){
   function drawGift(g){ const x=(g.x+.5)*C, y=(g.y+.5)*C, s=C*1.05+Math.sin(performance.now()/250)*2;
     if(giftImg.complete&&giftImg.naturalWidth) c.drawImage(giftImg,x-s/2,y-s/2,s,s);
     else { c.fillStyle='#c0392b'; c.fillRect(x-14,y-14,28,28); c.fillStyle='#e9b949'; c.fillRect(x-3,y-14,6,28); c.fillRect(x-14,y-3,28,6); } }
-  function drawLoco(p,ang){ c.save(); c.translate(p.x,p.y); c.rotate(ang); c.scale(1.3,1.3);
-    c.fillStyle='#2b2b2b'; c.fillRect(-16,-15,32,4); c.fillRect(-16,11,32,4);
-    c.fillStyle='#2f6b45'; c.beginPath(); c.roundRect(-17,-12,20,24,4); c.fill();
-    c.fillStyle='#c0392b'; c.beginPath(); c.roundRect(0,-10,18,20,6); c.fill();
-    c.fillStyle='#e9b949'; c.fillRect(2,-10,3,20); c.fillStyle='#222'; c.beginPath(); c.arc(11,0,5,0,Math.PI*2); c.fill();
-    c.fillStyle='#fff7d0'; c.beginPath(); c.arc(18,0,3.5,0,Math.PI*2); c.fill();
-    c.fillStyle='#fff'; c.beginPath(); c.arc(-10,-4,3,0,Math.PI*2); c.fill(); c.restore(); }
-  function drawWagon(p,ang,i){ c.save(); c.translate(p.x,p.y); c.rotate(ang); c.scale(1.2,1.2);
-    c.fillStyle='#2b2b2b'; c.fillRect(-14,-15,28,4); c.fillRect(-14,11,28,4);
-    c.fillStyle=i%2?'#c0392b':'#2f6b45'; c.beginPath(); c.roundRect(-15,-12,30,24,4); c.fill();
-    c.fillStyle='#e9b949'; c.fillRect(-15,-2,30,4); c.restore();
-    if(giftImg.complete&&giftImg.naturalWidth) c.drawImage(giftImg,p.x-14,p.y-17,28,28); }
+  const sprite=(img,p,ang,len)=>{ if(!img.complete||!img.naturalWidth) return false; const w=len, h=len*img.naturalHeight/img.naturalWidth;
+    c.save(); c.translate(p.x,p.y); c.rotate(ang); c.shadowColor='rgba(40,20,5,.35)'; c.shadowBlur=6; c.shadowOffsetY=3; c.drawImage(img,-w/2,-h/2,w,h); c.restore(); return true; };
+  function drawLoco(p,ang){ p={x:p.x+Math.cos(ang)*C*.22,y:p.y+Math.sin(ang)*C*.22}; if(sprite(locoImg,p,ang,C*1.6)) return;
+    c.save(); c.translate(p.x,p.y); c.rotate(ang); c.fillStyle='#c0392b'; c.beginPath(); c.roundRect(-20,-13,40,26,6); c.fill(); c.restore(); }
+  function drawWagon(p,ang,i){ if(sprite(wagonImg,p,ang,C*1.08)) return;
+    c.save(); c.translate(p.x,p.y); c.rotate(ang); c.fillStyle='#2f6b45'; c.beginPath(); c.roundRect(-15,-12,30,24,4); c.fill(); c.restore(); }
+  function drawRails(t){ if(body.length<1) return; const pts=[]; for(let i=body.length-1;i>=0;i--) pts.push(seg(i,t));
+    const h=body[0], [dx,dy]=D[dir]; const last=pts[pts.length-1]; pts.push({x:last.x+dx*C*.55,y:last.y+dy*C*.55});
+    c.save(); c.lineCap='round';
+    for(let k=1;k<pts.length;k++){ const a=pts[k-1], b=pts[k], ang=Math.atan2(b.y-a.y,b.x-a.x), len=Math.hypot(b.x-a.x,b.y-a.y), nx=-Math.sin(ang), ny=Math.cos(ang);
+      c.strokeStyle='#6b4a2e'; c.lineWidth=6; for(let s2=5;s2<len;s2+=C*.26){ const sx=a.x+Math.cos(ang)*s2, sy=a.y+Math.sin(ang)*s2; c.beginPath(); c.moveTo(sx-nx*C*.3,sy-ny*C*.3); c.lineTo(sx+nx*C*.3,sy+ny*C*.3); c.stroke(); }
+      c.strokeStyle='#a7adb3'; c.lineWidth=3.5; for(const o of [-C*.2,C*.2]){ c.beginPath(); c.moveTo(a.x+nx*o,a.y+ny*o); c.lineTo(b.x+nx*o,b.y+ny*o); c.stroke(); } }
+    c.restore(); }
   function angle(i,t){ const a=seg(i,t), b=i>0?seg(i-1,t):null; if(b) return Math.atan2(b.y-a.y,b.x-a.x); const [dx,dy]=D[dir]; return Math.atan2(dy,dx); }
   function render(t){ drawFloor(); if(gift&&!over) drawGift(gift);
-    for(let i=body.length-1;i>=1;i--){ const a=seg(i,t), b=seg(i-1,t); c.strokeStyle='#5a4a3a'; c.lineWidth=3; c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); }
+    drawRails(t);
+    for(let i=body.length-1;i>=1;i--){ const a=seg(i,t), b=seg(i-1,t); c.strokeStyle='#3a2a1a'; c.lineWidth=3; c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); }
     for(let i=body.length-1;i>=1;i--) drawWagon(seg(i,t),angle(i,t),i);
     drawLoco(seg(0,t),angle(0,t));
     if(crashFlash>0){ c.fillStyle=`rgba(255,80,60,${crashFlash})`; c.fillRect(0,0,W,H); } }
@@ -806,7 +809,7 @@ function goFull(){ if(!matchMedia('(pointer:coarse)').matches) return; const d=d
 $('#rotSkip').onclick=()=>document.body.classList.add('rotOk');
 // preload the art and the first voice lines, then one tap enters (that tap also unlocks the title music)
 (function preload(){
-  const imgs=['room','title','kaka','kaka_face','kaka_cheer','kaczor','kaczor_sleep','mikolaj','tree_bare','tree_deco','table_empty','table_set','lights','presents','gift','cookies_on_sideboard','wigilia'].map(n=>'art/'+n+'.webp');
+  const imgs=['room','title','stocking','loco_top','wagon_top','kaka','kaka_face','kaczor_face','kaka_cheer','kaczor','kaczor_sleep','mikolaj','tree_bare','tree_deco','table_empty','table_set','lights','presents','gift','cookies_on_sideboard','wigilia'].map(n=>'art/'+n+'.webp');
   const auds=['audio/music.mp3','audio/intro.mp3','audio/kaczor_intro.mp3','audio/hub.mp3'];
   let ok=0; const total=imgs.length+auds.length;
   const tick=()=>{ ok++; const pct=Math.round(ok/total*100); $('#gFill').style.width=pct+'%'; $('#gTxt').textContent=`Wczytywanie… ${pct}%`; if(ok===total) ready(); };
