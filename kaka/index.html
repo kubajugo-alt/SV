@@ -187,8 +187,16 @@ const NAMES={kaka:'Kaka',kaczor:'Kaczor'};
 let done={}; try{done=JSON.parse(localStorage.getItem('kaka-done')||'{}')}catch(e){}
 const save=()=>{try{localStorage.setItem('kaka-done',JSON.stringify(done))}catch(e){}};
 let muted=false, cur=null;
-function play(key){ if(cur){cur.pause();cur=null} if(muted) return; const a=new Audio('audio/'+key+'.mp3'); cur=a; a.play().catch(()=>{}); return a; }
-$('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊'; if(muted&&cur)cur.pause();};
+// background music: loops quietly, dips while someone is talking
+const bgm=new Audio('audio/music.mp3'); bgm.loop=true; bgm.preload='auto';
+const BGM_VOL=.32, BGM_DUCK=.1; let bgmTarget=BGM_VOL; bgm.volume=BGM_VOL;
+setInterval(()=>{ const v=bgm.volume, d=bgmTarget-v; if(Math.abs(d)>.005) bgm.volume=Math.max(0,Math.min(1,v+Math.sign(d)*.02)); },40);
+function startMusic(){ if(!muted) bgm.play().catch(()=>{}); }
+function duck(on){ bgmTarget=on?BGM_DUCK:BGM_VOL; }
+function play(key){ if(cur){cur.pause();cur=null} if(muted) return; const a=new Audio('audio/'+key+'.mp3'); cur=a;
+  duck(true); const up=()=>{ if(cur===a||!cur) duck(false); }; a.onended=up; a.onpause=up; a.onerror=up;
+  a.play().catch(up); return a; }
+$('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊'; if(muted){ if(cur)cur.pause(); bgm.pause(); } else startMusic(); };
 
 // dialogue queue
 let dq=[], dcb=null;
@@ -403,7 +411,7 @@ const started=Object.keys(done).length>0;
 if(started){ $('#startBtn').textContent='Graj dalej 🎄'; $('#resetBtn').classList.remove('hidden'); }
 $('#resetBtn').onclick=()=>{done={};save();render();go(true)};
 $('#startBtn').onclick=()=>go(!started);
-function go(fresh){ $('#title').classList.add('hidden'); render(); say(fresh?['intro','kaczor_intro','hub']:['hub']); }
+function go(fresh){ $('#title').classList.add('hidden'); startMusic(); render(); say(fresh?['intro','kaczor_intro','hub']:['hub']); }
 render();
 })();
 </script>
