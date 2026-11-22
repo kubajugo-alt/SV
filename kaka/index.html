@@ -1085,9 +1085,9 @@ function doorbell(){ if(muted) return; try{ const A=window.AudioContext||window.
 // the guests arrive: Jugo, Gayzilla, Inez and her unexpected lover walk in from the left (past the tree) one by one, each with a voiced hello
 function arrival(next){
   const st=$('#stage'), cv=document.createElement('div'); cv.id='cine'; st.append(cv); st.classList.add('cine');
-  const G=[['jugo',72,false,'Cześć, kochani! Wpadłem tylko na chwilę. Przyniosłem nalewkę babci… i widelec. Gdzie są pierogi?'],
-           ['gayzilla',62.5,true,'Nie ruszajcie się! Selfie z choinką! A barszcz jest gourmet? Z organicznych buraków, prawda?'],
-           ['inez',53,false,'Przepraszam za spóźnienie, kochani! Nowy nos jeszcze nie przywykł do mrozu. Ale patrzcie, jak zajebiście wyglądam!'],
+  const G=[['jugo',69.5,false,'Cześć, kochani! Wpadłem tylko na chwilę. Przyniosłem nalewkę babci… i widelec. Gdzie są pierogi?'],
+           ['gayzilla',59.5,true,'Nie ruszajcie się! Selfie z choinką! A barszcz jest gourmet? Z organicznych buraków, prawda?'],
+           ['inez',32.5,false,'Przepraszam za spóźnienie, kochani! Nowy nos jeszcze nie przywykł do mrozu. Ale patrzcie, jak zajebiście wyglądam!'],
            ['kochanek',9,false,'Dobry wieczór. Jestem… z Inez. Mam nadzieję, że jeszcze do Sylwestra.']];
   const cap=document.createElement('div'); cap.className='cap'; const fade=document.createElement('div'); fade.className='fade';
   const skip=document.createElement('button'); skip.className='skip'; skip.textContent='Pomiń ▸';
