@@ -13,7 +13,7 @@ Or open `kaka/index.html` through any static server (e.g. `python3 -m http.serve
 | Ubrać choinkę | Tree | Repeat the order the baubles light up in (3 rounds) |
 | Dwanaście potraw | Sideboard (recipes) | Memory pairs of the twelve Wigilia dishes (2 × 6) |
 | Nakryć do stołu | Table | Put things down in order (sianko → obrus → opłatek → talerze → świeca), then count plates including the extra one |
-| Lampki z Kaczorem | Fireplace | Keep Kaczor awake while he untangles the lights |
+| Lampki z Kaczorem | Fireplace | Untangle the string of lights: drag bulbs until no wires cross (2 strings, 6 and 9 bulbs). Kaczor holds the cable — tap him when he dozes off, or he rolls onto it and tangles a couple of bulbs again |
 
 Each finished task changes the room. When all five are done, the sky goes dark and the first star appears in the window; click it for the ending.
 

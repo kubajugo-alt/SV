@@ -104,6 +104,11 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 #treeSvg{width:min(340px,75%);display:block;margin:0 auto}
 .bb{cursor:pointer;transition:filter .15s}
 .bb.on{filter:brightness(1.9) drop-shadow(0 0 10px #fff6a0)}
+.lwrap{display:flex;gap:12px;align-items:center}
+.lwrap canvas{flex:3;min-width:0;background:radial-gradient(ellipse at 50% 40%,#3b2a4a,#1e1630);}
+.lwrap .kzWrap{flex:1;width:auto;max-width:240px;padding-top:44px}
+.lwrap .kzWrap .bub{left:50%;top:0;transform:translateX(-50%);font-size:clamp(14px,1.8vw,19px);white-space:nowrap}
+@media (max-width:640px){.lwrap{flex-direction:column}.lwrap .kzWrap{max-width:200px}}
 .kzWrap{position:relative;width:min(520px,90%);margin:0 auto;cursor:pointer;user-select:none}
 .kzWrap img{width:100%;display:block;transition:filter .3s}
 .kzWrap.sleep img{filter:brightness(.75) saturate(.8)}
@@ -124,7 +129,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
     <button class="obj" id="oTree" data-task="tree" aria-label="Choinka"><img id="treeBare" src="art/tree_bare.webp" alt=""><img id="treeDeco" src="art/tree_deco.webp" alt="" style="opacity:0"><span class="tag">🎄 Choinka</span><span class="todo">!</span></button>
     <button class="obj" id="oFire" data-task="lights" aria-label="Kominek: lampki"><span class="tag">💡 Lampki z Kaczorem</span><span class="todo">!</span></button>
     <img id="lightsMantel" class="hidden twinkle" src="art/lights.webp" alt="">
-    <button class="obj" id="oSofa" tabindex="-1" aria-hidden="true"><img src="art/kaczor.webp" alt=""><span id="zzz">Zzz</span></button>
+    <button class="obj" id="oSofa" tabindex="-1" aria-hidden="true"><img id="kzSofa" src="art/kaczor_sleep.webp" alt=""><span id="zzz">Zzz</span></button>
     <button class="obj" id="oSideboard" data-task="dishes" aria-label="Kredens: przepisy"><span class="tag">📖 Dwanaście potraw</span><span class="todo">!</span></button>
     <img id="cookies" class="hidden" src="art/cookies.webp" alt="Pierniczki">
     <button class="obj" id="oKitchen" data-task="bake" aria-label="Kuchnia: pierniczki"><span class="tag">🍪 Kuchnia</span><span class="todo">!</span></button>
@@ -231,6 +236,7 @@ function render(){
   show('#star',all); show('#starhint',all);
   $('#dusk').style.opacity=TASKS.filter(x=>done[x.id]).length/5*.7;
   $('#zzz').style.display=done.lights?'none':'';
+  $('#kzSofa').src=done.lights?'art/kaczor.webp':'art/kaczor_sleep.webp';
 }
 document.querySelectorAll('.obj[data-task]').forEach(o=>o.addEventListener('click',()=>open(o.dataset.task)));
 $('#star').addEventListener('click',ending);
@@ -370,30 +376,69 @@ table(card,win){
       ch.append(b); });
   }
 },
-// 5. keep Kaczor awake while he untangles the lights
+// 5. untangle the lights (no crossing wires) while keeping Kaczor from rolling onto the cable
 lights(card,win){
-  card.append(el('<h2>💡 Lampki z Kaczorem</h2>'),el('<p class="sub">Kaczor rozplątuje lampki. Gdy przyśnie — dotknij go, żeby się obudził.</p>'));
-  const bar=el('<div class="bar"><i></i></div>');
-  const kz=el('<div class="kzWrap" role="button" tabindex="0"><img src="art/kaczor.webp" alt="Kaczor"><span class="bub">🧶 …</span></div>');
+  card.append(el('<h2>💡 Lampki z Kaczorem</h2>'),el('<p class="sub">Przeciągaj żarówki tak, żeby żaden kabel się nie krzyżował. I pilnuj Kaczora — jak przyśnie, przewróci się na kabel i znów go poplącze!</p>'));
+  const wrap=el('<div class="lwrap"></div>'), cv=document.createElement('canvas');
+  const kz=el('<div class="kzWrap" role="button" tabindex="0" aria-label="Kaczor"><img src="art/kaczor.webp" alt="Kaczor"><span class="bub">🧶</span></div>');
   const msg=el('<div class="msg">&nbsp;</div>');
-  card.append(bar,kz,msg);
-  const bub=kz.querySelector('.bub');
-  let p=0, asleep=false, nap=2.5+Math.random()*2, raf, last=performance.now(), wokeOnce=false, finished=false;
-  const draw=()=>{kz.classList.toggle('sleep',asleep); bub.textContent=asleep?'😴 Zzz…':(finished?'💡 Gotowe!':'🧶 rozplątuję…');};
-  function poke(){ if(finished) return;
-    if(asleep){ asleep=false; nap=2+Math.random()*2.5; msg.style.color='var(--green)'; msg.textContent=['Pobudka!','Kaczor, lampki!','Hej, nie śpimy!'][Math.random()*3|0];
-      if(!wokeOnce){ wokeOnce=true; play('kaczor_awake'); } draw(); }
-    else { msg.style.color='var(--ink)'; msg.textContent='Nie przeszkadzaj, on akurat pracuje.'; }
-  }
+  wrap.append(cv,kz); card.append(wrap,msg);
+  const W=800,H=500,R=19; cv.width=W; cv.height=H; const c=cv.getContext('2d');
+  const COL=['#ff5a4e','#ffd34e','#5ad1ff','#7dff7a','#ff8ad8','#ffa64e'];
+  // planar graphs: a loop of bulbs plus chords that do not cross in circle order
+  const LEVELS=[{n:6,ch:[[0,2],[3,5]]},{n:9,ch:[[0,3],[3,6],[6,0],[1,3],[4,6]]}];
+  let lvl=0, nodes=[], edges=[], drag=null, solved=false, dead=false, raf, last=performance.now(), timers=[];
+  const cross=(a,b,c2,d)=>{ const o=(p,q,r)=>Math.sign((q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x)); return o(a,b,c2)*o(a,b,d)<0 && o(c2,d,a)*o(c2,d,b)<0; };
+  function crossings(){ const bad=new Set(); let n=0;
+    for(let i=0;i<edges.length;i++) for(let j=i+1;j<edges.length;j++){ const [a,b]=edges[i],[p,q]=edges[j];
+      if(a===p||a===q||b===p||b===q) continue;
+      if(cross(nodes[a],nodes[b],nodes[p],nodes[q])){ n++; bad.add(i); bad.add(j); } }
+    return {n,bad}; }
+  function scramble(){ for(let t=0;t<80;t++){ nodes.forEach(nd=>{nd.x=60+Math.random()*(W-120); nd.y=50+Math.random()*(H-100);}); if(crossings().n>=nodes.length/2) return; } }
+  function load(){ const L=LEVELS[lvl]; solved=false;
+    nodes=Array.from({length:L.n},(_,i)=>({x:0,y:0,c:COL[i%COL.length]}));
+    edges=[...Array.from({length:L.n},(_,i)=>[i,(i+1)%L.n]),...L.ch];
+    scramble(); msg.style.color='var(--ink)'; msg.textContent=`Sznur ${lvl+1}/2 — rozplącz lampki!`; }
+  const pt=e=>{const r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)/r.width*W, y:(e.clientY-r.top)/r.height*H};};
+  cv.addEventListener('pointerdown',e=>{ if(solved) return; const p=pt(e); let best=null,bd=44*44;
+    nodes.forEach(nd=>{const d=(nd.x-p.x)**2+(nd.y-p.y)**2; if(d<bd){bd=d;best=nd;}}); if(best){drag=best; cv.setPointerCapture(e.pointerId);} });
+  cv.addEventListener('pointermove',e=>{ if(!drag) return; const p=pt(e); drag.x=Math.max(R,Math.min(W-R,p.x)); drag.y=Math.max(R,Math.min(H-R,p.y)); });
+  const up=()=>{ if(!drag) return; drag=null; if(crossings().n===0) solve(); };
+  cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up);
+  function solve(){ solved=true;
+    if(lvl===0){ msg.style.color='var(--green)'; msg.textContent='Świeci! Teraz dłuższy sznur…'; timers.push(setTimeout(()=>{ if(dead) return; lvl=1; load(); },1400)); }
+    else { msg.style.color='var(--green)'; msg.textContent='Wszystkie lampki świecą! 💡'; kzState('done'); win(); } }
+  // Kaczor: awake → drowsy (tap him!) → rolls onto the cable and tangles two bulbs
+  const bub=kz.querySelector('.bub'); let kState='awake', kTime=7+Math.random()*4, wokeOnce=false;
+  const kzImg=kz.querySelector('img');
+  function kzState(s){ kState=s; kzImg.src=s==='drowsy'?'art/kaczor_sleep.webp':'art/kaczor.webp';
+    bub.textContent={awake:'🧶 trzymam…',drowsy:'😴 Zzz… (dotknij!)',oops:'😳 ups…',done:'💡 Ładne!'}[s]; }
+  function poke(){ if(kState==='drowsy'){ kzState('awake'); kTime=7+Math.random()*4; msg.style.color='var(--green)'; msg.textContent=['Pobudka!','Kaczor, trzymaj kabel!','Hej, nie śpimy!'][Math.random()*3|0];
+      if(!wokeOnce){ wokeOnce=true; play('kaczor_awake'); } }
+    else if(kState==='awake'){ msg.style.color='var(--ink)'; msg.textContent='Na razie trzyma. Pilnuj go dalej.'; } }
   kz.onclick=poke; kz.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')poke()};
+  function tangle(){ const n=nodes.length; for(let t=0;t<20;t++){ const a=Math.random()*n|0, b=Math.random()*n|0; if(a===b) continue;
+      [nodes[a].x,nodes[b].x]=[nodes[b].x,nodes[a].x]; [nodes[a].y,nodes[b].y]=[nodes[b].y,nodes[a].y]; if(crossings().n>0) break; }
+    drag=null; msg.style.color='var(--red)'; msg.textContent='Kaczor przewrócił się na kabel! Trochę się poplątało…'; cv.classList.add('shake'); setTimeout(()=>cv.classList.remove('shake'),400); }
+  function draw(){ const {bad}=crossings(); c.clearRect(0,0,W,H);
+    edges.forEach(([a,b],i)=>{ const A=nodes[a],B=nodes[b], mx=(A.x+B.x)/2, my=(A.y+B.y)/2+18;
+      c.strokeStyle=solved?'#9be3a8':(bad.has(i)?'#ff5a4e':'#e9dcb8'); c.lineWidth=bad.has(i)&&!solved?5:4;
+      c.beginPath(); c.moveTo(A.x,A.y); c.quadraticCurveTo(mx,my,B.x,B.y); c.stroke(); });
+    nodes.forEach(nd=>{ c.save(); c.translate(nd.x,nd.y);
+      if(solved){ c.shadowColor=nd.c; c.shadowBlur=28; }
+      c.fillStyle='#3a3a3a'; c.fillRect(-7,-R-8,14,10);
+      c.globalAlpha=solved?1:.6; c.fillStyle=nd.c; c.beginPath(); c.ellipse(0,2,R*.8,R,0,0,Math.PI*2); c.fill();
+      c.globalAlpha=1; c.shadowBlur=0; c.fillStyle='rgba(255,255,255,.65)'; c.beginPath(); c.ellipse(-5,-4,4,6,-.4,0,Math.PI*2); c.fill();
+      if(nd===drag){ c.strokeStyle='#fff'; c.lineWidth=3; c.beginPath(); c.arc(0,2,R+5,0,Math.PI*2); c.stroke(); }
+      c.restore(); }); }
   function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now;
-    if(!finished){ if(!asleep){ p+=dt/16; nap-=dt; if(nap<=0){asleep=true; draw();} }
-      bar.firstChild.style.width=Math.min(100,p*100)+'%';
-      if(p>=1){ finished=true; asleep=false; draw(); msg.textContent='Lampki rozplątane! 💡'; win(); } }
-    raf=requestAnimationFrame(loop);
-  }
-  draw(); raf=requestAnimationFrame(loop);
-  return ()=>cancelAnimationFrame(raf);
+    if(!solved && kState!=='done'){ kTime-=dt;
+      if(kTime<=0){ if(kState==='awake'){ kzState('drowsy'); kTime=3.2; }
+        else if(kState==='drowsy'){ tangle(); kzState('oops'); kTime=1.5; }
+        else { kzState('awake'); kTime=7+Math.random()*4; } } }
+    draw(); raf=requestAnimationFrame(loop); }
+  load(); kzState('awake'); raf=requestAnimationFrame(loop);
+  return ()=>{dead=true; cancelAnimationFrame(raf); timers.forEach(clearTimeout);};
 },
 };
 
