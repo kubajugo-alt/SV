@@ -56,7 +56,7 @@ img{user-select:none;-webkit-user-drag:none}
 #oTree{left:.5%;bottom:10%;width:26%;height:68%}
 #oTree .todo{top:30%;right:18%}
 #oFire{left:16.5%;top:42%;width:21.5%;height:34%}
-#oMik{left:23.5%;bottom:1%;width:21%;aspect-ratio:900/745;z-index:3}
+#oMik{left:22.5%;bottom:13%;width:17%;aspect-ratio:900/745;z-index:3}
 #oMik img{filter:drop-shadow(0 .4cqw .6cqw rgba(0,0,0,.35))}
 /* Mikołaj plays: his head tilts and bobs while the train and track stay put */
 #oMik .mHead,#oMik .mCollar{height:auto;bottom:auto;filter:none}
@@ -124,7 +124,7 @@ img{user-select:none;-webkit-user-drag:none}
 #oKaka .tag{top:-.5cqw}
 #stage:has(#oKaka:hover) #kaka{filter:drop-shadow(0 0 .6cqw #fff3a0) drop-shadow(0 0 .3cqw #ffd34e)}
 #oKitchen .tag{top:3cqw}
-#oTable{left:45%;bottom:-5%;width:41%;height:42%}
+#oTable{left:41%;bottom:3%;width:36%;height:37%}
 #oTree .tag{top:auto;bottom:-1cqw;transform:translate(-50%,100%)}
 #kaka{position:absolute;right:.5%;bottom:1.5%;height:71%;pointer-events:none;filter:drop-shadow(0 .6cqw .8cqw rgba(0,0,0,.35));z-index:4}
 #kaka{transform-origin:50% 100%;animation:kIdle 4.6s ease-in-out infinite}
@@ -344,6 +344,28 @@ body.short .card .bar{margin:2px 0 6px}
 body.short .lwrap canvas{flex:none}
 body.short .btn{font-size:14px}
 body.short .tTag{max-width:min(640px,56%);font-size:12px}
+/* ---- arrival cinematic: the guests walk in through the hall door ---- */
+#stage.cine .obj{pointer-events:none}
+#stage.cine .obj .tag,#stage.cine .obj .todo,#stage.cine #list{display:none!important}
+#cine{position:absolute;inset:0;z-index:12;pointer-events:none}
+#cine::before,#cine::after{content:'';position:absolute;left:0;right:0;height:0;background:#0b0806;transition:height .8s ease}
+#cine::before{top:0}#cine::after{bottom:0}
+#cine.on::before,#cine.on::after{height:7%}
+#cine .gw{position:absolute;bottom:3%;height:64%;transition:left 2.2s linear;will-change:left}
+#cine .gw img{height:100%;width:auto;display:block;filter:drop-shadow(0 .6cqw .8cqw rgba(0,0,0,.4))}
+#cine .gw.flip img{transform:scaleX(-1)}
+#cine .gw.walk img{animation:gwBob .42s ease-in-out infinite alternate}
+#cine .gw.flip.walk img{animation-name:gwBobF}
+@keyframes gwBob{from{transform:translateY(0) rotate(-1deg)}to{transform:translateY(-1.6%) rotate(1deg)}}
+@keyframes gwBobF{from{transform:scaleX(-1) translateY(0) rotate(-1deg)}to{transform:scaleX(-1) translateY(-1.6%) rotate(1deg)}}
+#cine .gb{position:absolute;left:50%;bottom:101%;transform:translate(-50%,6px) scale(.9);opacity:0;background:#fffdf6;color:var(--ink);font-weight:700;font-size:1.35cqw;line-height:1.3;padding:.5em .9em;border-radius:1cqw;width:max-content;max-width:24cqw;text-align:center;box-shadow:var(--shadow);transition:opacity .3s,transform .3s}
+#cine .gb::after{content:'';position:absolute;left:50%;top:100%;transform:translateX(-50%);border:.6cqw solid transparent;border-top-color:#fffdf6}
+#cine .gb.on{opacity:1;transform:translate(-50%,0) scale(1)}
+#cine .cap{position:absolute;left:50%;top:10%;transform:translateX(-50%);font-family:Lobster,cursive;font-size:4cqw;color:#fff6dc;text-shadow:0 .06em 0 #8e211b,0 0 .5em rgba(0,0,0,.7);opacity:0;transition:opacity .5s;white-space:nowrap}
+#cine .cap.on{opacity:1}
+#cine .skip{position:absolute;right:1.5%;bottom:8.5%;pointer-events:auto;border:0;background:rgba(255,250,240,.85);border-radius:99px;padding:.35em 1em;font-weight:700;font-size:1.2cqw;cursor:pointer}
+#cine .fade{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .9s}
+#cine .fade.on{opacity:1}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -584,7 +606,7 @@ $('#oKaka').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hid
 // idle: after 30 s with nothing happening in the room, Kaczor pipes up on his own (and the bubble closes itself)
 let idleSec=0;
 ['pointerdown','pointermove','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{idleSec=0;},{passive:true,capture:true}));
-const roomFree=()=>['#title','#game','#end','#dlg'].every(id=>$(id).classList.contains('hidden'));
+const roomFree=()=>['#title','#game','#end','#dlg'].every(id=>$(id).classList.contains('hidden'))&&!$('#cine');
 setInterval(()=>{
   if(!roomFree()||document.hidden){ idleSec=0; return; }
   if(++idleSec<30) return;
@@ -1050,13 +1072,49 @@ quiz(card,win){
 };
 
 // ---------- ending ----------
-function ending(){
-  say(['star','kaczor_star'],()=>{
+// doorbell: two soft bell tones (Web Audio, no file needed)
+function doorbell(){ if(muted) return; try{ const A=window.AudioContext||window.webkitAudioContext, ac=new A(), t0=ac.currentTime;
+  [[659.3,0],[523.3,.55]].forEach(([f,d])=>{ [1,2.76].forEach((m,i)=>{ const o=ac.createOscillator(), g=ac.createGain(); o.type='sine'; o.frequency.value=f*m;
+    g.gain.setValueAtTime(0,t0+d); g.gain.linearRampToValueAtTime(i?.05:.22,t0+d+.01); g.gain.exponentialRampToValueAtTime(.0001,t0+d+1.6); o.connect(g).connect(ac.destination); o.start(t0+d); o.stop(t0+d+1.7); }); });
+  setTimeout(()=>ac.close(),2600); }catch(e){} }
+// the guests arrive: Jugo, Gayzilla, Inez and her unexpected lover walk in through the hall door one by one, each with a voiced hello
+function arrival(next){
+  const st=$('#stage'), cv=document.createElement('div'); cv.id='cine'; st.append(cv); st.classList.add('cine');
+  const G=[['jugo',47,false,'Cześć, kochani! Wpadłem tylko na chwilę. Przyniosłem nalewkę babci… i widelec. Gdzie są pierogi?'],
+           ['gayzilla',57,true,'Nie ruszajcie się! Selfie z choinką! A barszcz jest bezglutenowy, prawda?'],
+           ['inez',66.5,false,'Przepraszam za spóźnienie! Nowy nos jeszcze nie przywykł do mrozu. A, i nadal mam trzydzieści lat.'],
+           ['kochanek',75,true,'Dobry wieczór. Jestem… z Inez. Imię? Na razie bez imion.']];
+  const cap=document.createElement('div'); cap.className='cap'; const fade=document.createElement('div'); fade.className='fade';
+  const skip=document.createElement('button'); skip.className='skip'; skip.textContent='Pomiń ▸';
+  cv.append(cap,fade,skip); let over=false;
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  // play a line and resolve when it ends (or after a fallback when muted / blocked)
+  const speak=key=>new Promise(r=>{ play(key); const a=cur; let d=false; const go=()=>{ if(!d){ d=true; r(); } };
+    if(a){ a.addEventListener('ended',()=>setTimeout(go,200)); a.addEventListener('error',go); setTimeout(go,10000); } else setTimeout(go,3800); });
+  function finish(){ if(over) return; over=true; if(cur) cur.pause(); fade.classList.add('on');
+    setTimeout(()=>{ next(); setTimeout(()=>{ cv.remove(); st.classList.remove('cine'); kzWake(false); $('#kaka').src='art/kaka.webp'; $('#kaka').classList.remove('cheer'); },400); },900); }
+  skip.onclick=e=>{ e.stopPropagation(); finish(); };
+  const ws=G.map(([id,x,flip])=>{ const w=document.createElement('div'); w.className='gw'+(flip?' flip':''); w.style.left='104%';
+    w.innerHTML=`<img src="art/guest/walk_${id}.webp" alt=""><div class="gb"></div>`; cv.insertBefore(w,cap); return w; });
+  requestAnimationFrame(()=>cv.classList.add('on'));
+  (async()=>{
+    await wait(500); if(over) return; doorbell(); cap.textContent='Dzyń, dzyń!'; cap.classList.add('on'); kzWake(true);
+    await wait(1700); if(over) return; cap.classList.remove('on');
+    for(let i=0;i<G.length;i++){ const [id,x,,hi]=G[i], w=ws[i];
+      w.classList.add('walk'); w.style.left=x+'%'; await wait(2200); if(over) return;
+      w.classList.remove('walk'); const b=w.querySelector('.gb'); b.textContent=hi; b.classList.add('on');
+      await speak('hi_'+id); if(over) return; b.classList.remove('on'); }
+    const K=$('#kaka'); K.src='art/kaka_cheer.webp'; K.classList.add('cheer'); cap.textContent='Wszyscy są. Wesołych Świąt! ✨'; cap.classList.add('on');
+    await wait(3000); finish(); })();
+}
+function ending(){ say(['star','kaczor_star'],()=>arrival(showEnd)); }
+function showEnd(){
+  {
     $('#end').classList.remove('hidden');
     const items=['🍪 pierniczki','🎄 choinka','📖 12 potraw','🍽️ stół i goście','💡 lampki','🚂 prezenty','🏰 quiz zdany'];
     $('#endList').innerHTML=items.map((t,i)=>`<li style="animation-delay:${1.4+i*.18}s">${t}</li>`).join('');
     $('#endTxt').textContent='Pierwsza gwiazdka zabłysła. Wszystko gotowe: Kaczor nawet nie zasnął przy barszczu (prawie), Mikołaj dowiózł prezenty pod choinkę, Kaczor zdał quiz z Harry’ego Pottera, a nieoczekiwany kochanek Inez zjadł za trzech.';
-  });
+  }
 }
 $('#againBtn').onclick=()=>{done={};save();render();$('#end').classList.add('hidden');say(['hub']);};
 
@@ -1092,7 +1150,7 @@ function goFull(){ if(!matchMedia('(pointer:coarse)').matches) return; const d=d
   P.forEach(([x,y],i)=>{ const e=document.createElement('i'); e.style.left=x+'%'; e.style.top=y+'%';
     if(i%3===0) e.className='w'; e.style.animationDuration=(1.6+Math.random()*2.4).toFixed(2)+'s'; e.style.animationDelay=(-Math.random()*4).toFixed(2)+'s'; box.append(e); }); })();
 (function preload(){
-  const imgs=['room','title','stocking','loco_top','wagon_top','kaka','kaka_face','kaczor_face','kaka_cheer','kaka_worry','kaka_face_worry','kaczor','kaczor_sleep','mikolaj','mik_body','mik_head','mik_collar','tree_bare','tree_deco','table_empty','table_set','lights','presents','gift','cookies_on_sideboard','wigilia'].map(n=>'art/'+n+'.webp');
+  const imgs=['room','title','stocking','loco_top','wagon_top','kaka','kaka_face','kaczor_face','kaka_cheer','kaka_worry','kaka_face_worry','kaczor','kaczor_sleep','mikolaj','mik_body','mik_head','mik_collar','guest/walk_jugo','guest/walk_gayzilla','guest/walk_inez','guest/walk_kochanek','tree_bare','tree_deco','table_empty','table_set','lights','presents','gift','cookies_on_sideboard','wigilia'].map(n=>'art/'+n+'.webp');
   const auds=['audio/music.mp3','audio/intro.mp3','audio/kaczor_intro.mp3','audio/hub.mp3'];
   let ok=0; const total=imgs.length+auds.length;
   const tick=()=>{ ok++; const pct=Math.round(ok/total*100); $('#gFill').style.width=pct+'%'; $('#gTxt').textContent=`Wczytywanie… ${pct}%`; if(ok===total) ready(); };
