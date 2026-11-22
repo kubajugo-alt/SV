@@ -516,8 +516,8 @@ function render(){
   const all=TASKS.every(x=>done[x.id]);
   show('#star',all); show('#starhint',all);
   $('#dusk').style.opacity=TASKS.filter(x=>done[x.id]).length/TASKS.length*.7;
-  $('#zzz').style.display=done.lights?'none':'';
-  $('#kzSofa').src=done.lights?'art/kaczor.webp':'art/kaczor_sleep.webp';
+  // Kaczor dozes on the sofa the whole time; after the lights he goes straight back to sleep ("Nie widzi. Śpi.")
+  $('#zzz').style.display=''; $('#kzSofa').src='art/kaczor_sleep.webp';
 }
 document.querySelectorAll('.obj[data-task]').forEach(o=>o.addEventListener('click',()=>open(o.dataset.task)));
 $('#star').addEventListener('click',ending);
