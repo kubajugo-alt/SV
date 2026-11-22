@@ -235,6 +235,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 @media (max-width:640px){.ttray{flex-direction:row;flex-wrap:wrap;justify-content:center}}
 .titem{display:flex;align-items:center;gap:.5em;border:0;background:#fff;border-radius:14px;padding:.55em .9em;font-size:clamp(15px,1.9vw,18px);box-shadow:0 3px 0 #d9c7a5;cursor:grab;touch-action:none;user-select:none}
 .titem .ti{font-size:1.4em}
+.titem .tic{width:56px;height:44px;object-fit:contain;pointer-events:none}
 .titem.sel{box-shadow:0 0 0 3px var(--gold),0 3px 0 #d9c7a5}
 .titem.lifted{opacity:.35}
 .titem.ghost{position:fixed;z-index:100;pointer-events:none;transform:translate(-50%,-50%) rotate(-4deg) scale(1.08);box-shadow:0 10px 24px rgba(0,0,0,.3);opacity:.95}
@@ -621,7 +622,7 @@ table(card,win){
   const msg=el('<div class="msg">&nbsp;</div>');
   card.append(sub,lay,msg);
   const drop=lay.querySelector('.tdrop'), tray=lay.querySelector('.ttray'), cur=lay.querySelector('.tst'), nxt=lay.querySelector('.tnext');
-  const ORDER=[['Sianko','🌾','art/table/t1_hay.webp'],['Obrus','🤍','art/table/t2_cloth.webp'],['Opłatek','✨','art/table/t3_wafer.webp'],['Talerze','🍽️','art/table/t4_plates.webp'],['Świeca','🕯️','art/table/t5_candle.webp']];
+  const ORDER=[['Sianko','art/tico/sianko.webp','art/table/t1_hay.webp'],['Obrus','art/tico/obrus.webp','art/table/t2_cloth.webp'],['Opłatek','art/tico/oplatek.webp','art/table/t3_wafer.webp'],['Talerze','art/tico/talerze.webp','art/table/t4_plates.webp'],['Świeca','art/tico/swieca.webp','art/table/t5_candle.webp']];
   ORDER.forEach(o=>loadImg(o[2]));
   const HINT={Sianko:'Najpierw sianko — kładziemy je na gołym stole.',Obrus:'Teraz obrus — przykrywa sianko.',Opłatek:'Opłatek kładziemy na obrusie, na środku.',Talerze:'Talerze — i jeden więcej dla niespodziewanego gościa!',Świeca:'Na koniec świeca, dla nastroju.'};
   let step=0, timers=[], picked=null;
@@ -635,7 +636,7 @@ table(card,win){
     if(step===ORDER.length){ msg.textContent='Stół nakryty! Teraz najtrudniejsze — kto gdzie siedzi…'; timers.push(setTimeout(seating,1600)); }
   }
   shuffle(ORDER.slice()).forEach(([n,e])=>{
-    const it=el(`<button class="titem" role="listitem"><span class="ti">${e}</span>${n}</button>`); tray.append(it); it.dataset.name=n;
+    const it=el(`<button class="titem" role="listitem"><img class="tic" src="${e}" alt="" draggable="false">${n}</button>`); tray.append(it); it.dataset.name=n;
     // tap → select, then tap the table
     it.addEventListener('click',()=>{ if(it.dataset.dragged){ delete it.dataset.dragged; return; } tray.querySelectorAll('.titem').forEach(x=>x.classList.remove('sel')); picked=picked===it?null:it; if(picked) it.classList.add('sel'); });
     // drag (mouse or finger)
