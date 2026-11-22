@@ -208,6 +208,21 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 .rules li span{font-weight:700;width:1em;flex:none}
 .rules li.ok{background:#e3f1e2}.rules li.ok span{color:var(--green)}
 .rules li.bad{background:#fbe1dd}.rules li.bad span{color:var(--red)}
+.tlay{display:grid;grid-template-columns:1fr 170px;gap:14px;align-items:center}
+@media (max-width:640px){.tlay{grid-template-columns:1fr}}
+.tdrop{position:relative;aspect-ratio:1100/604;border-radius:16px;background:radial-gradient(ellipse at 50% 60%,#fff8ea,#f1e2c4);border:3px dashed transparent;transition:border-color .2s,transform .2s}
+.tdrop.over{border-color:var(--gold);background:radial-gradient(ellipse at 50% 60%,#fffbe8,#f6e6b8)}
+.tdrop.pop{transform:scale(1.02)}
+.tdrop .tst{position:absolute;inset:4%;width:92%;height:92%;object-fit:contain}
+.tdrop .tnext{opacity:0;transition:opacity .6s}.tdrop .tnext.show{opacity:1}
+.tdrop .thint{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);font-size:13px;opacity:.5;pointer-events:none}
+.ttray{display:flex;flex-direction:column;gap:10px}
+@media (max-width:640px){.ttray{flex-direction:row;flex-wrap:wrap;justify-content:center}}
+.titem{display:flex;align-items:center;gap:.5em;border:0;background:#fff;border-radius:14px;padding:.55em .9em;font-size:clamp(15px,1.9vw,18px);box-shadow:0 3px 0 #d9c7a5;cursor:grab;touch-action:none;user-select:none}
+.titem .ti{font-size:1.4em}
+.titem.sel{box-shadow:0 0 0 3px var(--gold),0 3px 0 #d9c7a5}
+.titem.lifted{opacity:.35}
+.titem.ghost{position:fixed;z-index:100;pointer-events:none;transform:translate(-50%,-50%) rotate(-4deg) scale(1.08);box-shadow:0 10px 24px rgba(0,0,0,.3);opacity:.95}
 .tablepic{display:block;width:min(520px,90%);margin:0 auto}
 #treeSvg{width:min(340px,75%);display:block;margin:0 auto}
 .bb{cursor:pointer;transition:filter .15s}
@@ -548,21 +563,44 @@ dishes(card,win){
 // 4. set the table: lay it in the right order, then solve the Wigilia seating plan
 table(card,win){
   card.append(el('<h2>🍽️ Nakrywamy do stołu</h2>'));
-  const pic=el('<img class="tablepic" src="art/table_empty.webp" alt="Stół">');
-  const sub=el('<p class="sub">Krok 1 z 2: co kładziemy najpierw? Wybieraj po kolei — od samego dołu.</p>'), stack=el('<div class="stack"></div>'), ch=el('<div class="choices"></div>'), msg=el('<div class="msg">&nbsp;</div>');
-  card.append(pic,sub,stack,ch,msg);
-  const ORDER=[['Sianko','🌾'],['Obrus','🤍'],['Opłatek','✨'],['Talerze','🍽️'],['Świeca','🕯️']];
-  const HINT={Sianko:'Sianko idzie pod obrus!',Obrus:'Obrus przykrywa sianko.',Opłatek:'Opłatek kładziemy na obrusie.',Talerze:'Talerze — zaraz po opłatku.',Świeca:'Świeca na koniec, dla nastroju.'};
-  let step=0, timers=[];
+  const sub=el('<p class="sub">Krok 1 z 2: przeciągnij rzeczy na stół we właściwej kolejności — od samego dołu. (Albo dotknij rzeczy, a potem stołu.)</p>');
+  const lay=el('<div class="tlay"><div class="tdrop" aria-label="Stół"><img class="tst" src="art/table_empty.webp" alt=""><img class="tst tnext" alt=""><span class="thint">upuść tutaj</span></div><div class="ttray" role="list"></div></div>');
+  const msg=el('<div class="msg">&nbsp;</div>');
+  card.append(sub,lay,msg);
+  const drop=lay.querySelector('.tdrop'), tray=lay.querySelector('.ttray'), cur=lay.querySelector('.tst'), nxt=lay.querySelector('.tnext');
+  const ORDER=[['Sianko','🌾','art/table/t1_hay.webp'],['Obrus','🤍','art/table/t2_cloth.webp'],['Opłatek','✨','art/table/t3_wafer.webp'],['Talerze','🍽️','art/table/t4_plates.webp'],['Świeca','🕯️','art/table/t5_candle.webp']];
+  ORDER.forEach(o=>loadImg(o[2]));
+  const HINT={Sianko:'Najpierw sianko — kładziemy je na gołym stole.',Obrus:'Teraz obrus — przykrywa sianko.',Opłatek:'Opłatek kładziemy na obrusie, na środku.',Talerze:'Talerze — i jeden więcej dla niespodziewanego gościa!',Świeca:'Na koniec świeca, dla nastroju.'};
+  let step=0, timers=[], picked=null;
+  function place(name,elm){
+    if(step>=ORDER.length) return;
+    if(name!==ORDER[step][0]){ elm.classList.add('shake'); setTimeout(()=>elm.classList.remove('shake'),400); msg.style.color='var(--red)'; msg.textContent='Hmm, jeszcze nie. '+HINT[ORDER[step][0]]; return; }
+    const src=ORDER[step][2]; step++; elm.remove(); picked=null;
+    nxt.src=src; nxt.classList.add('show'); timers.push(setTimeout(()=>{ cur.src=src; nxt.classList.remove('show'); },650));
+    drop.classList.add('pop'); setTimeout(()=>drop.classList.remove('pop'),400);
+    msg.style.color='var(--green)'; msg.textContent=['Pięknie!','Tak jest!','Właśnie tak!','Cudnie!','Gotowe!'][step-1];
+    if(step===ORDER.length){ msg.textContent='Stół nakryty! Teraz najtrudniejsze — kto gdzie siedzi…'; timers.push(setTimeout(seating,1600)); }
+  }
   shuffle(ORDER.slice()).forEach(([n,e])=>{
-    const b=el(`<button class="chip">${e} ${n}</button>`);
-    b.onclick=()=>{ if(n===ORDER[step][0]){ step++; b.remove(); stack.append(el(`<span>${e} ${n}</span>`)); msg.style.color='var(--green)'; msg.textContent='Tak!';
-        if(step===ORDER.length){ msg.textContent='Stół nakryty! Teraz najtrudniejsze — kto gdzie siedzi…'; timers.push(setTimeout(seating,1300)); } }
-      else { b.classList.add('shake'); setTimeout(()=>b.classList.remove('shake'),400); msg.style.color='var(--red)'; msg.textContent='Hmm, nie teraz. '+HINT[ORDER[step][0]]; } };
-    ch.append(b);
+    const it=el(`<button class="titem" role="listitem"><span class="ti">${e}</span>${n}</button>`); tray.append(it); it.dataset.name=n;
+    // tap → select, then tap the table
+    it.addEventListener('click',()=>{ if(it.dataset.dragged){ delete it.dataset.dragged; return; } tray.querySelectorAll('.titem').forEach(x=>x.classList.remove('sel')); picked=picked===it?null:it; if(picked) it.classList.add('sel'); });
+    // drag (mouse or finger)
+    it.addEventListener('pointerdown',e=>{
+      const sx=e.clientX, sy=e.clientY; let ghost=null;
+      const move=ev=>{ if(!ghost && Math.hypot(ev.clientX-sx,ev.clientY-sy)<8) return;
+        if(!ghost){ ghost=it.cloneNode(true); ghost.classList.add('ghost'); document.body.append(ghost); it.classList.add('lifted'); }
+        ghost.style.left=ev.clientX+'px'; ghost.style.top=ev.clientY+'px';
+        const r=drop.getBoundingClientRect(); drop.classList.toggle('over',ev.clientX>r.left&&ev.clientX<r.right&&ev.clientY>r.top&&ev.clientY<r.bottom); };
+      const up=ev=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); removeEventListener('pointercancel',up);
+        if(!ghost) return; ghost.remove(); it.classList.remove('lifted'); it.dataset.dragged='1';
+        const over=drop.classList.contains('over'); drop.classList.remove('over'); if(over) place(n,it); };
+      addEventListener('pointermove',move); addEventListener('pointerup',up); addEventListener('pointercancel',up);
+    });
   });
+  drop.addEventListener('click',()=>{ if(picked) place(picked.dataset.name,picked); });
   function seating(){
-    pic.remove(); stack.remove(); ch.remove(); msg.innerHTML='&nbsp;';
+    lay.remove(); msg.innerHTML='&nbsp;';
     sub.textContent='Krok 2 z 2: rozsadź gości przy wigilijnym stole. Dotknij osoby, potem miejsca. Spełnij wszystkie życzenia rodziny!';
     const G={kaka:['Kaka','face-kaka'],kaczor:['Kaczor','face-kaczor'],mikolaj:['Mikołaj','face-mikolaj'],jugo:['Jugo','face-jugo'],gay:['Gayzilla','face-gayzilla'],inez:['Inez','face-inez'],kochanek:['kochanek Inez','face-q']};
     const SEATS={t1:[28,13],t2:[50,13],t3:[72,13],R:[92,50],b2:[64,87],b1:[36,87],L:[8,50]};
