@@ -45,8 +45,19 @@ img{user-select:none;-webkit-user-drag:none}
 #oFire .tag{top:1cqw}
 #lightsMantel{position:absolute;left:16%;top:40.5%;width:23%;pointer-events:none;z-index:2}
 #lightsWindow{position:absolute;left:36.5%;top:10.5%;width:33%;pointer-events:none;z-index:2}
-.twinkle{animation:tw 1.4s ease-in-out infinite alternate}
-@keyframes tw{to{filter:brightness(1.35) drop-shadow(0 0 .5cqw #ffe9a0)}}
+.twinkle{animation:tw 2.7s linear infinite}
+#lightsWindow.twinkle{animation-duration:3.3s;animation-delay:-1.1s}
+@keyframes tw{0%{filter:brightness(1) drop-shadow(0 0 .25cqw #ffe9a0)}9%{filter:brightness(1.45) drop-shadow(0 0 .9cqw #ffd77a)}17%{filter:brightness(1.05) drop-shadow(0 0 .3cqw #ffe9a0)}31%{filter:brightness(1.3) drop-shadow(0 0 .7cqw #ffe9a0)}38%{filter:brightness(.92) drop-shadow(0 0 .2cqw #ffe9a0)}55%{filter:brightness(1.5) drop-shadow(0 0 1cqw #ffcf6a)}63%{filter:brightness(1.1) drop-shadow(0 0 .4cqw #ffe9a0)}79%{filter:brightness(1.35) drop-shadow(0 0 .8cqw #ffe9a0)}88%{filter:brightness(.97) drop-shadow(0 0 .25cqw #ffe9a0)}100%{filter:brightness(1) drop-shadow(0 0 .25cqw #ffe9a0)}}
+#treeDeco{animation:treeglow 3.1s linear infinite}
+@keyframes treeglow{0%,100%{filter:brightness(1)}18%{filter:brightness(1.12) drop-shadow(0 0 .6cqw rgba(255,220,130,.6))}35%{filter:brightness(1.02)}52%{filter:brightness(1.16) drop-shadow(0 0 .8cqw rgba(255,220,130,.7))}70%{filter:brightness(1.04)}86%{filter:brightness(1.1) drop-shadow(0 0 .5cqw rgba(255,220,130,.5))}}
+#snowWin{position:absolute;left:44.5%;top:18%;width:16.5%;height:33.5%;pointer-events:none}
+#fireglow{position:absolute;left:20%;top:49%;width:16%;height:28%;pointer-events:none;mix-blend-mode:screen;background:radial-gradient(ellipse at 50% 62%,rgba(255,180,70,.6),rgba(255,120,30,.28) 42%,transparent 70%);animation:fire 2.3s infinite}
+@keyframes fire{0%{opacity:.7;transform:scale(1)}11%{opacity:1;transform:scale(1.06)}24%{opacity:.74;transform:scale(.99)}37%{opacity:.95;transform:scale(1.03)}49%{opacity:.62;transform:scale(.97)}63%{opacity:1;transform:scale(1.05)}77%{opacity:.8}90%{opacity:.92;transform:scale(1.02)}100%{opacity:.7;transform:scale(1)}}
+#kzSofa{transform-origin:40% 100%;animation:breathe 3.8s ease-in-out infinite}
+@keyframes breathe{50%{transform:scaleY(1.012)}}
+#snowTitle{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#snowWin,#snowTitle{background:none!important;border-radius:0!important}
+#title>*:not(canvas){position:relative}
 #oSofa{left:36%;top:44%;width:30%;height:37%;cursor:default}
 #oSofa:hover{filter:none}
 #zzz{position:absolute;left:30%;top:-2%;font-size:2.4cqw;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6);animation:zz 2.4s ease-in-out infinite;pointer-events:none}
@@ -160,6 +171,8 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 <div id="app">
   <div id="stage" aria-label="Salon Kaki">
     <div id="dusk"></div>
+    <canvas id="snowWin" aria-hidden="true"></canvas>
+    <div id="fireglow" aria-hidden="true"></div>
     <button id="star" class="hidden" aria-label="Pierwsza gwiazdka"><svg viewBox="0 0 100 100"><path d="M50 4 L61 37 L96 37 L68 58 L78 92 L50 71 L22 92 L32 58 L4 37 L39 37Z" fill="#fff4b0"/></svg></button>
     <img id="lightsWindow" class="hidden twinkle" src="art/lights.webp" alt="">
 
@@ -183,6 +196,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 </div>
 
 <div id="title" class="ov">
+  <canvas class="snow" id="snowTitle" aria-hidden="true"></canvas>
   <div class="duo"><img src="art/kaka.webp" alt=""><img class="k2" src="art/kaczor.webp" alt=""></div>
   <h1>Świąteczna przygoda Kaki</h1>
   <p>Józefosław, koniec listopada. Kaka ma miesiąc, listę zadań i męża, który zaprzyjaźnił się z kanapą. Święta będą idealne — choćby nie wiem co.</p>
@@ -217,8 +231,8 @@ const LINES={
   train:['kaka','Mikołaj, kochanie, prezenty rozjechały się po całym salonie! Poprowadź pociąg i zbierz je wszystkie pod choinkę. Tylko nie wjedź w kanapę taty!'],
   bake:['kaka','Pierniczki! Łap miód, mąkę i przyprawy. Nie skarpetki. Skąd tu się wzięły skarpetki?'],
   tree:['kaka','Choinka jest taka goła. Powieś bombki tam, gdzie błyszczą!'],
-  dishes:['kaka','Dwanaście potraw na Wigilię. Znajdź pary, zanim zadzwoni Babcia, żeby nas sprawdzić!'],
-  table:['kaka','Sianko pod obrus, opłatek na wierzch i jeden talerz więcej dla niespodziewanego gościa. Nawet jeśli to tylko kot sąsiadów.'],
+  dishes:['kaka','Dwanaście potraw na Wigilię. Znajdź pary, zanim przyjdą goście! Bo kochanek Inez podobno je za trzech.'],
+  table:['kaka','Sianko pod obrus, opłatek na wierzch i jeden talerz więcej dla niespodziewanego gościa. W tym roku wiemy, kto to będzie… Inez przyprowadza swojego nieoczekiwanego, aktualnego… kochanka. Nie pytajcie, jak ma na imię. Ona też jeszcze nie jest pewna.'],
   lights:['kaka','Kaczor rozplątuje lampki. Pod nadzorem. Za każdym razem, jak przyśnie, obudź go!'],
   kaczor_awake:['kaczor','Nie śpię. Naprawdę nie śpię. Tylko oczy mi odpoczywają.'],
   done:['kaka','Gotowe! Pięknie! Kaczor, patrz! … Nie patrzy.'],
@@ -603,6 +617,20 @@ const started=Object.keys(done).length>0;
 if(started){ $('#startBtn').textContent='Graj dalej 🎄'; $('#resetBtn').classList.remove('hidden'); }
 $('#resetBtn').onclick=()=>{done={};save();render();go(true)};
 $('#startBtn').onclick=()=>go(!started);
+// falling snow (window and title screen); skipped for reduced-motion users
+function snowfall(cv,count,size){ const c=cv.getContext('2d'); let W=0,H=0,flakes=[];
+  function fit(){ const r=cv.getBoundingClientRect(), d=Math.min(2,devicePixelRatio||1); W=Math.max(1,r.width*d); H=Math.max(1,r.height*d); cv.width=W; cv.height=H;
+    flakes=Array.from({length:count},()=>({x:Math.random()*W,y:Math.random()*H,r:(.6+Math.random()*1.6)*size*d,v:(.25+Math.random()*.6)*size*d,ph:Math.random()*6.28})); }
+  fit(); addEventListener('resize',fit);
+  let last=performance.now();
+  (function tick(now){ const dt=Math.min(.05,(now-last)/1000)*60; last=now;
+    if(!document.hidden && cv.offsetParent!==null){ c.clearRect(0,0,W,H); c.fillStyle='rgba(255,255,255,.9)';
+      for(const f of flakes){ f.y+=f.v*dt; f.ph+=.02*dt; f.x+=Math.sin(f.ph)*.35*size*dt; if(f.y>H+5){f.y=-5;f.x=Math.random()*W;}
+        c.globalAlpha=.55+.45*(f.r/(2.2*size)); c.beginPath(); c.arc(f.x,f.y,f.r,0,6.283); c.fill(); }
+      c.globalAlpha=1; }
+    requestAnimationFrame(tick); })(last);
+}
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches){ snowfall($('#snowWin'),55,1); snowfall($('#snowTitle'),140,1.6); }
 function go(fresh){ $('#title').classList.add('hidden'); startMusic(); render(); say(fresh?['intro','kaczor_intro','hub']:['hub']); }
 render();
 })();
