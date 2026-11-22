@@ -660,7 +660,7 @@ bake(card,win){
   const need=el(`<div class="need">${ING.map(([n,l],i)=>`<span class="nd" data-i="${i}" title="${l}"><img src="art/ing/${n}.webp" alt="${l}"><b>0</b></span>`).join('')}</div>`);
   card.insertBefore(need,card.querySelector('.msg'));
   const missing=()=>ING.filter((_,i)=>!have[i]).map(x=>x[1]);
-  const NEED=20, caught=[]; let flyout=[], sockN=0;
+  const NEED=20, caught=[]; let flyout=[], falls=[], sockN=0;
   let bx=W/2, items=[], score=0, raf, last=performance.now(), keys={}, over=false;
   const mv=e=>{const r=cv.getBoundingClientRect(); bx=(e.clientX-r.left)/r.width*W;};
   cv.addEventListener('pointermove',mv); cv.addEventListener('pointerdown',mv);
@@ -670,18 +670,18 @@ bake(card,win){
     c.save(); c.translate(x,y); c.rotate(rot); c.drawImage(img,-w/2,-h/2,w,h); c.restore(); }
   function loop(now){
     const dt=Math.min(.05,(now-last)/1000); last=now;
-    if(keys.ArrowLeft) bx-=600*dt; if(keys.ArrowRight) bx+=600*dt; bx=Math.max(95,Math.min(W-95,bx));
+    if(keys.ArrowLeft) bx-=600*dt; if(keys.ArrowRight) bx+=600*dt; bx=Math.max(80,Math.min(W-80,bx));
     if(!over && Math.random()<dt*1.6){ const bad=Math.random()<.22; items.push({x:50+Math.random()*(W-100),y:-40,v:150+Math.random()*90+score*6,img:bad?BAD:GOOD[Math.random()*GOOD.length|0],bad,rot:0,vr:(Math.random()-.5)*2}); }
     c.clearRect(0,0,W,H);
     items.forEach(it=>{ it.y+=it.v*dt; it.rot+=it.vr*dt; draw(it.img,it.x,it.y,it.rot);
-      if(!it.hit && it.y>H-128 && it.y<H-72 && Math.abs(it.x-bx)<82){ it.hit=true;
+      if(!it.hit && it.y>H-112 && it.y<H-62 && Math.abs(it.x-bx)<60){ it.hit=true;
         if(it.bad){ const SOCK=[['sock1','„O! Tu jest moja skarpetka! Szukałem jej od listopada.”'],['sock2','„To nie moja. To znaczy… moja, ale czysta. Prawie.”'],['sock3','„Skarpetka w cieście? Dodaje charakteru.”']][sockN++%3];
           play(SOCK[0]); msg.style.color='var(--red)';
           if(caught.length){ const k=caught.pop(); score=Math.max(0,score-1); have[k]--; const nd=need.querySelector(`[data-i="${k}"]`); nd.querySelector('b').textContent=have[k]; if(!have[k]) nd.classList.remove('got');
-            flyout.push({img:GOOD[k],x:bx,y:H-100,vx:(Math.random()-.5)*260,vy:-420,rot:0,life:1});
+            flyout.push({img:GOOD[k],x:bx,y:H-86,vx:(Math.random()-.5)*260,vy:-420,rot:0,life:1});
             msg.textContent=`Skarpetka wyrzuciła z miski: ${ING[k][1]}! Kaczor: ${SOCK[1]}`; }
           else msg.textContent='Skarpetka Kaczora w pustej misce! Kaczor: '+SOCK[1]; }
-        else { score++; const k=GOOD.indexOf(it.img); have[k]++; caught.push(k); const nd=need.querySelector(`[data-i="${k}"]`); nd.classList.add('got','pulse'); nd.querySelector('b').textContent=have[k]; setTimeout(()=>nd.classList.remove('pulse'),300);
+        else { score++; const k=GOOD.indexOf(it.img); have[k]++; caught.push(k); falls.push({img:it.img,dx:it.x-bx,y0:it.y,rot:it.rot,t:0}); const nd=need.querySelector(`[data-i="${k}"]`); nd.classList.add('got','pulse'); nd.querySelector('b').textContent=have[k]; setTimeout(()=>nd.classList.remove('pulse'),300);
           msg.textContent=['Mniam!','Pięknie!','Jeszcze!','Tak trzymać!'][score%4]; msg.style.color='var(--green)';
           if(score>=NEED&&missing().length){ msg.style.color='var(--red)'; msg.textContent='Ciasto prawie gotowe, ale brakuje: '+missing().join(', ')+'!'; } }
       }});
@@ -690,7 +690,15 @@ bake(card,win){
     flyout.forEach(f=>{ f.vy+=900*dt; f.x+=f.vx*dt; f.y+=f.vy*dt; f.rot+=6*dt; f.life-=dt*.9; c.globalAlpha=Math.max(0,f.life); draw(f.img,f.x,f.y,f.rot); c.globalAlpha=1; });
     flyout=flyout.filter(f=>f.life>0&&f.y<H+60);
     // mixing bowl
-    if(BOWL.complete&&BOWL.naturalWidth){ const bw=190, bh=bw*BOWL.naturalHeight/BOWL.naturalWidth; c.save(); c.shadowColor='rgba(80,40,10,.3)'; c.shadowBlur=10; c.shadowOffsetY=4; c.drawImage(BOWL,bx-bw/2,H-6-bh,bw,bh); c.restore(); }
+    if(BOWL.complete&&BOWL.naturalWidth){ const bw=150, bh=bw*BOWL.naturalHeight/BOWL.naturalWidth, top=H-6-bh;
+      c.save(); c.shadowColor='rgba(80,40,10,.3)'; c.shadowBlur=10; c.shadowOffsetY=4; c.drawImage(BOWL,bx-bw/2,top,bw,bh); c.restore();
+      // caught ingredients visibly drop into the bowl: clipped to the space above the rim + the opening, so they sink behind the front wall
+      const cy=top+bh*.17, rx=bw*.46, ry=bh*.12;
+      falls.forEach(f=>{ f.t+=dt; const p=Math.min(1,f.t/.38), e=p*p;
+        const y=f.y0+(cy+ry*2.6-f.y0)*e, x=bx+f.dx*(1-p)*.6, sc=1-.3*p;
+        c.save(); c.beginPath(); c.rect(0,0,W,cy); c.ellipse(bx,cy,rx,ry,0,0,Math.PI*2); c.clip();
+        c.translate(x,y); c.scale(sc,sc); draw(f.img,0,0,f.rot+p*1.5); c.restore(); });
+      falls=falls.filter(f=>f.t<.38); }
     bar.firstChild.style.width=Math.min(100,score/NEED*100)+'%';
     if(score>=NEED && !missing().length && !over){ over=true; msg.style.color='var(--green)'; msg.textContent='Ciasto gotowe! 🍪'; win(); }
     raf=requestAnimationFrame(loop);
