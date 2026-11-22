@@ -476,6 +476,23 @@ const LINES={
   kk10:['kaka','Jeśli opłatek połamie się przed Wigilią, to ja połamię się razem z nim.'],
   kk11:['kaka','Choinka musi stać idealnie prosto. Mierzyłam poziomicą. Dwa razy.'],
   kk12:['kaka','Karp w wannie ma już imię. Tylko nie mówcie Mikołajowi.'],
+  kk13:['kaka','Jugo obiecał, że w tym roku przyniesie sałatkę. W zeszłym obiecał to samo. Przyniósł widelec.'],
+  kk14:['kaka','Jugo zawsze zjada cztery porcje pierogów, a potem mówi, że jest na diecie.'],
+  kk15:['kaka','Gayzilla zapowiedział, że przyjdzie w nowym swetrze. Już czuję, że przyćmi choinkę.'],
+  kk16:['kaka','Gayzilla zrobi zdjęcie każdej potrawie. Jedzenie wystygnie, ale na Instagramie będzie pięknie.'],
+  kk17:['kaka','Inez nie je karpia, bo ma za dużo ości. Ostatnio mówiła to samo o swoim byłym.'],
+  kk18:['kaka','Inez spóźni się godzinę. Ale wejdzie tak, jakby to był pokaz mody.'],
+  kk19:['kaka','Nieoczekiwany kochanek Inez… postawię mu talerz, ale bez wizytówki z imieniem. Na wszelki wypadek.'],
+  kk20:['kaka','Mam tylko nadzieję, że kochanek Inez nie przyjdzie z poprzednim kochankiem Inez.'],
+  kz11:['kaczor','Jugo przyjdzie z nalewką babci. Babcia nie wie.'],
+  kz12:['kaczor','Z Jugo zawsze kończy się tak samo. Śpiewamy kolędy o trzeciej w nocy. Fałszując.'],
+  kz13:['kaczor','Gayzilla ma więcej kremów do twarzy niż Kaka przypraw do pierników. A to dużo.'],
+  kz14:['kaczor','Gayzilla znowu zapyta, czy barszcz jest bezglutenowy. To jest buraczek, Gayzilla.'],
+  kz15:['kaczor','Kochanek Inez dostanie ode mnie prezent. Kalendarz. Żeby wiedział, ile mu zostało.'],
+  kz16:['kaczor','Inez mówi, że ma trzydzieści lat. Od dziesięciu lat.'],
+  kz17:['kaczor','Kaka ma listę zadań do listy zadań. Widziałem. Jest zalaminowana.'],
+  kz18:['kaczor','Kaka trzy razy przestawiała choinkę o dwa centymetry. Choinka chyba też ma dość.'],
+  kz19:['kaczor','Kaka śni o pierogach. Mówi przez sen: lepić, lepić, lepić.'],
   kz1:['kaczor','Nie śpię. Ja tylko… testuję kanapę. Przed świętami musi być sprawdzona.'],
   kz2:['kaczor','Kochanie, ja też mam listę. Punkt pierwszy: odpocząć. Punkt drugi: patrz punkt pierwszy.'],
   kz3:['kaczor','Karp jest dopiero w Wigilię? To obudź mnie w Wigilię.'],
@@ -556,13 +573,13 @@ function render(){
 document.querySelectorAll('.obj[data-task]').forEach(o=>o.addEventListener('click',()=>open(o.dataset.task)));
 $('#star').addEventListener('click',ending);
 $('#listToggle').onclick=()=>{ const o=$('#list').classList.toggle('open'); $('#listToggle').setAttribute('aria-expanded',o); };
-// Kaczor's one-liners: shuffled deck of all 10 (classic + Inez), no immediate repeats
+// Kaczor's one-liners: shuffled deck of all 19 (classic, guests, Kaka's obsession), no immediate repeats
 let kzBag=[], kzLast=0;
-function nextKz(){ if(!kzBag.length){ kzBag=shuffle(Array.from({length:10},(_,i)=>i+1)); if(kzBag[0]===kzLast) kzBag.push(kzBag.shift()); } kzLast=kzBag.shift(); return 'kz'+kzLast; }
+function nextKz(){ if(!kzBag.length){ kzBag=shuffle(Array.from({length:19},(_,i)=>i+1)); if(kzBag[0]===kzLast) kzBag.push(kzBag.shift()); } kzLast=kzBag.shift(); return 'kz'+kzLast; }
 $('#oSofa').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say([nextKz()]); });
 // Kaka's remarks: guests, Kaczor, and her Christmas-prep obsession (shuffled deck, no immediate repeats)
 let kkBag=[], kkLast=0;
-function nextKk(){ if(!kkBag.length){ kkBag=shuffle(Array.from({length:12},(_,i)=>i+1)); if(kkBag[0]===kkLast) kkBag.push(kkBag.shift()); } kkLast=kkBag.shift(); return 'kk'+kkLast; }
+function nextKk(){ if(!kkBag.length){ kkBag=shuffle(Array.from({length:20},(_,i)=>i+1)); if(kkBag[0]===kkLast) kkBag.push(kkBag.shift()); } kkLast=kkBag.shift(); return 'kk'+kkLast; }
 $('#oKaka').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say([nextKk()]); });
 // idle: after 30 s with nothing happening in the room, Kaczor pipes up on his own (and the bubble closes itself)
 let idleSec=0;
