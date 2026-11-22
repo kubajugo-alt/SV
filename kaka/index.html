@@ -19,7 +19,7 @@ img{user-select:none;-webkit-user-drag:none}
 #app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
 #stage{position:relative;width:min(100vw,179.1vh);aspect-ratio:1920/1072;background:#2a1d16 url(art/room.webp) center/cover;overflow:hidden;border-radius:6px;container-type:inline-size}
 /* window sky darkens as Wigilia approaches */
-#dusk{position:absolute;left:42.5%;top:18.5%;width:20.8%;height:34%;background:#0a1030;mix-blend-mode:multiply;opacity:0;transition:opacity 1.5s;pointer-events:none}
+#dusk{position:absolute;left:42%;top:16.5%;width:22.5%;height:37%;background:#0a1030;mix-blend-mode:multiply;opacity:0;transition:opacity 1.5s;pointer-events:none}
 #star{position:absolute;left:52%;top:22%;width:7%;aspect-ratio:1;border:0;background:none;padding:0;cursor:pointer;z-index:3}
 #star svg{width:100%;height:100%;filter:drop-shadow(0 0 1.2cqw #fff6b0);animation:pulse 2s ease-in-out infinite}
 @keyframes pulse{50%{transform:scale(1.15)}}
@@ -50,7 +50,8 @@ img{user-select:none;-webkit-user-drag:none}
 @keyframes tw{0%{filter:brightness(1) drop-shadow(0 0 .25cqw #ffe9a0)}9%{filter:brightness(1.45) drop-shadow(0 0 .9cqw #ffd77a)}17%{filter:brightness(1.05) drop-shadow(0 0 .3cqw #ffe9a0)}31%{filter:brightness(1.3) drop-shadow(0 0 .7cqw #ffe9a0)}38%{filter:brightness(.92) drop-shadow(0 0 .2cqw #ffe9a0)}55%{filter:brightness(1.5) drop-shadow(0 0 1cqw #ffcf6a)}63%{filter:brightness(1.1) drop-shadow(0 0 .4cqw #ffe9a0)}79%{filter:brightness(1.35) drop-shadow(0 0 .8cqw #ffe9a0)}88%{filter:brightness(.97) drop-shadow(0 0 .25cqw #ffe9a0)}100%{filter:brightness(1) drop-shadow(0 0 .25cqw #ffe9a0)}}
 #treeDeco{animation:treeglow 3.1s linear infinite}
 @keyframes treeglow{0%,100%{filter:brightness(1)}18%{filter:brightness(1.12) drop-shadow(0 0 .6cqw rgba(255,220,130,.6))}35%{filter:brightness(1.02)}52%{filter:brightness(1.16) drop-shadow(0 0 .8cqw rgba(255,220,130,.7))}70%{filter:brightness(1.04)}86%{filter:brightness(1.1) drop-shadow(0 0 .5cqw rgba(255,220,130,.5))}}
-#snowWin{position:absolute;left:44.5%;top:18%;width:16.5%;height:33.5%;pointer-events:none}
+#snowWin{position:absolute;left:42%;top:16.5%;width:22.5%;height:37%;pointer-events:none}
+#snowWin,#dusk{-webkit-mask:url(art/window_mask.png) 0 0/100% 100% no-repeat;mask:url(art/window_mask.png) 0 0/100% 100% no-repeat}
 #fireglow{position:absolute;left:20%;top:49%;width:16%;height:28%;pointer-events:none;mix-blend-mode:screen;background:radial-gradient(ellipse at 50% 62%,rgba(255,180,70,.6),rgba(255,120,30,.28) 42%,transparent 70%);animation:fire 2.3s infinite}
 @keyframes fire{0%{opacity:.7;transform:scale(1)}11%{opacity:1;transform:scale(1.06)}24%{opacity:.74;transform:scale(.99)}37%{opacity:.95;transform:scale(1.03)}49%{opacity:.62;transform:scale(.97)}63%{opacity:1;transform:scale(1.05)}77%{opacity:.8}90%{opacity:.92;transform:scale(1.02)}100%{opacity:.7;transform:scale(1)}}
 #kzSofa{transform-origin:40% 100%;animation:breathe 3.8s ease-in-out infinite}
@@ -199,7 +200,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
   <canvas class="snow" id="snowTitle" aria-hidden="true"></canvas>
   <div class="duo"><img src="art/kaka.webp" alt=""><img class="k2" src="art/kaczor.webp" alt=""></div>
   <h1>Świąteczna przygoda Kaki</h1>
-  <p>Józefosław, koniec listopada. Kaka ma miesiąc, listę zadań i męża, który zaprzyjaźnił się z kanapą. Święta będą idealne — choćby nie wiem co.</p>
+  <p>Józefosław, tuż przed świętami. Kaka ma listę zadań, synka z kolejką i męża, który zaprzyjaźnił się z kanapą. Święta będą idealne — choćby nie wiem co.</p>
   <button class="btn" id="startBtn">Zaczynamy! 🎄</button>
   <button class="btn alt hidden" id="resetBtn">Od nowa</button>
 </div>
@@ -225,7 +226,7 @@ const TASKS=[
   {id:'train', name:'Pociąg z Mikołajem'},
 ];
 const LINES={
-  intro:['kaka','Kaczor! Jest dwudziesty drugi listopada. Mamy miesiąc, jedną listę i zero pierniczków. Święta będą idealne. Choćby nie wiem co.'],
+  intro:['kaka','Kaczor! Święta tuż-tuż, a my mamy jedną listę i zero pierniczków. Święta będą idealne. Choćby nie wiem co.'],
   kaczor_intro:['kaczor','Mhm. Idealne. Obudź mnie na karpia.'],
   hub:['kaka','Wybierz zadanie, jakiekolwiek! No dobra… wszystkie sześć.'],
   train:['kaka','Mikołaj, kochanie, prezenty rozjechały się po całym salonie! Poprowadź pociąg i zbierz je wszystkie pod choinkę. Tylko nie wjedź w kanapę taty!'],
