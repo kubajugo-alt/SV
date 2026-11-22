@@ -803,9 +803,9 @@ table(card,win){
     const pool=el('<div class="choices pool"></div>'), rl=el('<ul class="rules"></ul>'), quip=el('<div class="quip" aria-live="polite"></div>');
     // a funny remark from Kaka or Kaczor every time someone is seated
     const QUIP={kaka:['kaczor','Kaka przy kuchni. Jakby co, ja nic nie gotuję.'],kaczor:['kaka','Kaczor, siedzisz prosto i nie śpisz. To nie była prośba.'],
-      mikolaj:['kaka','Mikołaj, karp nie jest do zabawy. Ości też nie.'],jugo:['kaczor','Jugo przyszedł. Chowajcie nalewkę.'],
-      gay:['kaka','Gayzilla już robi selfie z opłatkiem. Klasyk.'],inez:['kaczor','Inez, nie siadaj za blisko świeczek. Nie wszystko u ciebie jest ognioodporne.'],
-      kochanek:['kaka','Kochanek Inez… jak on ma na imię? Nieważne. Za rok i tak będzie inny.']};
+      mikolaj:['kaka','Mikołaj, karp nie jest do zabawy. Ości też nie.'],jugo:['kaczor','Jugo przy stole? Trzeba będzie schować nalewkę.'],
+      gay:['kaka','Gayzilla przy oknie. Już widzę, jak będzie robił selfie z opłatkiem.'],inez:['kaczor','Inezie trzeba dać miejsce z dala od świeczek. Nie wszystko u niej jest ognioodporne.'],
+      kochanek:['kaka','Kochanek Inez… ciekawe, jak ten będzie miał na imię. Nieważne. Za rok i tak będzie inny.']};
     function remark(k){ const [who,txt]=QUIP[k]; quip.innerHTML=`<i class="fc face-${who}"></i><span><b>${who==='kaka'?'Kaka':'Kaczor'}:</b> ${txt}</span>`; quip.classList.add('on'); play('seat_'+k); }
     card.insertBefore(quip,msg); card.insertBefore(box,msg); card.insertBefore(pool,msg); card.insertBefore(rl,msg);
     const seatOf={}, at={}; let sel=null, solved=false;
