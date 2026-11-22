@@ -289,8 +289,8 @@ function nextLine(){
   if(!dq.length){ d.classList.add('hidden'); if(cur)cur.pause(); const c=dcb; dcb=null; c&&c(); return; }
   const k=dq.shift(), [who,txt]=LINES[k];
   d.querySelector('.face').style.backgroundImage=`url("${FACES[who]}")`;
-  d.querySelector('.face').style.backgroundPosition=who==='kaka'?'50% 8%':'center';
-  d.querySelector('.face').style.backgroundSize=who==='kaka'?'260%':'cover';
+  d.querySelector('.face').style.backgroundPosition=who==='kaka'?'50% 8%':'24% 6%';
+  d.querySelector('.face').style.backgroundSize=who==='kaka'?'260%':'300%';
   d.querySelector('.who').textContent=NAMES[who];
   d.querySelector('.txt').textContent=txt;
   d.classList.remove('hidden');
