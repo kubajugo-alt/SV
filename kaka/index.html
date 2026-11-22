@@ -101,7 +101,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 .chip{border:0;background:#fff;border-radius:14px;padding:.6em 1em;font-size:clamp(15px,2vw,20px);box-shadow:0 3px 0 #d9c7a5}
 .stack{display:flex;gap:8px;flex-wrap:wrap;min-height:46px;justify-content:center;align-items:center;background:#f5e7cc;border-radius:12px;padding:8px}
 .stack span{background:#fff;border-radius:10px;padding:.3em .7em}
-.seatplan{position:relative;width:min(540px,100%);aspect-ratio:16/9;margin:40px auto 34px}
+.seatplan{position:relative;width:min(540px,100%);aspect-ratio:16/9;margin:40px auto 52px}
 .seatplan .stol{position:absolute;left:20%;right:20%;top:28%;bottom:28%;background:#fffdf6;border:4px solid #8a5a3a;border-radius:14px;box-shadow:inset 0 0 0 6px #f3e6c8,0 6px 14px rgba(0,0,0,.2);display:grid;place-items:center;font-size:clamp(18px,3vw,28px)}
 .seatplan .side{position:absolute;pointer-events:none;font-size:clamp(11px,1.6vw,14px);font-weight:600;opacity:.75}
 .s-top{left:50%;top:-14%;transform:translateX(-50%)}.s-bot{left:50%;bottom:-14%;transform:translateX(-50%)}
@@ -109,12 +109,19 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 .seat{position:absolute;transform:translate(-50%,-50%);width:clamp(58px,14%,80px);aspect-ratio:1;border-radius:50%;border:3px dashed #c9a877;background:#fff8ea;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;font-size:clamp(10px,1.4vw,13px);line-height:1.1}
 .seat.taken{border-style:solid;border-color:var(--green);background:#fff}
 .seat.sel,.chip.guest.sel{box-shadow:0 0 0 4px var(--gold)}
+.seat .fc{width:3.3em;height:3.3em}
+.chip.guest .fc{width:2.8em;height:2.8em}
 .seat .free{font-size:22px;opacity:.5}
 .seat b,.chip.guest b{font-weight:600}
 .em{font-style:normal;font-size:1.7em;line-height:1}
 .fc{display:inline-block;width:2.2em;height:2.2em;border-radius:50%;background-repeat:no-repeat;border:2px solid var(--red)}
 .face-kaka{background-image:url(art/kaka.webp);background-size:250%;background-position:50% 1%}
 .face-kaczor{background-image:url(art/kaczor.webp);background-size:330%;background-position:21% 0%}
+.face-jugo{background:#fff url(art/guest/jugo.webp) 50% 22%/150% no-repeat}
+.face-gayzilla{background:#fff url(art/guest/gayzilla.webp) 50% 18%/150% no-repeat}
+.face-inez{background:#fff url(art/guest/inez.webp) 58% 22%/150% no-repeat}
+.face-q{background:radial-gradient(circle at 50% 40%,#5b3a7a,#2a1840);position:relative}
+.face-q::after{content:'?';position:absolute;inset:0;display:grid;place-items:center;color:#ffe9a8;font-weight:700;font-size:1.5em;font-style:normal;text-shadow:0 2px 4px rgba(0,0,0,.5)}
 .face-mikolaj{background-image:url(art/mikolaj.webp);background-size:280%;background-position:53% 6%;background-color:#fff}
 .chip.guest{display:flex;flex-direction:column;align-items:center;gap:2px;padding:.4em .7em;font-size:clamp(12px,1.6vw,15px)}
 .allin{opacity:.7;font-weight:600}
@@ -394,7 +401,7 @@ table(card,win){
   function seating(){
     pic.remove(); stack.remove(); ch.remove(); msg.innerHTML='&nbsp;';
     sub.textContent='Krok 2 z 2: rozsadź gości przy wigilijnym stole. Dotknij osoby, potem miejsca. Spełnij wszystkie życzenia rodziny!';
-    const G={kaka:['Kaka','face-kaka'],kaczor:['Kaczor','face-kaczor'],mikolaj:['Mikołaj','face-mikolaj'],jugo:['Jugo','🧔'],gay:['Gayzilla','🦖'],inez:['Inez','💃'],kochanek:['kochanek Inez','🌹']};
+    const G={kaka:['Kaka','face-kaka'],kaczor:['Kaczor','face-kaczor'],mikolaj:['Mikołaj','face-mikolaj'],jugo:['Jugo','face-jugo'],gay:['Gayzilla','face-gayzilla'],inez:['Inez','face-inez'],kochanek:['kochanek Inez','face-q']};
     const SEATS={t1:[28,13],t2:[50,13],t3:[72,13],R:[92,50],b2:[64,87],b1:[36,87],L:[8,50]};
     const RING=['t1','t2','t3','R','b2','b1','L'], WIN=['t1','t2','t3'], N=RING.length;
     const adj=(a,b)=>{const i=RING.indexOf(a),j=RING.indexOf(b);return (i-j+N)%N===1||(j-i+N)%N===1;};
