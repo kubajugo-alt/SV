@@ -129,8 +129,9 @@ img{user-select:none;-webkit-user-drag:none}
 #kaka{position:absolute;right:.5%;bottom:1.5%;height:71%;pointer-events:none;filter:drop-shadow(0 .6cqw .8cqw rgba(0,0,0,.35));z-index:4}
 #kaka{transform-origin:50% 100%;animation:kIdle 4.6s ease-in-out infinite}
 @keyframes kIdle{0%,100%{transform:rotate(0) scaleY(1)}25%{transform:rotate(-.7deg) scaleY(1.007)}50%{transform:rotate(0) scaleY(1)}75%{transform:rotate(.7deg) scaleY(1.007)}}
-#kaka.talk{animation:kTalk .42s ease-in-out infinite alternate}
-@keyframes kTalk{from{transform:translateY(0) rotate(-1.2deg)}to{transform:translateY(-1%) rotate(1.2deg) scaleY(1.01)}}
+#kaka.talk{animation:kTalk 2.6s ease-in-out infinite}
+/* talking: small, irregular nods and a slight lean, not a sway */
+@keyframes kTalk{0%,100%{transform:translateY(0) rotate(0)}14%{transform:translateY(-.25%) rotate(-.25deg)}26%{transform:translateY(0) rotate(-.1deg)}47%{transform:translateY(-.2%) rotate(.2deg)}58%{transform:translateY(0) rotate(.1deg)}78%{transform:translateY(-.3%) rotate(-.15deg)}88%{transform:translateY(0) rotate(0)}}
 #kaka.cheer{animation:kHop .5s ease-out 4}
 @keyframes kHop{0%,100%{transform:translateY(0) scaleY(1)}35%{transform:translateY(-7%) scaleY(1.03)}70%{transform:translateY(0) scaleY(.96)}}
 /* checklist */
