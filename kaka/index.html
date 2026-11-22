@@ -380,6 +380,18 @@ $('#listToggle').onclick=()=>{ const o=$('#list').classList.toggle('open'); $('#
 let kzBag=[], kzLast=0;
 function nextKz(){ if(!kzBag.length){ kzBag=shuffle(Array.from({length:10},(_,i)=>i+1)); if(kzBag[0]===kzLast) kzBag.push(kzBag.shift()); } kzLast=kzBag.shift(); return 'kz'+kzLast; }
 $('#oSofa').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say([nextKz()]); });
+// idle: after 30 s with nothing happening in the room, Kaczor pipes up on his own (and the bubble closes itself)
+let idleSec=0;
+['pointerdown','pointermove','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{idleSec=0;},{passive:true,capture:true}));
+const roomFree=()=>['#title','#game','#end','#dlg'].every(id=>$(id).classList.contains('hidden'));
+setInterval(()=>{
+  if(!roomFree()||document.hidden){ idleSec=0; return; }
+  if(++idleSec<30) return;
+  idleSec=0; say([nextKz()]);
+  const txt=$('#dlg .txt').textContent, a=cur;
+  const close=()=>setTimeout(()=>{ if(!$('#dlg').classList.contains('hidden') && $('#dlg .txt').textContent===txt) nextLine(); },1800);
+  if(a){ a.addEventListener('ended',close,{once:true}); a.addEventListener('error',close,{once:true}); } else setTimeout(close,5000);
+},1000);
 
 // ---------- minigame shell ----------
 let stopGame=null;
