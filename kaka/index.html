@@ -765,12 +765,12 @@ lights(card,win){
 },
 // 6. Mikołaj's train: steer it around the floor, pick up presents (each adds a wagon)
 train(card,win){
-  card.append(el('<h2>🚂 Pociąg Mikołaja</h2>'),el('<p class="sub">Steruj pociągiem strzałkami, przesuwając palcem albo przyciskami. Zbierz 10 prezentów — każdy doczepia wagonik. Uważaj na ściany i własne wagoniki!</p>'));
+  card.append(el('<h2>🚂 Pociąg Mikołaja</h2>'),el('<p class="sub">Steruj pociągiem strzałkami, przesuwając palcem albo przyciskami. Zbierz 20 prezentów — każdy doczepia wagonik. Uważaj na ściany i własne wagoniki!</p>'));
   const bar=el('<div class="bar"><i></i></div>'), cv=document.createElement('canvas'), msg=el('<div class="msg">&nbsp;</div>');
   const pad=el('<div class="tpad"><button data-d="up">▲</button><button data-d="left">◀</button><button data-d="down">▼</button><button data-d="right">▶</button></div>');
   card.append(bar,cv,pad,msg);
   const C=50, COLS=16, ROWS=10, W=C*COLS, H=C*ROWS; cv.width=W; cv.height=H; cv.classList.add('trainCv'); const c=cv.getContext('2d');
-  const GOAL=10, giftImg=loadImg('art/gift.webp'), locoImg=loadImg('art/loco_top.webp'), wagonImg=loadImg('art/wagon_top.webp');
+  const GOAL=20, giftImg=loadImg('art/gift.webp'), locoImg=loadImg('art/loco_top.webp'), wagonImg=loadImg('art/wagon_top.webp');
   const D={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
   let body, prev, dir, queue=[], gift, got=0, acc=0, pause=0, over=false, raf, last=performance.now(), crashFlash=0;
   function reset(len){ body=[]; for(let i=0;i<len;i++) body.push({x:7-i,y:5}); prev=body.map(p=>({...p})); dir='right'; queue=[]; }
