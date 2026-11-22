@@ -656,7 +656,7 @@ bake(card,win){
   card.append(bar,cv,msg);
   const W=800,H=460; cv.width=W; cv.height=H; const c=cv.getContext('2d');
   const ING=[['miod','miód'],['maka','mąka'],['jajko','jajko'],['maslo','masło'],['orzechy','orzechy i przyprawy']];
-  const GOOD=ING.map(([n])=>loadImg('art/ing/'+n+'.webp')), BAD=loadImg('art/ing/skarpetka.webp'), have=ING.map(()=>0);
+  const GOOD=ING.map(([n])=>loadImg('art/ing/'+n+'.webp')), BAD=loadImg('art/ing/skarpetka.webp'), BOWL=loadImg('art/bowl.webp'), have=ING.map(()=>0);
   const need=el(`<div class="need">${ING.map(([n,l],i)=>`<span class="nd" data-i="${i}" title="${l}"><img src="art/ing/${n}.webp" alt="${l}"><b>0</b></span>`).join('')}</div>`);
   card.insertBefore(need,card.querySelector('.msg'));
   const missing=()=>ING.filter((_,i)=>!have[i]).map(x=>x[1]);
@@ -670,15 +670,15 @@ bake(card,win){
     c.save(); c.translate(x,y); c.rotate(rot); c.drawImage(img,-w/2,-h/2,w,h); c.restore(); }
   function loop(now){
     const dt=Math.min(.05,(now-last)/1000); last=now;
-    if(keys.ArrowLeft) bx-=600*dt; if(keys.ArrowRight) bx+=600*dt; bx=Math.max(70,Math.min(W-70,bx));
+    if(keys.ArrowLeft) bx-=600*dt; if(keys.ArrowRight) bx+=600*dt; bx=Math.max(95,Math.min(W-95,bx));
     if(!over && Math.random()<dt*1.6){ const bad=Math.random()<.22; items.push({x:50+Math.random()*(W-100),y:-40,v:150+Math.random()*90+score*6,img:bad?BAD:GOOD[Math.random()*GOOD.length|0],bad,rot:0,vr:(Math.random()-.5)*2}); }
     c.clearRect(0,0,W,H);
     items.forEach(it=>{ it.y+=it.v*dt; it.rot+=it.vr*dt; draw(it.img,it.x,it.y,it.rot);
-      if(!it.hit && it.y>H-80 && it.y<H-20 && Math.abs(it.x-bx)<75){ it.hit=true;
+      if(!it.hit && it.y>H-128 && it.y<H-72 && Math.abs(it.x-bx)<82){ it.hit=true;
         if(it.bad){ const SOCK=[['sock1','„O! Tu jest moja skarpetka! Szukałem jej od listopada.”'],['sock2','„To nie moja. To znaczy… moja, ale czysta. Prawie.”'],['sock3','„Skarpetka w cieście? Dodaje charakteru.”']][sockN++%3];
           play(SOCK[0]); msg.style.color='var(--red)';
           if(caught.length){ const k=caught.pop(); score=Math.max(0,score-1); have[k]--; const nd=need.querySelector(`[data-i="${k}"]`); nd.querySelector('b').textContent=have[k]; if(!have[k]) nd.classList.remove('got');
-            flyout.push({img:GOOD[k],x:bx,y:H-60,vx:(Math.random()-.5)*260,vy:-420,rot:0,life:1});
+            flyout.push({img:GOOD[k],x:bx,y:H-100,vx:(Math.random()-.5)*260,vy:-420,rot:0,life:1});
             msg.textContent=`Skarpetka wyrzuciła z miski: ${ING[k][1]}! Kaczor: ${SOCK[1]}`; }
           else msg.textContent='Skarpetka Kaczora w pustej misce! Kaczor: '+SOCK[1]; }
         else { score++; const k=GOOD.indexOf(it.img); have[k]++; caught.push(k); const nd=need.querySelector(`[data-i="${k}"]`); nd.classList.add('got','pulse'); nd.querySelector('b').textContent=have[k]; setTimeout(()=>nd.classList.remove('pulse'),300);
@@ -690,10 +690,7 @@ bake(card,win){
     flyout.forEach(f=>{ f.vy+=900*dt; f.x+=f.vx*dt; f.y+=f.vy*dt; f.rot+=6*dt; f.life-=dt*.9; c.globalAlpha=Math.max(0,f.life); draw(f.img,f.x,f.y,f.rot); c.globalAlpha=1; });
     flyout=flyout.filter(f=>f.life>0&&f.y<H+60);
     // mixing bowl
-    const g=c.createLinearGradient(0,H-70,0,H-10); g.addColorStop(0,'#d24a3f'); g.addColorStop(1,'#8e211b');
-    c.fillStyle=g; c.beginPath(); c.moveTo(bx-80,H-62); c.quadraticCurveTo(bx-70,H-8,bx,H-8); c.quadraticCurveTo(bx+70,H-8,bx+80,H-62); c.closePath(); c.fill();
-    c.fillStyle='#f6e7c8'; c.beginPath(); c.ellipse(bx,H-62,80,12,0,0,Math.PI*2); c.fill();
-    c.strokeStyle='#e9b949'; c.lineWidth=4; c.beginPath(); c.moveTo(bx-62,H-40); c.quadraticCurveTo(bx,H-30,bx+62,H-40); c.stroke();
+    if(BOWL.complete&&BOWL.naturalWidth){ const bw=190, bh=bw*BOWL.naturalHeight/BOWL.naturalWidth; c.save(); c.shadowColor='rgba(80,40,10,.3)'; c.shadowBlur=10; c.shadowOffsetY=4; c.drawImage(BOWL,bx-bw/2,H-6-bh,bw,bh); c.restore(); }
     bar.firstChild.style.width=Math.min(100,score/NEED*100)+'%';
     if(score>=NEED && !missing().length && !over){ over=true; msg.style.color='var(--green)'; msg.textContent='Ciasto gotowe! 🍪'; win(); }
     raf=requestAnimationFrame(loop);
@@ -1159,7 +1156,7 @@ function goFull(){ if(!matchMedia('(pointer:coarse)').matches) return; const d=d
   P.forEach(([x,y],i)=>{ const e=document.createElement('i'); e.style.left=x+'%'; e.style.top=y+'%';
     if(i%3===0) e.className='w'; e.style.animationDuration=(1.6+Math.random()*2.4).toFixed(2)+'s'; e.style.animationDelay=(-Math.random()*4).toFixed(2)+'s'; box.append(e); }); })();
 (function preload(){
-  const imgs=['room','title','stocking','loco_top','wagon_top','kaka','kaka_face','kaczor_face','kaka_cheer','kaka_worry','kaka_face_worry','kaczor','kaczor_sleep','mikolaj','mik_body','mik_head','mik_collar','guest/walk_jugo','guest/walk_gayzilla','guest/walk_inez','guest/walk_kochanek','tree_bare','tree_deco','table_empty','table_set','lights','presents','gift','cookies_on_sideboard','wigilia'].map(n=>'art/'+n+'.webp');
+  const imgs=['room','title','stocking','loco_top','wagon_top','kaka','kaka_face','kaczor_face','kaka_cheer','kaka_worry','kaka_face_worry','kaczor','kaczor_sleep','mikolaj','bowl','mik_body','mik_head','mik_collar','guest/walk_jugo','guest/walk_gayzilla','guest/walk_inez','guest/walk_kochanek','tree_bare','tree_deco','table_empty','table_set','lights','presents','gift','cookies_on_sideboard','wigilia'].map(n=>'art/'+n+'.webp');
   const auds=['audio/music.mp3','audio/intro.mp3','audio/kaczor_intro.mp3','audio/hub.mp3'];
   let ok=0; const total=imgs.length+auds.length;
   const tick=()=>{ ok++; const pct=Math.round(ok/total*100); $('#gFill').style.width=pct+'%'; $('#gTxt').textContent=`Wczytywanie… ${pct}%`; if(ok===total) ready(); };
