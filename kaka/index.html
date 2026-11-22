@@ -531,7 +531,9 @@ const FACES={kaka:['art/kaka_face.webp','cover','center'],kaczor:['art/kaczor_fa
 const NAMES={kaka:'Kaka',kaczor:'Kaczor'};
 
 let done={}; try{done=JSON.parse(localStorage.getItem('kaka-done')||'{}')}catch(e){}
-const save=()=>{try{localStorage.setItem('kaka-done',JSON.stringify(done))}catch(e){}};
+// preview link: ?final opens the room with every task done and the first star waiting (nothing is saved)
+const FINAL_PREVIEW=new URLSearchParams(location.search).has('final'); if(FINAL_PREVIEW) TASKS.forEach(t=>done[t.id]=true);
+const save=()=>{ if(FINAL_PREVIEW) return; try{localStorage.setItem('kaka-done',JSON.stringify(done))}catch(e){}};
 let muted=false, cur=null;
 // background music: loops quietly, dips while someone is talking
 const TRACKS=['audio/music.mp3','audio/music2.mp3']; let track=0;
