@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Świąteczna przygoda Kaki</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Lobster&display=swap" rel="stylesheet">
 <style>
 :root{
   --cream:#fbf3e4; --ink:#3b2a20; --red:#b8322a; --red-d:#8e211b; --green:#2f6b45; --gold:#e9b949;
@@ -20,9 +20,12 @@ img{user-select:none;-webkit-user-drag:none}
 #stage{position:relative;width:min(100vw,179.1vh);aspect-ratio:1920/1072;background:#2a1d16 url(art/room.webp) center/cover;overflow:hidden;border-radius:6px;container-type:inline-size}
 /* window sky darkens as Wigilia approaches */
 #dusk{position:absolute;left:42%;top:16.5%;width:22.5%;height:37%;background:#0a1030;mix-blend-mode:multiply;opacity:0;transition:opacity 1.5s;pointer-events:none}
-#star{position:absolute;left:52%;top:22%;width:7%;aspect-ratio:1;border:0;background:none;padding:0;cursor:pointer;z-index:3}
-#star svg{width:100%;height:100%;filter:drop-shadow(0 0 1.2cqw #fff6b0);animation:pulse 2s ease-in-out infinite}
-@keyframes pulse{50%{transform:scale(1.15)}}
+#star{position:absolute;left:54.5%;top:25%;width:5%;aspect-ratio:1;border:0;background:none;padding:0;cursor:pointer;border-radius:50%}
+#star svg{width:100%;height:100%;animation:starTw 3.4s ease-in-out infinite}
+#star .rays{transform-origin:50% 50%;animation:starRot 9s ease-in-out infinite}
+@keyframes starTw{0%,100%{opacity:.85;transform:scale(.92)}23%{opacity:1;transform:scale(1.05)}41%{opacity:.8;transform:scale(.95)}67%{opacity:1;transform:scale(1.1)}83%{opacity:.88;transform:scale(.97)}}
+@keyframes starRot{50%{transform:rotate(8deg)}}
+#star:hover svg,#star:focus-visible svg{filter:drop-shadow(0 0 .8cqw #fff)}
 /* room objects */
 .obj{position:absolute;border:0;background:none;padding:0;cursor:pointer;transition:filter .2s,transform .2s}
 .obj img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transition:opacity .8s}
@@ -32,12 +35,12 @@ img{user-select:none;-webkit-user-drag:none}
 .obj .todo{position:absolute;right:8%;top:6%;width:2.2cqw;height:2.2cqw;border-radius:50%;background:var(--red);color:#fff;font-size:1.3cqw;display:grid;place-items:center;font-weight:700;box-shadow:0 0 0 .25cqw #fff;animation:bob 1.6s ease-in-out infinite}
 .obj.done .todo{display:none}
 @keyframes bob{50%{transform:translateY(-.4cqw)}}
-#oTree{left:1.5%;bottom:14%;width:20%;height:53%}
+#oTree{left:.5%;bottom:10%;width:26%;height:68%}
 #oFire{left:16.5%;top:42%;width:21.5%;height:34%}
 #oMik{left:11.5%;bottom:2%;width:22%;aspect-ratio:900/746;z-index:3}
 #oMik img{filter:drop-shadow(0 .4cqw .6cqw rgba(0,0,0,.35))}
 #oMik .todo{right:30%;top:0}
-#presents{position:absolute;left:3%;bottom:13%;width:13%;z-index:2;pointer-events:none;filter:drop-shadow(0 .3cqw .5cqw rgba(0,0,0,.3))}
+#presents{position:absolute;left:4%;bottom:9%;width:15%;z-index:2;pointer-events:none;filter:drop-shadow(0 .3cqw .5cqw rgba(0,0,0,.3))}
 .trainCv{background:#b98352;touch-action:none;width:auto!important;max-width:100%;max-height:min(52vh,460px);margin:0 auto}
 .tpad{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(2,46px);gap:6px;justify-content:center;margin-top:8px}
 .tpad button{border:0;border-radius:12px;background:var(--green);color:#fff;font-size:22px;box-shadow:0 3px 0 #1d4a2e;touch-action:none}
@@ -59,20 +62,31 @@ img{user-select:none;-webkit-user-drag:none}
 #snowTitle{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #snowWin,#snowTitle{background:none!important;border-radius:0!important}
 #title>*:not(canvas){position:relative}
-#oSofa{left:36%;top:44%;width:30%;height:37%;cursor:default}
-#oSofa:hover{filter:none}
+#oSofa{left:41.5%;top:42.5%;width:23%;height:29%}
+#oSofa .tag{top:1cqw}
 #zzz{position:absolute;left:30%;top:-2%;font-size:2.4cqw;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6);animation:zz 2.4s ease-in-out infinite;pointer-events:none}
 @keyframes zz{0%{opacity:0;transform:translateY(.5cqw)}50%{opacity:1}100%{opacity:0;transform:translateY(-1.5cqw)}}
 #oSideboard{left:66%;top:38%;width:17%;height:41%}
 #cookies{position:absolute;left:66.5%;top:47.5%;width:6.5%;pointer-events:none;z-index:2}
 #oKitchen{left:84.5%;top:9%;width:15.5%;height:70%}
 #oKitchen .tag{top:3cqw}
-#oTable{left:51%;bottom:-2%;width:32%;height:33%}
+#oTable{left:45%;bottom:-5%;width:41%;height:42%}
 #oTree .tag{top:auto;bottom:-1cqw;transform:translate(-50%,100%)}
 #kaka{position:absolute;right:.5%;bottom:-2%;height:74%;pointer-events:none;filter:drop-shadow(0 .6cqw .8cqw rgba(0,0,0,.35));z-index:4}
+#kaka{transform-origin:50% 100%;animation:kIdle 4.6s ease-in-out infinite}
+@keyframes kIdle{0%,100%{transform:rotate(0) scaleY(1)}25%{transform:rotate(-.7deg) scaleY(1.007)}50%{transform:rotate(0) scaleY(1)}75%{transform:rotate(.7deg) scaleY(1.007)}}
+#kaka.talk{animation:kTalk .42s ease-in-out infinite alternate}
+@keyframes kTalk{from{transform:translateY(0) rotate(-1.2deg)}to{transform:translateY(-1%) rotate(1.2deg) scaleY(1.01)}}
+#kaka.cheer{animation:kHop .5s ease-out 4}
+@keyframes kHop{0%,100%{transform:translateY(0) scaleY(1)}35%{transform:translateY(-7%) scaleY(1.03)}70%{transform:translateY(0) scaleY(.96)}}
 /* checklist */
 #list{position:absolute;left:1.2%;top:2.5%;width:21%;background:#fffdf6;border-radius:.8cqw;padding:.9cqw 1.1cqw;box-shadow:var(--shadow);font-size:1.25cqw;transform:rotate(-1.5deg);z-index:5}
-#list h2{margin:0 0 .3em;font-size:1.2em;color:var(--red)}
+#list{width:auto!important;min-width:12%;padding:.5cqw .9cqw!important}
+#listToggle{border:0;background:none;font:inherit;font-weight:700;color:var(--red);font-size:1.2em;padding:.2em 0;display:flex;gap:.4em;align-items:center;cursor:pointer}
+#listToggle b{color:var(--ink);font-weight:600;font-size:.85em}
+#listToggle .chev{transition:transform .2s;color:var(--ink)}
+#list.open #listToggle .chev{transform:rotate(180deg)}
+#list:not(.open) #tasks{display:none}
 #list button{display:flex;align-items:center;gap:.5em;width:100%;text-align:left;border:0;background:none;padding:.2em .1em;color:var(--ink);font-size:1em;border-radius:6px}
 #list button:hover{background:#f6ead3}
 #list .box{width:1.1em;height:1.1em;border:2px solid var(--ink);border-radius:4px;flex:none;display:grid;place-items:center;font-size:.8em;color:var(--green)}
@@ -98,12 +112,19 @@ img{user-select:none;-webkit-user-drag:none}
 .shake{animation:shake .35s}
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 /* title */
-#title{background:linear-gradient(rgba(10,14,30,.55),rgba(10,14,30,.8)),url(art/room.webp) center/cover;flex-direction:column;color:#fff;text-align:center;gap:12px}
-#title h1{font-size:clamp(30px,6vw,64px);margin:0;color:#ffe9a8;text-shadow:0 4px 0 #8e211b}
-#title p{margin:0;max-width:580px;opacity:.95;font-size:clamp(14px,2vw,20px);text-shadow:0 1px 4px #000}
-#title .duo{display:flex;align-items:flex-end;gap:2vw;height:min(40vh,340px)}
-#title .duo img{height:100%;filter:drop-shadow(0 8px 14px rgba(0,0,0,.5))}
-#title .duo img.k2{height:62%}
+#title{background:#0d1426 url(art/title.webp) center/cover;flex-direction:column;justify-content:space-between;color:#fff;text-align:center;padding:4vh 16px 5vh}
+#title::before{content:'';position:absolute;inset:0;background:linear-gradient(rgba(6,10,28,.72) 0%,rgba(6,10,28,.15) 32%,rgba(6,10,28,0) 55%,rgba(6,10,28,.55) 82%,rgba(6,10,28,.85) 100%);pointer-events:none}
+.tLogo{display:flex;flex-direction:column;align-items:center;line-height:.9;animation:logoIn 1.2s cubic-bezier(.2,.8,.2,1) both}
+.tLogo .tSmall{font-family:Lobster,cursive;font-size:clamp(22px,3.6vw,46px);color:#ffe9a8;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+.tLogo .tBig{font-family:Lobster,cursive;font-size:clamp(64px,12vw,150px);color:#fff6dc;text-shadow:0 .05em 0 #8e211b,0 .09em 0 #5e140f,0 0 .4em rgba(255,214,130,.55);letter-spacing:.01em}
+.tLogo .tStar{font-size:.35em;color:#ffe9a8;vertical-align:super;animation:spark 2.4s ease-in-out infinite;display:inline-block}
+@keyframes spark{50%{opacity:.4;transform:scale(.7) rotate(20deg)}}
+@keyframes logoIn{from{opacity:0;transform:translateY(-18px) scale(.96)}}
+.tBottom{display:flex;flex-direction:column;align-items:center;gap:12px;animation:logoIn 1.2s .3s cubic-bezier(.2,.8,.2,1) both}
+.tTag{margin:0;max-width:600px;font-size:clamp(14px,1.9vw,19px);text-shadow:0 1px 6px #000;opacity:.95}
+.tBtns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+#title .btn{font-size:clamp(17px,2.2vw,22px);padding:.65em 1.8em}
+.tProg{margin:0;font-size:14px;opacity:.85;text-shadow:0 1px 4px #000}
 /* minigames */
 canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#fff6e5,#f0d9b0);touch-action:none}
 .bar{height:16px;background:#ecdcbf;border-radius:10px;overflow:hidden;margin:8px 0}
@@ -162,9 +183,22 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 .kzWrap img{width:100%;display:block;transition:filter .3s}
 .kzWrap.sleep img{filter:brightness(.75) saturate(.8)}
 .kzWrap .bub{position:absolute;left:18%;top:-4%;background:#fff;border-radius:16px;padding:.2em .6em;font-weight:700;font-size:clamp(18px,3vw,30px);box-shadow:0 3px 10px rgba(0,0,0,.25)}
-#end{flex-direction:column;background:#0d1426;color:#fff;text-align:center;gap:12px}
-#end h1{color:#ffe9a8;font-size:clamp(30px,6vw,60px);margin:0}
-#endArt{width:min(900px,94vw);max-height:58vh;object-fit:cover;border-radius:14px;box-shadow:0 0 60px rgba(255,220,120,.3)}
+#end{background:#0d1426;overflow:hidden;padding:0;flex-direction:column;justify-content:space-between;color:#fff;text-align:center}
+.endBg{position:absolute;left:50%;top:50%;width:max(100vw,178.6vh);height:max(100vh,56vw);transform:translate(-50%,-50%);background:url(art/wigilia.webp) center/100% 100% no-repeat;animation:kenburns 26s ease-in-out infinite alternate}
+@keyframes kenburns{from{transform:translate(-50%,-50%) scale(1)}to{transform:translate(-47%,-51%) scale(1.09)}}
+.endGlow{position:absolute;left:68.2%;top:15.3%;width:5%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,#fff 0 6%,rgba(255,250,220,.75) 14%,rgba(200,215,255,.25) 40%,transparent 70%);animation:starTw 3s ease-in-out infinite;mix-blend-mode:screen}
+#end::after{content:'';position:absolute;inset:0;background:linear-gradient(rgba(6,10,28,.55),rgba(6,10,28,0) 30%,rgba(6,10,28,0) 52%,rgba(6,10,28,.8));pointer-events:none}
+#snowEnd{position:absolute;inset:0;width:100%;height:100%;background:none!important;border-radius:0!important;pointer-events:none;z-index:1}
+.endTop,.endCard{position:relative;z-index:2}
+.endTop{padding-top:4vh}
+.endTop h1{font-family:Lobster,cursive;font-weight:400;font-size:clamp(52px,9vw,120px);margin:0;color:#fff6dc;text-shadow:0 .05em 0 #8e211b,0 .09em 0 #5e140f,0 0 .5em rgba(255,214,130,.6);animation:logoIn 1.4s .2s both}
+.endTop .from{font-family:Lobster,cursive;font-size:clamp(18px,2.6vw,30px);color:#ffe9a8;margin:.2em 0 0;text-shadow:0 2px 8px #000;animation:logoIn 1.4s .6s both}
+.endCard{margin:0 auto 4vh;width:min(760px,calc(100% - 32px));background:rgba(12,16,36,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,233,168,.25);border-radius:18px;padding:16px 18px;animation:logoIn 1.2s 1s both}
+.endList{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.endList li{background:rgba(255,246,220,.12);border:1px solid rgba(255,233,168,.3);border-radius:99px;padding:.3em .8em;font-size:clamp(12px,1.6vw,15px);opacity:0;animation:chipIn .5s both}
+.endList li::before{content:'✔ ';color:#9be3a8;font-weight:700}
+@keyframes chipIn{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+#endTxt{margin:0 0 12px;font-size:clamp(14px,1.8vw,17px);line-height:1.45;opacity:.95}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -174,7 +208,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
     <div id="dusk"></div>
     <canvas id="snowWin" aria-hidden="true"></canvas>
     <div id="fireglow" aria-hidden="true"></div>
-    <button id="star" class="hidden" aria-label="Pierwsza gwiazdka"><svg viewBox="0 0 100 100"><path d="M50 4 L61 37 L96 37 L68 58 L78 92 L50 71 L22 92 L32 58 L4 37 L39 37Z" fill="#fff4b0"/></svg></button>
+    <button id="star" class="hidden" aria-label="Pierwsza gwiazdka"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="sg"><stop offset="0" stop-color="#fff"/><stop offset=".12" stop-color="#fffbe8" stop-opacity=".95"/><stop offset=".35" stop-color="#dfe8ff" stop-opacity=".28"/><stop offset="1" stop-color="#dfe8ff" stop-opacity="0"/></radialGradient></defs><circle cx="50" cy="50" r="50" fill="url(#sg)"/><g class="rays" fill="#fff"><path d="M50 6 L51.2 48.8 L94 50 L51.2 51.2 L50 94 L48.8 51.2 L6 50 L48.8 48.8Z" opacity=".75"/><path d="M50 26 L50.7 49.3 L74 50 L50.7 50.7 L50 74 L49.3 50.7 L26 50 L49.3 49.3Z" opacity=".5" transform="rotate(45 50 50)"/></g><circle cx="50" cy="50" r="4.5" fill="#fff"/></svg></button>
     <img id="lightsWindow" class="hidden twinkle" src="art/lights.webp" alt="">
 
     <button class="obj" id="oTree" data-task="tree" aria-label="Choinka"><img id="treeBare" src="art/tree_bare.webp" alt=""><img id="treeDeco" src="art/tree_deco.webp" alt="" style="opacity:0"><span class="tag">🎄 Choinka</span><span class="todo">!</span></button>
@@ -182,14 +216,14 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
     <button class="obj" id="oMik" data-task="train" aria-label="Mikołaj: pociąg"><img src="art/mikolaj.webp" alt="Mikołaj bawi się kolejką"><span class="tag">🚂 Pociąg Mikołaja</span><span class="todo">!</span></button>
     <button class="obj" id="oFire" data-task="lights" aria-label="Kominek: lampki"><span class="tag">💡 Lampki z Kaczorem</span><span class="todo">!</span></button>
     <img id="lightsMantel" class="hidden twinkle" src="art/lights.webp" alt="">
-    <button class="obj" id="oSofa" tabindex="-1" aria-hidden="true"><img id="kzSofa" src="art/kaczor_sleep.webp" alt=""><span id="zzz">Zzz</span></button>
+    <button class="obj" id="oSofa" aria-label="Kaczor na kanapie"><img id="kzSofa" src="art/kaczor_sleep.webp" alt=""><span id="zzz">Zzz</span><span class="tag">💬 Kaczor</span></button>
     <button class="obj" id="oSideboard" data-task="dishes" aria-label="Kredens: przepisy"><span class="tag">📖 Dwanaście potraw</span><span class="todo">!</span></button>
     <img id="cookies" class="hidden" src="art/cookies.webp" alt="Pierniczki">
     <button class="obj" id="oKitchen" data-task="bake" aria-label="Kuchnia: pierniczki"><span class="tag">🍪 Kuchnia</span><span class="todo">!</span></button>
     <button class="obj" id="oTable" data-task="table" aria-label="Stół wigilijny"><img id="tableEmpty" src="art/table_empty.webp" alt=""><img id="tableSet" src="art/table_set.webp" alt="" style="opacity:0"><span class="tag">🍽️ Stół</span><span class="todo">!</span></button>
     <img id="kaka" src="art/kaka.webp" alt="Kaka">
 
-    <div id="list" aria-label="Lista Kaki"><h2>📋 Lista Kaki</h2><div id="tasks"></div></div>
+    <div id="list" aria-label="Lista Kaki"><button id="listToggle" aria-expanded="false">📋 Lista Kaki <b id="listCount">0/6</b> <span class="chev">▾</span></button><div id="tasks"></div></div>
     <div id="starhint" class="hidden">⭐ Spójrz w okno!</div>
     <button id="mute" title="Dźwięk">🔊</button>
     <div id="dlg" class="hidden"><div class="face"></div><div><div class="who"></div><div class="txt"></div></div><div class="next">dalej ▸</div></div>
@@ -198,20 +232,25 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 
 <div id="title" class="ov">
   <canvas class="snow" id="snowTitle" aria-hidden="true"></canvas>
-  <div class="duo"><img src="art/kaka.webp" alt=""><img class="k2" src="art/kaczor.webp" alt=""></div>
-  <h1>Świąteczna przygoda Kaki</h1>
-  <p>Józefosław, tuż przed świętami. Kaka ma listę zadań, synka z kolejką i męża, który zaprzyjaźnił się z kanapą. Święta będą idealne — choćby nie wiem co.</p>
-  <button class="btn" id="startBtn">Zaczynamy! 🎄</button>
-  <button class="btn alt hidden" id="resetBtn">Od nowa</button>
+  <div class="tLogo" role="heading" aria-level="1"><span class="tSmall">Świąteczna przygoda</span><span class="tBig">Kaki<span class="tStar">✦</span></span></div>
+  <div class="tBottom">
+    <p class="tTag">Józefosław, tuż przed świętami. Kaka ma listę zadań, synka z kolejką i męża, który zaprzyjaźnił się z kanapą. Święta będą idealne — choćby nie wiem co.</p>
+    <div class="tBtns"><button class="btn" id="startBtn">Zaczynamy! 🎄</button><button class="btn alt hidden" id="resetBtn">Od nowa</button></div>
+    <p class="tProg hidden" id="tProg"></p>
+  </div>
 </div>
 
 <div id="game" class="ov hidden"><div class="card" id="gameCard"></div></div>
 
 <div id="end" class="ov hidden">
-  <h1>Wesołych Świąt!</h1>
-  <img id="endArt" src="art/wigilia.webp" alt="Wigilia u Kaki">
-  <p id="endTxt" style="max-width:640px;font-size:clamp(15px,2vw,20px)"></p>
-  <button class="btn" id="againBtn">Zagraj jeszcze raz</button>
+  <div class="endBg" role="img" aria-label="Wigilia u Kaki: rodzina przy oknie patrzy na pierwszą gwiazdkę"><div class="endGlow"></div></div>
+  <canvas id="snowEnd" aria-hidden="true"></canvas>
+  <div class="endTop"><h1>Wesołych Świąt!</h1><p class="from">— Kaka, Kaczor i Mikołaj</p></div>
+  <div class="endCard">
+    <ul class="endList" id="endList"></ul>
+    <p id="endTxt"></p>
+    <button class="btn" id="againBtn">Zagraj jeszcze raz</button>
+  </div>
 </div>
 
 <script>
@@ -240,6 +279,12 @@ const LINES={
   retry:['kaka','Spokojnie! Święta wszystko wybaczą. Spróbuj jeszcze raz.'],
   star:['kaka','Kaczor… patrz. Pierwsza gwiazdka. Wesołych Świąt, kochanie.'],
   kaczor_star:['kaczor','Wesołych Świąt. … To co… już karp?'],
+  kz1:['kaczor','Nie śpię. Ja tylko… testuję kanapę. Przed świętami musi być sprawdzona.'],
+  kz2:['kaczor','Kochanie, ja też mam listę. Punkt pierwszy: odpocząć. Punkt drugi: patrz punkt pierwszy.'],
+  kz3:['kaczor','Karp jest dopiero w Wigilię? To obudź mnie w Wigilię.'],
+  kz4:['kaczor','Jeśli nie będę się ruszał… Kaka mnie nie zauważy.'],
+  kz5:['kaczor','Przecież pomagam. Pilnuję kanapy, żeby nikt jej nie ukradł przed świętami.'],
+  kz6:['kaczor','Mikołaj, pociąg jedzie za szybko. … Nie, nie wstanę. Tylko mówię.'],
 };
 // portrait crops: [image, background-size, background-position]
 const FACES={kaka:['art/kaka.webp','250%','50% 1%'],kaczor:['art/kaczor.webp','330%','21% 0%']};
@@ -264,9 +309,12 @@ let dq=[], dcb=null;
 function say(keys,cb){ dq=keys.slice(); dcb=cb; nextLine(); }
 function nextLine(){
   const d=$('#dlg');
-  if(!dq.length){ d.classList.add('hidden'); if(cur)cur.pause(); const c=dcb; dcb=null; c&&c(); return; }
+  if(!dq.length){ d.classList.add('hidden'); if(cur)cur.pause(); $('#kaka').classList.remove('talk','cheer'); $('#kaka').src='art/kaka.webp'; const c=dcb; dcb=null; c&&c(); return; }
   const k=dq.shift(), [who,txt]=LINES[k], f=FACES[who], face=d.querySelector('.face');
   face.style.backgroundImage=`url("${f[0]}")`; face.style.backgroundSize=f[1]; face.style.backgroundPosition=f[2];
+  const K=$('#kaka'); K.classList.remove('talk','cheer');
+  if(who==='kaka'&&(k==='done'||k==='star')){ K.src='art/kaka_cheer.webp'; void K.offsetWidth; K.classList.add('cheer'); }
+  else { K.src='art/kaka.webp'; if(who==='kaka') K.classList.add('talk'); }
   d.querySelector('.who').textContent=NAMES[who];
   d.querySelector('.txt').textContent=txt;
   d.classList.remove('hidden');
@@ -283,6 +331,7 @@ function render(){
     b.onclick=()=>open(task.id);
     t.appendChild(b);
   });
+  $('#listCount').textContent=`${TASKS.filter(x=>done[x.id]).length}/${TASKS.length}`;
   const show=(sel,on)=>$(sel).classList.toggle('hidden',!on);
   show('#cookies',done.bake); show('#presents',done.train); show('#lightsMantel',done.lights); show('#lightsWindow',done.lights);
   $('#treeDeco').style.opacity=done.tree?1:0; $('#treeBare').style.opacity=done.tree?0:1;
@@ -296,6 +345,8 @@ function render(){
 }
 document.querySelectorAll('.obj[data-task]').forEach(o=>o.addEventListener('click',()=>open(o.dataset.task)));
 $('#star').addEventListener('click',ending);
+$('#listToggle').onclick=()=>{ const o=$('#list').classList.toggle('open'); $('#listToggle').setAttribute('aria-expanded',o); };
+let kzLine=0; $('#oSofa').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say(['kz'+(kzLine%6+1)]); kzLine++; });
 
 // ---------- minigame shell ----------
 let stopGame=null;
@@ -608,14 +659,16 @@ train(card,win){
 function ending(){
   say(['star','kaczor_star'],()=>{
     $('#end').classList.remove('hidden');
-    $('#endTxt').textContent='Pierwsza gwiazdka zabłysła. Pierniczki upieczone, choinka ubrana, dwanaście potraw na stole, sianko pod obrusem, talerz dla nieoczekiwanego kochanka Inez, lampki rozplątane, a prezenty — dzięki pociągowi Mikołaja — leżą pod choinką. Kaczor nawet nie zasnął przy barszczu. Prawie.';
+    const items=['🍪 pierniczki','🎄 choinka','📖 12 potraw','🍽️ stół i goście','💡 lampki','🚂 prezenty'];
+    $('#endList').innerHTML=items.map((t,i)=>`<li style="animation-delay:${1.4+i*.18}s">${t}</li>`).join('');
+    $('#endTxt').textContent='Pierwsza gwiazdka zabłysła. Wszystko gotowe: Kaczor nawet nie zasnął przy barszczu (prawie), Mikołaj dowiózł prezenty pod choinkę, a nieoczekiwany kochanek Inez zjadł za trzech.';
   });
 }
 $('#againBtn').onclick=()=>{done={};save();render();$('#end').classList.add('hidden');say(['hub']);};
 
 // ---------- title ----------
 const started=Object.keys(done).length>0;
-if(started){ $('#startBtn').textContent='Graj dalej 🎄'; $('#resetBtn').classList.remove('hidden'); }
+if(started){ $('#startBtn').textContent='Graj dalej 🎄'; $('#resetBtn').classList.remove('hidden'); const n=TASKS.filter(t=>done[t.id]).length; $('#tProg').textContent=`Gotowe: ${n} z ${TASKS.length} zadań`; $('#tProg').classList.remove('hidden'); }
 $('#resetBtn').onclick=()=>{done={};save();render();go(true)};
 $('#startBtn').onclick=()=>go(!started);
 // falling snow (window and title screen); skipped for reduced-motion users
@@ -625,13 +678,13 @@ function snowfall(cv,count,size){ const c=cv.getContext('2d'); let W=0,H=0,flake
   fit(); addEventListener('resize',fit);
   let last=performance.now();
   (function tick(now){ const dt=Math.min(.05,(now-last)/1000)*60; last=now;
-    if(!document.hidden && cv.offsetParent!==null){ c.clearRect(0,0,W,H); c.fillStyle='rgba(255,255,255,.9)';
+    if(!document.hidden && cv.offsetParent!==null){ const r=cv.getBoundingClientRect(), d=Math.min(2,devicePixelRatio||1); if(Math.abs(r.width*d-W)>2||Math.abs(r.height*d-H)>2) fit(); c.clearRect(0,0,W,H); c.fillStyle='rgba(255,255,255,.9)';
       for(const f of flakes){ f.y+=f.v*dt; f.ph+=.02*dt; f.x+=Math.sin(f.ph)*.35*size*dt; if(f.y>H+5){f.y=-5;f.x=Math.random()*W;}
         c.globalAlpha=.55+.45*(f.r/(2.2*size)); c.beginPath(); c.arc(f.x,f.y,f.r,0,6.283); c.fill(); }
       c.globalAlpha=1; }
     requestAnimationFrame(tick); })(last);
 }
-if(!matchMedia('(prefers-reduced-motion: reduce)').matches){ snowfall($('#snowWin'),55,1); snowfall($('#snowTitle'),140,1.6); }
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches){ snowfall($('#snowWin'),55,1); snowfall($('#snowTitle'),140,1.6); snowfall($('#snowEnd'),120,1.5); }
 function go(fresh){ $('#title').classList.add('hidden'); startMusic(); render(); say(fresh?['intro','kaczor_intro','hub']:['hub']); }
 render();
 })();
