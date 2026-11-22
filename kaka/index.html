@@ -34,7 +34,14 @@ img{user-select:none;-webkit-user-drag:none}
 @keyframes bob{50%{transform:translateY(-.4cqw)}}
 #oTree{left:1.5%;bottom:14%;width:20%;height:53%}
 #oFire{left:16.5%;top:42%;width:21.5%;height:34%}
-#mikolaj{position:absolute;left:11.5%;bottom:2%;width:22%;pointer-events:none;z-index:3;filter:drop-shadow(0 .4cqw .6cqw rgba(0,0,0,.35))}
+#oMik{left:11.5%;bottom:2%;width:22%;aspect-ratio:900/746;z-index:3}
+#oMik img{filter:drop-shadow(0 .4cqw .6cqw rgba(0,0,0,.35))}
+#oMik .todo{right:30%;top:0}
+#presents{position:absolute;left:3%;bottom:13%;width:13%;z-index:2;pointer-events:none;filter:drop-shadow(0 .3cqw .5cqw rgba(0,0,0,.3))}
+.trainCv{background:#b98352;touch-action:none;width:auto!important;max-width:100%;max-height:min(52vh,460px);margin:0 auto}
+.tpad{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(2,46px);gap:6px;justify-content:center;margin-top:8px}
+.tpad button{border:0;border-radius:12px;background:var(--green);color:#fff;font-size:22px;box-shadow:0 3px 0 #1d4a2e;touch-action:none}
+.tpad [data-d=up]{grid-column:2}.tpad [data-d=left]{grid-column:1;grid-row:2}.tpad [data-d=down]{grid-column:2;grid-row:2}.tpad [data-d=right]{grid-column:3;grid-row:2}
 #oFire .tag{top:1cqw}
 #lightsMantel{position:absolute;left:16%;top:40.5%;width:23%;pointer-events:none;z-index:2}
 #lightsWindow{position:absolute;left:36.5%;top:10.5%;width:33%;pointer-events:none;z-index:2}
@@ -157,7 +164,8 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
     <img id="lightsWindow" class="hidden twinkle" src="art/lights.webp" alt="">
 
     <button class="obj" id="oTree" data-task="tree" aria-label="Choinka"><img id="treeBare" src="art/tree_bare.webp" alt=""><img id="treeDeco" src="art/tree_deco.webp" alt="" style="opacity:0"><span class="tag">🎄 Choinka</span><span class="todo">!</span></button>
-    <img id="mikolaj" src="art/mikolaj.webp" alt="Mikołaj bawi się kolejką">
+    <img id="presents" class="hidden" src="art/presents.webp" alt="Prezenty pod choinką">
+    <button class="obj" id="oMik" data-task="train" aria-label="Mikołaj: pociąg"><img src="art/mikolaj.webp" alt="Mikołaj bawi się kolejką"><span class="tag">🚂 Pociąg Mikołaja</span><span class="todo">!</span></button>
     <button class="obj" id="oFire" data-task="lights" aria-label="Kominek: lampki"><span class="tag">💡 Lampki z Kaczorem</span><span class="todo">!</span></button>
     <img id="lightsMantel" class="hidden twinkle" src="art/lights.webp" alt="">
     <button class="obj" id="oSofa" tabindex="-1" aria-hidden="true"><img id="kzSofa" src="art/kaczor_sleep.webp" alt=""><span id="zzz">Zzz</span></button>
@@ -200,11 +208,13 @@ const TASKS=[
   {id:'dishes',name:'Dwanaście potraw'},
   {id:'table', name:'Nakryć do stołu'},
   {id:'lights',name:'Lampki (z Kaczorem)'},
+  {id:'train', name:'Pociąg z Mikołajem'},
 ];
 const LINES={
   intro:['kaka','Kaczor! Jest dwudziesty drugi listopada. Mamy miesiąc, jedną listę i zero pierniczków. Święta będą idealne. Choćby nie wiem co.'],
   kaczor_intro:['kaczor','Mhm. Idealne. Obudź mnie na karpia.'],
-  hub:['kaka','Wybierz zadanie, jakiekolwiek! No dobra… wszystkie pięć.'],
+  hub:['kaka','Wybierz zadanie, jakiekolwiek! No dobra… wszystkie sześć.'],
+  train:['kaka','Mikołaj, kochanie, prezenty rozjechały się po całym salonie! Poprowadź pociąg i zbierz je wszystkie pod choinkę. Tylko nie wjedź w kanapę taty!'],
   bake:['kaka','Pierniczki! Łap miód, mąkę i przyprawy. Nie skarpetki. Skąd tu się wzięły skarpetki?'],
   tree:['kaka','Choinka jest taka goła. Powieś bombki tam, gdzie błyszczą!'],
   dishes:['kaka','Dwanaście potraw na Wigilię. Znajdź pary, zanim zadzwoni Babcia, żeby nas sprawdzić!'],
@@ -259,13 +269,13 @@ function render(){
     t.appendChild(b);
   });
   const show=(sel,on)=>$(sel).classList.toggle('hidden',!on);
-  show('#cookies',done.bake); show('#lightsMantel',done.lights); show('#lightsWindow',done.lights);
+  show('#cookies',done.bake); show('#presents',done.train); show('#lightsMantel',done.lights); show('#lightsWindow',done.lights);
   $('#treeDeco').style.opacity=done.tree?1:0; $('#treeBare').style.opacity=done.tree?0:1;
   $('#tableSet').style.opacity=done.table?1:0; $('#tableEmpty').style.opacity=done.table?0:1;
   document.querySelectorAll('.obj[data-task]').forEach(o=>o.classList.toggle('done',!!done[o.dataset.task]));
   const all=TASKS.every(x=>done[x.id]);
   show('#star',all); show('#starhint',all);
-  $('#dusk').style.opacity=TASKS.filter(x=>done[x.id]).length/5*.7;
+  $('#dusk').style.opacity=TASKS.filter(x=>done[x.id]).length/TASKS.length*.7;
   $('#zzz').style.display=done.lights?'none':'';
   $('#kzSofa').src=done.lights?'art/kaczor.webp':'art/kaczor_sleep.webp';
 }
@@ -508,13 +518,82 @@ lights(card,win){
   load(); kzState('awake'); raf=requestAnimationFrame(loop);
   return ()=>{dead=true; cancelAnimationFrame(raf); timers.forEach(clearTimeout);};
 },
+// 6. Mikołaj's train: steer it around the floor, pick up presents (each adds a wagon)
+train(card,win){
+  card.append(el('<h2>🚂 Pociąg Mikołaja</h2>'),el('<p class="sub">Steruj pociągiem strzałkami, przesuwając palcem albo przyciskami. Zbierz 10 prezentów — każdy doczepia wagonik. Uważaj na ściany i własne wagoniki!</p>'));
+  const bar=el('<div class="bar"><i></i></div>'), cv=document.createElement('canvas'), msg=el('<div class="msg">&nbsp;</div>');
+  const pad=el('<div class="tpad"><button data-d="up">▲</button><button data-d="left">◀</button><button data-d="down">▼</button><button data-d="right">▶</button></div>');
+  card.append(bar,cv,pad,msg);
+  const C=40, COLS=20, ROWS=12, W=C*COLS, H=C*ROWS; cv.width=W; cv.height=H; cv.classList.add('trainCv'); const c=cv.getContext('2d');
+  const GOAL=10, giftImg=loadImg('art/gift.webp');
+  const D={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+  let body, prev, dir, queue=[], gift, got=0, acc=0, pause=0, over=false, raf, last=performance.now(), crashFlash=0;
+  function reset(len){ body=[]; for(let i=0;i<len;i++) body.push({x:9-i,y:6}); prev=body.map(p=>({...p})); dir='right'; queue=[]; }
+  function placeGift(){ for(let t=0;t<500;t++){ const g={x:1+Math.random()*(COLS-2)|0,y:1+Math.random()*(ROWS-2)|0}; if(!body.some(b=>b.x===g.x&&b.y===g.y)&&Math.abs(g.x-body[0].x)+Math.abs(g.y-body[0].y)>3){gift=g;return;} } }
+  reset(1); placeGift();
+  const opposite={up:'down',down:'up',left:'right',right:'left'};
+  function turn(d){ if(over) return; const lastDir=queue.length?queue[queue.length-1]:dir; if(d===lastDir||(d===opposite[lastDir]&&body.length>1)) return; if(queue.length<2) queue.push(d); }
+  const KEYS={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right'};
+  const kd=e=>{ const d=KEYS[e.key]; if(d){ e.preventDefault(); turn(d);} }; addEventListener('keydown',kd);
+  pad.querySelectorAll('button').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault(); turn(b.dataset.d);}));
+  let sw=null; cv.addEventListener('pointerdown',e=>{sw={x:e.clientX,y:e.clientY};});
+  cv.addEventListener('pointerup',e=>{ if(!sw) return; const dx=e.clientX-sw.x, dy=e.clientY-sw.y; sw=null; if(Math.max(Math.abs(dx),Math.abs(dy))<18) return; turn(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up')); });
+  function crash(){ const keep=Math.max(1,body.length-2); const lost=body.length-keep; reset(keep); pause=1.1; crashFlash=.4;
+    msg.style.color='var(--red)'; msg.textContent=lost?`Ups! Pociąg się wykoleił — odpadły ${lost===1?'wagonik':'dwa wagoniki'}.`:'Ups! Pociąg się wykoleił.';
+    cv.classList.add('shake'); setTimeout(()=>cv.classList.remove('shake'),400); }
+  function step(){ if(queue.length) dir=queue.shift(); const [dx,dy]=D[dir], h=body[0], n={x:h.x+dx,y:h.y+dy};
+    prev=body.map(p=>({...p}));
+    const willEat=gift&&n.x===gift.x&&n.y===gift.y;
+    const hitsSelf=body.some((b,i)=>b.x===n.x&&b.y===n.y&&(willEat||i<body.length-1));
+    if(n.x<0||n.y<0||n.x>=COLS||n.y>=ROWS||hitsSelf){ crash(); return; }
+    body.unshift(n); prev.unshift({...h});
+    if(willEat){ got++; bar.firstChild.style.width=got/GOAL*100+'%'; msg.style.color='var(--green)';
+      msg.textContent=got>=GOAL?'Wszystkie prezenty jadą pod choinkę! 🎁':['Hura!','Jeszcze jeden wagonik!','Ciuch-ciuch!','Brawo, maszynisto!'][got%4]+` (${got}/${GOAL})`;
+      if(got>=GOAL){ over=true; win(); } else placeGift(); }
+    else { body.pop(); }
+    while(prev.length>body.length) prev.pop(); }
+  function seg(i,t){ const a=prev[i]||body[i], b=body[i]; return {x:(a.x+(b.x-a.x)*t+.5)*C, y:(a.y+(b.y-a.y)*t+.5)*C}; }
+  function drawFloor(){ c.fillStyle='#b98352'; c.fillRect(0,0,W,H);
+    for(let y=0;y<ROWS;y++){ c.fillStyle=y%2?'#b07a4a':'#bd8a58'; c.fillRect(0,y*C,W,C); c.fillStyle='rgba(80,45,20,.25)'; c.fillRect(0,y*C,W,2);
+      for(let x=(y%2)*3;x<COLS;x+=6) c.fillRect(x*C,y*C,2,C); }
+    c.strokeStyle='rgba(255,240,210,.18)'; c.lineWidth=1; }
+  function drawGift(g){ const x=(g.x+.5)*C, y=(g.y+.5)*C, s=C*1.05+Math.sin(performance.now()/250)*2;
+    if(giftImg.complete&&giftImg.naturalWidth) c.drawImage(giftImg,x-s/2,y-s/2,s,s);
+    else { c.fillStyle='#c0392b'; c.fillRect(x-14,y-14,28,28); c.fillStyle='#e9b949'; c.fillRect(x-3,y-14,6,28); c.fillRect(x-14,y-3,28,6); } }
+  function drawLoco(p,ang){ c.save(); c.translate(p.x,p.y); c.rotate(ang); c.scale(1.3,1.3);
+    c.fillStyle='#2b2b2b'; c.fillRect(-16,-15,32,4); c.fillRect(-16,11,32,4);
+    c.fillStyle='#2f6b45'; c.beginPath(); c.roundRect(-17,-12,20,24,4); c.fill();
+    c.fillStyle='#c0392b'; c.beginPath(); c.roundRect(0,-10,18,20,6); c.fill();
+    c.fillStyle='#e9b949'; c.fillRect(2,-10,3,20); c.fillStyle='#222'; c.beginPath(); c.arc(11,0,5,0,Math.PI*2); c.fill();
+    c.fillStyle='#fff7d0'; c.beginPath(); c.arc(18,0,3.5,0,Math.PI*2); c.fill();
+    c.fillStyle='#fff'; c.beginPath(); c.arc(-10,-4,3,0,Math.PI*2); c.fill(); c.restore(); }
+  function drawWagon(p,ang,i){ c.save(); c.translate(p.x,p.y); c.rotate(ang); c.scale(1.2,1.2);
+    c.fillStyle='#2b2b2b'; c.fillRect(-14,-15,28,4); c.fillRect(-14,11,28,4);
+    c.fillStyle=i%2?'#c0392b':'#2f6b45'; c.beginPath(); c.roundRect(-15,-12,30,24,4); c.fill();
+    c.fillStyle='#e9b949'; c.fillRect(-15,-2,30,4); c.restore();
+    if(giftImg.complete&&giftImg.naturalWidth) c.drawImage(giftImg,p.x-14,p.y-17,28,28); }
+  function angle(i,t){ const a=seg(i,t), b=i>0?seg(i-1,t):null; if(b) return Math.atan2(b.y-a.y,b.x-a.x); const [dx,dy]=D[dir]; return Math.atan2(dy,dx); }
+  function render(t){ drawFloor(); if(gift&&!over) drawGift(gift);
+    for(let i=body.length-1;i>=1;i--){ const a=seg(i,t), b=seg(i-1,t); c.strokeStyle='#5a4a3a'; c.lineWidth=3; c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); }
+    for(let i=body.length-1;i>=1;i--) drawWagon(seg(i,t),angle(i,t),i);
+    drawLoco(seg(0,t),angle(0,t));
+    if(crashFlash>0){ c.fillStyle=`rgba(255,80,60,${crashFlash})`; c.fillRect(0,0,W,H); } }
+  function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now; crashFlash=Math.max(0,crashFlash-dt);
+    const speed=Math.max(.13,.24-got*.01);
+    if(!over){ if(pause>0) pause-=dt; else { acc+=dt; while(acc>=speed){ acc-=speed; step(); if(pause>0||over){acc=0;break;} } } }
+    render(over||pause>0?1:Math.min(1,acc/speed)); raf=requestAnimationFrame(loop); }
+  msg.textContent='Ciuch-ciuch! Jedź po pierwszy prezent.';
+  window.__train={state:()=>({head:body[0],gift,dir,len:body.length,got,COLS,ROWS,body})}; // read-only hook for automated play-tests
+  raf=requestAnimationFrame(loop);
+  return ()=>{ cancelAnimationFrame(raf); removeEventListener('keydown',kd); };
+},
 };
 
 // ---------- ending ----------
 function ending(){
   say(['star','kaczor_star'],()=>{
     $('#end').classList.remove('hidden');
-    $('#endTxt').textContent='Pierwsza gwiazdka zabłysła. Pierniczki upieczone, choinka ubrana, dwanaście potraw na stole, sianko pod obrusem, talerz dla nieoczekiwanego kochanka Inez i lampki rozplątane. Kaczor nawet nie zasnął przy barszczu. Prawie.';
+    $('#endTxt').textContent='Pierwsza gwiazdka zabłysła. Pierniczki upieczone, choinka ubrana, dwanaście potraw na stole, sianko pod obrusem, talerz dla nieoczekiwanego kochanka Inez, lampki rozplątane, a prezenty — dzięki pociągowi Mikołaja — leżą pod choinką. Kaczor nawet nie zasnął przy barszczu. Prawie.';
   });
 }
 $('#againBtn').onclick=()=>{done={};save();render();$('#end').classList.add('hidden');say(['hub']);};
