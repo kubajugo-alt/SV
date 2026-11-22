@@ -188,7 +188,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 .seat b,.chip.guest b{font-weight:600}
 .em{font-style:normal;font-size:1.7em;line-height:1}
 .fc{display:inline-block;width:2.2em;height:2.2em;border-radius:50%;background-repeat:no-repeat;border:2px solid var(--red)}
-.face-kaka{background-image:url(art/kaka.webp);background-size:250%;background-position:50% 1%}
+.face-kaka{background-image:url(art/kaka_face.webp);background-size:cover;background-position:center}
 .face-kaczor{background-image:url(art/kaczor.webp);background-size:330%;background-position:21% 0%}
 .face-jugo{background:#fff url(art/guest/jugo.webp) 50% 22%/150% no-repeat}
 .face-gayzilla{background:#fff url(art/guest/gayzilla.webp) 50% 18%/150% no-repeat}
@@ -342,7 +342,7 @@ const LINES={
   kz10:['kaczor','Inez zmienia kochanków częściej niż ja pozycję na kanapie. A to naprawdę coś znaczy.'],
 };
 // portrait crops: [image, background-size, background-position]
-const FACES={kaka:['art/kaka.webp','250%','50% 1%'],kaczor:['art/kaczor.webp','330%','21% 0%']};
+const FACES={kaka:['art/kaka_face.webp','cover','center'],kaczor:['art/kaczor.webp','330%','21% 0%']};
 const NAMES={kaka:'Kaka',kaczor:'Kaczor'};
 
 let done={}; try{done=JSON.parse(localStorage.getItem('kaka-done')||'{}')}catch(e){}
@@ -806,7 +806,7 @@ function goFull(){ if(!matchMedia('(pointer:coarse)').matches) return; const d=d
 $('#rotSkip').onclick=()=>document.body.classList.add('rotOk');
 // preload the art and the first voice lines, then one tap enters (that tap also unlocks the title music)
 (function preload(){
-  const imgs=['room','title','kaka','kaka_cheer','kaczor','kaczor_sleep','mikolaj','tree_bare','tree_deco','table_empty','table_set','lights','presents','gift','cookies_on_sideboard','wigilia'].map(n=>'art/'+n+'.webp');
+  const imgs=['room','title','kaka','kaka_face','kaka_cheer','kaczor','kaczor_sleep','mikolaj','tree_bare','tree_deco','table_empty','table_set','lights','presents','gift','cookies_on_sideboard','wigilia'].map(n=>'art/'+n+'.webp');
   const auds=['audio/music.mp3','audio/intro.mp3','audio/kaczor_intro.mp3','audio/hub.mp3'];
   let ok=0; const total=imgs.length+auds.length;
   const tick=()=>{ ok++; const pct=Math.round(ok/total*100); $('#gFill').style.width=pct+'%'; $('#gTxt').textContent=`Wczytywanie… ${pct}%`; if(ok===total) ready(); };
