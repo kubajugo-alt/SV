@@ -710,14 +710,14 @@ quiz(card,win){
   function pick(b,right){ const all=[...$q('.qopts').children]; all.forEach(x=>{x.disabled=true; if(x.dataset.right) x.classList.add('right');});
     if(right){ score++; img.src='art/kaczor.webp'; bub.textContent='😎 Wiedziałem!'; msg.style.color='var(--green)'; msg.textContent='Kaczor: '+OK[Math.random()*OK.length|0];
       if(!saidOk){ saidOk=true; play('quiz_ok'); } }
-    else { b.classList.add('wrong'); img.src='art/kaczor_sleep.webp'; bub.textContent='😴 Zzz…'; msg.style.color='var(--red)'; msg.textContent='Kaczor: '+BAD[Math.random()*BAD.length|0];
+    else { b.classList.add('wrong'); bub.textContent='🤔 Hmm…'; msg.style.color='var(--red)'; msg.textContent='Kaczor: '+BAD[Math.random()*BAD.length|0];
       if(!saidBad){ saidBad=true; play('quiz_bad'); } }
     $q('.qs').textContent=`Kaczor: ${score} pkt`;
     next.textContent=i===Q.length-1?'Wynik ▸':'Dalej ▸'; next.classList.remove('hidden'); next.focus(); }
   next.onclick=()=>{ i++; if(i<Q.length) return show(); finishQuiz(); };
   function finishQuiz(){ $q('.qopts').innerHTML=''; next.classList.add('hidden'); $q('.qn').textContent='Koniec quizu'; $q('.qs').textContent='';
     if(score>=7){ img.src='art/kaczor.webp'; bub.textContent='🏆 '+score+'/10'; $q('.qq').textContent=`Kaczor zdał! ${score} na 10. Dziesięć punktów dla Gryffindoru — i powrót na kanapę.`; msg.innerHTML='&nbsp;'; win(); }
-    else { img.src='art/kaczor_sleep.webp'; bub.textContent='😴 '+score+'/10'; $q('.qq').textContent=`Tylko ${score} na 10. Kaka nie odpuszcza — jeszcze raz!`; msg.innerHTML='&nbsp;';
+    else { bub.textContent='😅 '+score+'/10'; $q('.qq').textContent=`Tylko ${score} na 10. Kaka nie odpuszcza — jeszcze raz!`; msg.innerHTML='&nbsp;';
       const again=el('<button class="btn">Jeszcze raz 🔄</button>'); again.onclick=()=>{ again.remove(); start(); }; $q('.qopts').append(again); } }
   start();
   return ()=>timers.forEach(clearTimeout);
