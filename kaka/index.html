@@ -120,6 +120,9 @@ img{user-select:none;-webkit-user-drag:none}
 #oSideboard{left:66%;top:38%;width:17%;height:41%}
 #cookies{position:absolute;left:68.786%;top:46.680%;width:8.176%;pointer-events:none;z-index:2}
 #oKitchen{left:84.5%;top:9%;width:15.5%;height:70%}
+#oKaka{left:88.5%;bottom:2%;width:10%;height:66%;z-index:5}
+#oKaka .tag{top:-.5cqw}
+#stage:has(#oKaka:hover) #kaka{filter:drop-shadow(0 0 .6cqw #fff3a0) drop-shadow(0 0 .3cqw #ffd34e)}
 #oKitchen .tag{top:3cqw}
 #oTable{left:45%;bottom:-5%;width:41%;height:42%}
 #oTree .tag{top:auto;bottom:-1cqw;transform:translate(-50%,100%)}
@@ -355,6 +358,7 @@ body.short .btn{font-size:14px}
     <button class="obj" id="oKitchen" data-task="bake" aria-label="Kuchnia: pierniczki"><span class="tag">🍪 Kuchnia</span><span class="todo">!</span></button>
     <button class="obj" id="oTable" data-task="table" aria-label="Stół wigilijny"><img id="tableEmpty" src="art/table_empty.webp" alt=""><img id="tableSet" src="art/table_set.webp" alt="" style="opacity:0"><span class="tag">🍽️ Stół</span><span class="todo">!</span></button>
     <img id="kaka" src="art/kaka.webp" alt="Kaka">
+    <button class="obj" id="oKaka" aria-label="Kaka"><span class="tag">💬 Kaka</span></button>
 
     <div id="list" aria-label="Lista Kaki"><button id="listToggle" aria-expanded="false">📋 Lista Kaki <b id="listCount">0/6</b> <span class="chev">▾</span></button><div id="tasks"></div></div>
     <div id="toast" role="status"></div>
@@ -446,6 +450,18 @@ const LINES={
   retry:['kaka','Spokojnie! Święta wszystko wybaczą. Spróbuj jeszcze raz.'],
   star:['kaka','Kaczor… patrz. Pierwsza gwiazdka. Wesołych Świąt, kochanie.'],
   kaczor_star:['kaczor','Wesołych Świąt. … To co… już karp?'],
+  kk1:['kaka','Jugo zawsze mówi, że wpadnie na chwilę. Ostatnio wyszedł w Trzech Króli.'],
+  kk2:['kaka','Gayzilla przyniesie wino za dwieście złotych i będzie o nim opowiadał przez trzy godziny.'],
+  kk3:['kaka','Inez znowu ma nowy nos. Ciekawe, czy tym razem będzie pasował do twarzy.'],
+  kk4:['kaka','Kochanek Inez… mam nadzieję, że lubi barszcz. Poprzedni był weganinem. I zjadł karpia.'],
+  kk5:['kaka','Kaczor powiedział, że pomoże. To było w listopadzie. Nadal leży.'],
+  kk6:['kaka','Gdyby spanie na kanapie było sportem olimpijskim, Kaczor miałby trzy złote medale.'],
+  kk7:['kaka','Kaczor, to nie jest drzemka. Drzemka trwa dwadzieścia minut, a nie od obiadu.'],
+  kk8:['kaka','Dwanaście potraw. Nie jedenaście. Nie trzynaście. Dwanaście!'],
+  kk9:['kaka','Sprawdziłam listę cztery razy. Zaraz sprawdzę piąty. Tak na wszelki wypadek.'],
+  kk10:['kaka','Jeśli opłatek połamie się przed Wigilią, to ja połamię się razem z nim.'],
+  kk11:['kaka','Choinka musi stać idealnie prosto. Mierzyłam poziomicą. Dwa razy.'],
+  kk12:['kaka','Karp w wannie ma już imię. Tylko nie mówcie Mikołajowi.'],
   kz1:['kaczor','Nie śpię. Ja tylko… testuję kanapę. Przed świętami musi być sprawdzona.'],
   kz2:['kaczor','Kochanie, ja też mam listę. Punkt pierwszy: odpocząć. Punkt drugi: patrz punkt pierwszy.'],
   kz3:['kaczor','Karp jest dopiero w Wigilię? To obudź mnie w Wigilię.'],
@@ -529,6 +545,10 @@ $('#listToggle').onclick=()=>{ const o=$('#list').classList.toggle('open'); $('#
 let kzBag=[], kzLast=0;
 function nextKz(){ if(!kzBag.length){ kzBag=shuffle(Array.from({length:10},(_,i)=>i+1)); if(kzBag[0]===kzLast) kzBag.push(kzBag.shift()); } kzLast=kzBag.shift(); return 'kz'+kzLast; }
 $('#oSofa').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say([nextKz()]); });
+// Kaka's remarks: guests, Kaczor, and her Christmas-prep obsession (shuffled deck, no immediate repeats)
+let kkBag=[], kkLast=0;
+function nextKk(){ if(!kkBag.length){ kkBag=shuffle(Array.from({length:12},(_,i)=>i+1)); if(kkBag[0]===kkLast) kkBag.push(kkBag.shift()); } kkLast=kkBag.shift(); return 'kk'+kkLast; }
+$('#oKaka').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say([nextKk()]); });
 // idle: after 30 s with nothing happening in the room, Kaczor pipes up on his own (and the bubble closes itself)
 let idleSec=0;
 ['pointerdown','pointermove','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{idleSec=0;},{passive:true,capture:true}));
