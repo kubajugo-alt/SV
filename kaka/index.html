@@ -346,7 +346,7 @@ body.short .btn{font-size:14px}
 body.short .tTag{max-width:min(640px,56%);font-size:12px}
 /* ---- arrival cinematic: the guests walk in through the hall door ---- */
 #stage.cine .obj{pointer-events:none}
-#stage.cine .obj .tag,#stage.cine .obj .todo,#stage.cine #list{display:none!important}
+#stage.cine .obj .tag,#stage.cine .obj .todo,#stage.cine #list,#stage.cine #starhint{display:none!important}
 #cine{position:absolute;inset:0;z-index:12;pointer-events:none}
 #cine::before,#cine::after{content:'';position:absolute;left:0;right:0;height:0;background:#0b0806;transition:height .8s ease}
 #cine::before{top:0}#cine::after{bottom:0}
@@ -487,7 +487,7 @@ const LINES={
   done_train:['kaka','Brawo, maszynisto! Wszystkie prezenty dojechały pod choinkę.'],
   done_quiz:['kaka','Zdał! Bywało gorzej. Zapisuję w kalendarzu.'],
   retry:['kaka','Spokojnie! Święta wszystko wybaczą. Spróbuj jeszcze raz.'],
-  star:['kaka','Kaczor… patrz. Pierwsza gwiazdka. Wesołych Świąt, kochanie.'],
+  star:['kaka','Kaczor… patrz! Pierwsza gwiazdka. Wesołych Świąt, kochanie.'],
   kaczor_star:['kaczor','Wesołych Świąt. … To co… już karp?'],
   kk1:['kaka','Jugo zawsze mówi, że wpadnie na chwilę. Ostatnio wyszedł w Trzech Króli.'],
   kk2:['kaka','Gayzilla przyniesie wino za dwieście złotych i będzie o nim opowiadał przez trzy godziny.'],
@@ -1087,7 +1087,7 @@ function arrival(next){
   const st=$('#stage'), cv=document.createElement('div'); cv.id='cine'; st.append(cv); st.classList.add('cine');
   const G=[['jugo',67,false,'Cześć, kochani! Wpadłem tylko na chwilę. Przyniosłem nalewkę babci… i widelec. Gdzie są pierogi?'],
            ['gayzilla',56.5,true,'Nie ruszajcie się! Selfie z choinką! A barszcz jest bezglutenowy, prawda?'],
-           ['inez',31,false,'Przepraszam za spóźnienie! Nowy nos jeszcze nie przywykł do mrozu. A, i nadal mam trzydzieści lat.'],
+           ['inez',31,false,'Przepraszam za spóźnienie, kochani! Nowy nos jeszcze nie przywykł do mrozu. Ale patrzcie, jak zajebiście wyglądam!'],
            ['kochanek',20,false,'Dobry wieczór. Jestem… z Inez. Imię? Na razie bez imion.']];
   const cap=document.createElement('div'); cap.className='cap'; const fade=document.createElement('div'); fade.className='fade';
   const skip=document.createElement('button'); skip.className='skip'; skip.textContent='Pomiń ▸';
