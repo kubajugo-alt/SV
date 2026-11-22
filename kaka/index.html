@@ -184,7 +184,8 @@ img{user-select:none;-webkit-user-drag:none}
 @keyframes spark{50%{opacity:.4;transform:scale(.7) rotate(20deg)}}
 @keyframes logoIn{from{opacity:0;transform:translateY(-18px) scale(.96)}}
 .tBottom{display:flex;flex-direction:column;align-items:center;gap:12px;animation:logoIn 1.2s .3s cubic-bezier(.2,.8,.2,1) both}
-.tTag{margin:0;max-width:600px;font-size:clamp(14px,calc(1.9*var(--vw)),19px);text-shadow:0 1px 6px #000;opacity:.95}
+.tTop{display:flex;flex-direction:column;align-items:center;gap:clamp(6px,calc(1.2*var(--vh)),14px)}
+.tTag{margin:0;max-width:640px;font-size:clamp(13px,calc(1.7*var(--vw)),18px);line-height:1.35;text-shadow:0 1px 3px #000,0 2px 12px rgba(0,0,0,.9);opacity:.95;animation:logoIn 1.2s .3s cubic-bezier(.2,.8,.2,1) both}
 .tBtns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 #title .btn{font-size:clamp(17px,calc(2.2*var(--vw)),22px);padding:.65em 1.8em}
 .tProg{margin:0;font-size:14px;opacity:.85;text-shadow:0 1px 4px #000}
@@ -333,6 +334,7 @@ body.short .tablepic{width:auto;max-width:90%;max-height:calc(100*var(--vh) - 15
 body.short .card .bar{margin:2px 0 6px}
 body.short .lwrap canvas{flex:none}
 body.short .btn{font-size:14px}
+body.short .tTag{max-width:min(640px,56%);font-size:12px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -376,9 +378,11 @@ body.short .btn{font-size:14px}
 </div>
 <div id="title" class="ov">
   <canvas class="snow" id="snowTitle" aria-hidden="true"></canvas>
-  <div class="tLogo" role="heading" aria-level="1"><span class="tSmall">Świąteczne przygotowania</span><span class="tBig">Kaki<span class="tStar">✦</span></span></div>
-  <div class="tBottom">
+  <div class="tTop">
+    <div class="tLogo" role="heading" aria-level="1"><span class="tSmall">Świąteczne przygotowania</span><span class="tBig">Kaki<span class="tStar">✦</span></span></div>
     <p class="tTag">Józefosław, tuż przed świętami. Kaka ma listę zadań, synka z kolejką i męża, który zaprzyjaźnił się z kanapą. Święta będą idealne — choćby nie wiem co.</p>
+  </div>
+  <div class="tBottom">
     <div class="tBtns"><button class="btn" id="startBtn">Zaczynamy! 🎄</button><button class="btn alt hidden" id="resetBtn">Od nowa</button></div>
     <p class="tProg hidden" id="tProg"></p>
   </div>
