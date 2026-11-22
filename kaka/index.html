@@ -480,11 +480,14 @@ $('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊';
 // dialogue queue
 let dq=[], dcb=null;
 function say(keys,cb){ dq=keys.slice(); dcb=cb; nextLine(); }
+// Kaczor on the sofa wakes up only while he is talking, then dozes off again
+function kzWake(on){ $('#kzSofa').src=on?'art/kaczor.webp':'art/kaczor_sleep.webp'; $('#zzz').style.display=on?'none':''; }
 function nextLine(){
   const d=$('#dlg');
-  if(!dq.length){ d.classList.add('hidden'); if(cur)cur.pause(); $('#kaka').classList.remove('talk','cheer'); $('#kaka').src='art/kaka.webp'; const c=dcb; dcb=null; c&&c(); return; }
+  if(!dq.length){ kzWake(false); d.classList.add('hidden'); if(cur)cur.pause(); $('#kaka').classList.remove('talk','cheer'); $('#kaka').src='art/kaka.webp'; const c=dcb; dcb=null; c&&c(); return; }
   const k=dq.shift(), [who,txt]=LINES[k], f=FACES[who], face=d.querySelector('.face');
   face.style.backgroundImage=`url("${f[0]}")`; face.style.backgroundSize=f[1]; face.style.backgroundPosition=f[2];
+  kzWake(who==='kaczor');
   const K=$('#kaka'); K.classList.remove('talk','cheer');
   if(who==='kaka'&&(k.startsWith('done')||k==='star')){ K.src='art/kaka_cheer.webp'; void K.offsetWidth; K.classList.add('cheer'); }
   else { K.src='art/kaka.webp'; if(who==='kaka') K.classList.add('talk'); }
@@ -517,7 +520,7 @@ function render(){
   show('#star',all); show('#starhint',all);
   $('#dusk').style.opacity=TASKS.filter(x=>done[x.id]).length/TASKS.length*.7;
   // Kaczor dozes on the sofa the whole time; after the lights he goes straight back to sleep ("Nie widzi. Śpi.")
-  $('#zzz').style.display=''; $('#kzSofa').src='art/kaczor_sleep.webp';
+  if($('#dlg').classList.contains('hidden')) kzWake(false);
 }
 document.querySelectorAll('.obj[data-task]').forEach(o=>o.addEventListener('click',()=>open(o.dataset.task)));
 $('#star').addEventListener('click',ending);
