@@ -185,6 +185,10 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 .s-top{left:50%;top:-14%;transform:translateX(-50%)}.s-bot{left:50%;bottom:-14%;transform:translateX(-50%)}
 .s-l{left:-1%;top:22%}.s-r{right:-1%;top:22%}
 .seat{position:absolute;transform:translate(-50%,-50%);width:clamp(58px,14%,80px);aspect-ratio:1;border-radius:50%;border:3px dashed #c9a877;background:#fff8ea;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;font-size:clamp(10px,1.4vw,13px);line-height:1.1}
+.quip{display:flex;align-items:center;gap:.6em;max-width:min(560px,100%);margin:6px auto -6px;padding:.45em .8em;background:#fff;border-radius:16px;box-shadow:var(--shadow);font-size:clamp(12px,1.6vw,15px);line-height:1.25;opacity:0;transform:translateY(-4px);transition:opacity .25s,transform .25s;min-height:3.4em}
+.quip.on{opacity:1;transform:none}
+.quip .fc{flex:none;width:2.8em;height:2.8em}
+.quip b{color:var(--red)}
 .seat.taken{border-style:solid;border-color:var(--green);background:#fff}
 .seat.sel,.chip.guest.sel{box-shadow:0 0 0 4px var(--gold)}
 .seat .fc{width:3.3em;height:3.3em}
@@ -507,6 +511,7 @@ bake(card,win){
   const need=el(`<div class="need">${ING.map(([n,l],i)=>`<span class="nd" data-i="${i}" title="${l}"><img src="art/ing/${n}.webp" alt="${l}"><b>0</b></span>`).join('')}</div>`);
   card.insertBefore(need,card.querySelector('.msg'));
   const missing=()=>ING.filter((_,i)=>!have[i]).map(x=>x[1]);
+  const caught=[]; let flyout=[], sockN=0;
   let bx=W/2, items=[], score=0, raf, last=performance.now(), keys={}, over=false;
   const mv=e=>{const r=cv.getBoundingClientRect(); bx=(e.clientX-r.left)/r.width*W;};
   cv.addEventListener('pointermove',mv); cv.addEventListener('pointerdown',mv);
@@ -521,12 +526,20 @@ bake(card,win){
     c.clearRect(0,0,W,H);
     items.forEach(it=>{ it.y+=it.v*dt; it.rot+=it.vr*dt; draw(it.img,it.x,it.y,it.rot);
       if(!it.hit && it.y>H-80 && it.y<H-20 && Math.abs(it.x-bx)<75){ it.hit=true;
-        if(it.bad){ score=Math.max(0,score-1); msg.textContent='Skarpetka Kaczora! 🧦 −1'; msg.style.color='var(--red)'; }
-        else { score++; const k=GOOD.indexOf(it.img); have[k]++; const nd=need.querySelector(`[data-i="${k}"]`); nd.classList.add('got','pulse'); nd.querySelector('b').textContent=have[k]; setTimeout(()=>nd.classList.remove('pulse'),300);
+        if(it.bad){ const SOCK=[['sock1','„O! Tu jest moja skarpetka! Szukałem jej od listopada.”'],['sock2','„To nie moja. To znaczy… moja, ale czysta. Prawie.”'],['sock3','„Skarpetka w cieście? Dodaje charakteru.”']][sockN++%3];
+          play(SOCK[0]); msg.style.color='var(--red)';
+          if(caught.length){ const k=caught.pop(); score=Math.max(0,score-1); have[k]--; const nd=need.querySelector(`[data-i="${k}"]`); nd.querySelector('b').textContent=have[k]; if(!have[k]) nd.classList.remove('got');
+            flyout.push({img:GOOD[k],x:bx,y:H-60,vx:(Math.random()-.5)*260,vy:-420,rot:0,life:1});
+            msg.textContent=`Skarpetka wyrzuciła z miski: ${ING[k][1]}! Kaczor: ${SOCK[1]}`; }
+          else msg.textContent='Skarpetka Kaczora w pustej misce! Kaczor: '+SOCK[1]; }
+        else { score++; const k=GOOD.indexOf(it.img); have[k]++; caught.push(k); const nd=need.querySelector(`[data-i="${k}"]`); nd.classList.add('got','pulse'); nd.querySelector('b').textContent=have[k]; setTimeout(()=>nd.classList.remove('pulse'),300);
           msg.textContent=['Mniam!','Pięknie!','Jeszcze!','Tak trzymać!'][score%4]; msg.style.color='var(--green)';
           if(score>=15&&missing().length){ msg.style.color='var(--red)'; msg.textContent='Ciasto prawie gotowe, ale brakuje: '+missing().join(', ')+'!'; } }
       }});
     items=items.filter(it=>!it.hit&&it.y<H+50);
+    // ingredients thrown out of the bowl by a sock
+    flyout.forEach(f=>{ f.vy+=900*dt; f.x+=f.vx*dt; f.y+=f.vy*dt; f.rot+=6*dt; f.life-=dt*.9; c.globalAlpha=Math.max(0,f.life); draw(f.img,f.x,f.y,f.rot); c.globalAlpha=1; });
+    flyout=flyout.filter(f=>f.life>0&&f.y<H+60);
     // mixing bowl
     const g=c.createLinearGradient(0,H-70,0,H-10); g.addColorStop(0,'#d24a3f'); g.addColorStop(1,'#8e211b');
     c.fillStyle=g; c.beginPath(); c.moveTo(bx-80,H-62); c.quadraticCurveTo(bx-70,H-8,bx,H-8); c.quadraticCurveTo(bx+70,H-8,bx+80,H-62); c.closePath(); c.fill();
@@ -694,8 +707,14 @@ table(card,win){
       [['inez','kochanek'],s=>!adj(s.inez,s.kochanek),'Inez nie siedzi obok swojego kochanka — przy wszystkich udają, że się nie znają.'],
     ];
     const box=el('<div class="seatplan"><div class="stol">🕯️ ✨</div><span class="side s-top">🪟 okno</span><span class="side s-bot">🎄 choinka</span><span class="side s-l">🍳 kuchnia</span><span class="side s-r">🚪 drzwi</span></div>');
-    const pool=el('<div class="choices pool"></div>'), rl=el('<ul class="rules"></ul>');
-    card.insertBefore(box,msg); card.insertBefore(pool,msg); card.insertBefore(rl,msg);
+    const pool=el('<div class="choices pool"></div>'), rl=el('<ul class="rules"></ul>'), quip=el('<div class="quip" aria-live="polite"></div>');
+    // a funny remark from Kaka or Kaczor every time someone is seated
+    const QUIP={kaka:['kaczor','Kaka przy kuchni. Jakby co, ja nic nie gotuję.'],kaczor:['kaka','Kaczor, siedzisz prosto i nie śpisz. To nie była prośba.'],
+      mikolaj:['kaka','Mikołaj, karp nie jest do zabawy. Ości też nie.'],jugo:['kaczor','Jugo przyszedł. Chowajcie nalewkę.'],
+      gay:['kaka','Gayzilla już robi selfie z opłatkiem. Klasyk.'],inez:['kaczor','Inez, nie siadaj za blisko świeczek. Nie wszystko u ciebie jest ognioodporne.'],
+      kochanek:['kaka','Kochanek Inez… jak on ma na imię? Nieważne. Za rok i tak będzie inny.']};
+    function remark(k){ const [who,txt]=QUIP[k]; quip.innerHTML=`<i class="fc face-${who}"></i><span><b>${who==='kaka'?'Kaka':'Kaczor'}:</b> ${txt}</span>`; quip.classList.add('on'); play('seat_'+k); }
+    card.insertBefore(quip,msg); card.insertBefore(box,msg); card.insertBefore(pool,msg); card.insertBefore(rl,msg);
     const seatOf={}, at={}; let sel=null, solved=false;
     const token=k=>{ const [n,f]=G[k]; const ic=f.startsWith('face-')?`<i class="fc ${f}"></i>`:`<i class="em">${f}</i>`; return `${ic}<b>${n}</b>`; };
     const seatEls={};
@@ -704,7 +723,7 @@ table(card,win){
       if(sel){ const prev=seatOf[sel], other=at[id];
         if(prev) delete at[prev];
         if(other){ if(prev){ at[prev]=other; seatOf[other]=prev; } else delete seatOf[other]; }
-        at[id]=sel; seatOf[sel]=id; sel=null; }
+        at[id]=sel; seatOf[sel]=id; remark(sel); sel=null; }
       else if(at[id]){ sel=at[id]; }
       draw(); }
     function draw(){
