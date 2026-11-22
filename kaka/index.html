@@ -36,23 +36,17 @@ img{user-select:none;-webkit-user-drag:none}
 .obj.done .todo{display:none}
 @keyframes bob{50%{transform:translateY(-.4cqw)}}
 #oTree{left:.5%;bottom:10%;width:26%;height:68%}
+#oTree .todo{top:30%;right:18%}
 #oFire{left:16.5%;top:42%;width:21.5%;height:34%}
-#mikWrap{position:absolute;left:11.5%;bottom:2%;width:22%;aspect-ratio:900/745;z-index:3}
-#mikWrap>img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 .4cqw .6cqw rgba(0,0,0,.35));transition:filter .2s;pointer-events:none}
-#mikWrap .hot2:hover,#mikWrap .hot2:focus-visible{filter:none}
-#mikWrap:has(.hot2:hover)>img,#mikWrap:has(.hot2:focus-visible)>img{filter:drop-shadow(0 0 .6cqw #fff3a0) drop-shadow(0 0 .3cqw #ffd34e)}
-#oMikTalk{left:24%;top:0;width:54%;height:66%}
-#oTrain{left:0;bottom:0;width:100%;height:34%}
-#oTrain .tag{top:38%;bottom:auto;transform:translate(-50%,0)}
-#oTrain .todo{right:6%;top:-20%}
-#oMikTalk .tag{top:-.4cqw}
+#oMik{left:11.5%;bottom:2%;width:22%;aspect-ratio:900/745;z-index:3}
+#oMik img{filter:drop-shadow(0 .4cqw .6cqw rgba(0,0,0,.35))}
+#oMik .todo{right:30%;top:0}
 #presents{position:absolute;left:4%;bottom:9%;width:15%;z-index:2;pointer-events:none;filter:drop-shadow(0 .3cqw .5cqw rgba(0,0,0,.3))}
 .trainCv{background:#b98352;touch-action:none;width:auto!important;max-width:100%;max-height:min(52vh,460px);margin:0 auto}
 .tpad{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(2,46px);gap:6px;justify-content:center;margin-top:8px}
 .tpad button{border:0;border-radius:12px;background:var(--green);color:#fff;font-size:22px;box-shadow:0 3px 0 #1d4a2e;touch-action:none}
 .tpad [data-d=up]{grid-column:2}.tpad [data-d=left]{grid-column:1;grid-row:2}.tpad [data-d=down]{grid-column:2;grid-row:2}.tpad [data-d=right]{grid-column:3;grid-row:2}
 #oFire .tag{top:1cqw}
-#poster{position:absolute;left:21.6%;top:12%;width:9.8%;pointer-events:none;z-index:1;filter:drop-shadow(.15cqw .35cqw .3cqw rgba(60,35,15,.45))}
 #lightsMantel{position:absolute;left:16%;top:40.5%;width:23%;pointer-events:none;z-index:2}
 #lightsWindow{position:absolute;left:36.5%;top:10.5%;width:33%;pointer-events:none;z-index:2}
 .twinkle{animation:tw 2.7s linear infinite}
@@ -220,9 +214,8 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 
     <button class="obj" id="oTree" data-task="tree" aria-label="Choinka"><img id="treeBare" src="art/tree_bare.webp" alt=""><img id="treeDeco" src="art/tree_deco.webp" alt="" style="opacity:0"><span class="tag">🎄 Choinka</span><span class="todo">!</span></button>
     <img id="presents" class="hidden" src="art/presents.webp" alt="Prezenty pod choinką">
-    <div id="mikWrap"><img src="art/mikolaj.webp" alt="Mikołaj bawi się kolejką"><button class="obj hot2" id="oMikTalk" aria-label="Porozmawiaj z Mikołajem"><span class="tag">💬 Mikołaj</span></button><button class="obj hot2" id="oTrain" data-task="train" aria-label="Pociąg Mikołaja"><span class="tag">🚂 Pociąg Mikołaja</span><span class="todo">!</span></button></div>
+    <button class="obj" id="oMik" data-task="train" aria-label="Mikołaj: pociąg"><img src="art/mikolaj.webp" alt="Mikołaj bawi się kolejką"><span class="tag">🚂 Pociąg Mikołaja</span><span class="todo">!</span></button>
     <button class="obj" id="oFire" data-task="lights" aria-label="Kominek: lampki"><span class="tag">💡 Lampki z Kaczorem</span><span class="todo">!</span></button>
-    <img id="poster" src="art/poster.webp" alt="Świąteczny plakat z zamkiem">
     <img id="lightsMantel" class="hidden twinkle" src="art/lights.webp" alt="">
     <button class="obj" id="oSofa" aria-label="Kaczor na kanapie"><img id="kzSofa" src="art/kaczor_sleep.webp" alt=""><span id="zzz">Zzz</span><span class="tag">💬 Kaczor</span></button>
     <button class="obj" id="oSideboard" data-task="dishes" aria-label="Kredens: przepisy"><span class="tag">📖 Dwanaście potraw</span><span class="todo">!</span></button>
@@ -287,12 +280,6 @@ const LINES={
   retry:['kaka','Spokojnie! Święta wszystko wybaczą. Spróbuj jeszcze raz.'],
   star:['kaka','Kaczor… patrz. Pierwsza gwiazdka. Wesołych Świąt, kochanie.'],
   kaczor_star:['kaczor','Wesołych Świąt. … To co… już karp?'],
-  mk1:['mikolaj','Tata śpi, a ja jestem maszynistą! Ciuch-ciuch!'],
-  mk2:['mikolaj','Czy Święty Mikołaj wie, że ja też jestem Mikołaj? Bo pomyli prezenty!'],
-  mk3:['mikolaj','Mamo, czy pierniczki liczą się jako obiad?'],
-  mk4:['mikolaj','Mój pociąg wiezie prezenty. I jednego pierniczka. Ale ten jest dla mnie.'],
-  mk5:['mikolaj','Jak dorosnę, będę spał na kanapie jak tata. Albo będę maszynistą. Jeszcze nie wiem.'],
-  mk6:['mikolaj','Wujek Gayzilla mówi, że jestem najprzystojniejszy w rodzinie. Zaraz po nim.'],
   kz1:['kaczor','Nie śpię. Ja tylko… testuję kanapę. Przed świętami musi być sprawdzona.'],
   kz2:['kaczor','Kochanie, ja też mam listę. Punkt pierwszy: odpocząć. Punkt drugi: patrz punkt pierwszy.'],
   kz3:['kaczor','Karp jest dopiero w Wigilię? To obudź mnie w Wigilię.'],
@@ -301,8 +288,8 @@ const LINES={
   kz6:['kaczor','Mikołaj, pociąg jedzie za szybko. … Nie, nie wstanę. Tylko mówię.'],
 };
 // portrait crops: [image, background-size, background-position]
-const FACES={kaka:['art/kaka.webp','250%','50% 1%'],kaczor:['art/kaczor.webp','330%','21% 0%'],mikolaj:['art/mikolaj.webp','280%','53% 6%']};
-const NAMES={kaka:'Kaka',kaczor:'Kaczor',mikolaj:'Mikołaj'};
+const FACES={kaka:['art/kaka.webp','250%','50% 1%'],kaczor:['art/kaczor.webp','330%','21% 0%']};
+const NAMES={kaka:'Kaka',kaczor:'Kaczor'};
 
 let done={}; try{done=JSON.parse(localStorage.getItem('kaka-done')||'{}')}catch(e){}
 const save=()=>{try{localStorage.setItem('kaka-done',JSON.stringify(done))}catch(e){}};
@@ -360,7 +347,6 @@ function render(){
 document.querySelectorAll('.obj[data-task]').forEach(o=>o.addEventListener('click',()=>open(o.dataset.task)));
 $('#star').addEventListener('click',ending);
 $('#listToggle').onclick=()=>{ const o=$('#list').classList.toggle('open'); $('#listToggle').setAttribute('aria-expanded',o); };
-let mkLine=0; $('#oMikTalk').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say(['mk'+(mkLine%6+1)]); mkLine++; });
 let kzLine=0; $('#oSofa').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say(['kz'+(kzLine%6+1)]); kzLine++; });
 
 // ---------- minigame shell ----------
