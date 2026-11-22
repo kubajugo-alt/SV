@@ -66,7 +66,11 @@ img{user-select:none;-webkit-user-drag:none}
 .qkz{position:relative}.qkz img{width:100%;display:block;transition:filter .3s}
 .qkz .bub{position:absolute;left:50%;top:-8%;transform:translateX(-50%);background:#fff;border-radius:14px;padding:.25em .6em;font-weight:700;font-size:14px;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.2)}
 .qnext{margin-top:12px}
-#stocking{position:absolute;left:30.2%;top:46.5%;width:3.1%;pointer-events:none;z-index:2;transform-origin:50% 0;animation:sway 4s ease-in-out infinite;filter:drop-shadow(.1cqw .25cqw .2cqw rgba(60,30,10,.4))}
+#stockings{position:absolute;inset:0;pointer-events:none;z-index:2}
+#stockings .st{position:absolute;top:46.5%;width:3.1%;transform-origin:50% 0;animation:sway 4s ease-in-out infinite;filter:drop-shadow(.1cqw .25cqw .2cqw rgba(60,30,10,.4))}
+#stockings .st1{left:21.6%}
+#stockings .st2{left:26.2%;top:46.9%;animation-duration:4.6s;animation-delay:-1.3s;filter:hue-rotate(115deg) saturate(.8) drop-shadow(.1cqw .25cqw .2cqw rgba(60,30,10,.4))}
+#stockings .st3{left:30.8%;animation-duration:3.7s;animation-delay:-2.2s;filter:hue-rotate(-18deg) brightness(1.08) drop-shadow(.1cqw .25cqw .2cqw rgba(60,30,10,.4))}
 @keyframes sway{50%{transform:rotate(3deg)}}
 #lightsWindow{position:absolute;left:36.5%;top:10.5%;width:33%;pointer-events:none;z-index:2}
 .twinkle{animation:tw 2.7s linear infinite}
@@ -250,7 +254,7 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
     <button class="obj" id="oMik" data-task="train" aria-label="Mikołaj: pociąg"><img src="art/mikolaj.webp" alt="Mikołaj bawi się kolejką"><span class="tag">🚂 Pociąg Mikołaja</span><span class="todo">!</span></button>
     <button class="obj" id="oFire" data-task="lights" aria-label="Kominek: lampki"><span class="tag">💡 Lampki z Kaczorem</span><span class="todo">!</span></button>
     <button class="obj hotbox" id="oPoster" data-task="quiz" aria-label="Plakat z zamkiem: quiz"><span class="tag">🏰 Quiz z Kaczorem</span><span class="todo">!</span></button>
-    <img id="stocking" class="hidden" src="art/stocking.webp" alt="Skarpeta na kominku">
+    <div id="stockings" class="hidden" aria-label="Skarpety na kominku"><img class="st st1" src="art/stocking.webp" alt=""><img class="st st2" src="art/stocking.webp" alt=""><img class="st st3" src="art/stocking.webp" alt=""></div>
     <button class="obj" id="oSofa" aria-label="Kaczor na kanapie"><img id="kzSofa" src="art/kaczor_sleep.webp" alt=""><span id="zzz">Zzz</span><span class="tag">💬 Kaczor</span></button>
     <button class="obj" id="oSideboard" data-task="dishes" aria-label="Kredens: przepisy"><span class="tag">📖 Dwanaście potraw</span><span class="todo">!</span></button>
     <img id="cookies" class="hidden" src="art/cookies_on_sideboard.webp" alt="Pierniczki na komodzie">
@@ -394,7 +398,7 @@ function render(){
   });
   $('#listCount').textContent=`${TASKS.filter(x=>done[x.id]).length}/${TASKS.length}`;
   const show=(sel,on)=>$(sel).classList.toggle('hidden',!on);
-  show('#cookies',done.bake); show('#presents',done.train); show('#stocking',done.lights); show('#lightsWindow',done.lights);
+  show('#cookies',done.bake); show('#presents',done.train); show('#stockings',done.lights); show('#lightsWindow',done.lights);
   $('#treeDeco').style.opacity=done.tree?1:0; $('#treeBare').style.opacity=done.tree?0:1;
   $('#tableSet').style.opacity=done.table?1:0; $('#tableEmpty').style.opacity=done.table?0:1;
   document.querySelectorAll('.obj[data-task]').forEach(o=>o.classList.toggle('done',!!done[o.dataset.task]));
