@@ -502,11 +502,12 @@ function nextLine(){
   const d=$('#dlg');
   if(!dq.length){ kzWake(false); d.classList.add('hidden'); if(cur)cur.pause(); $('#kaka').classList.remove('talk','cheer'); $('#kaka').src='art/kaka.webp'; const c=dcb; dcb=null; c&&c(); return; }
   const k=dq.shift(), [who,txt]=LINES[k], f=FACES[who], face=d.querySelector('.face');
-  face.style.backgroundImage=`url("${f[0]}")`; face.style.backgroundSize=f[1]; face.style.backgroundPosition=f[2];
+  const worried=k.startsWith('kk');  // Kaka's fretting remarks get her worried face
+  face.style.backgroundImage=`url("${worried?'art/kaka_face_worry.webp':f[0]}")`; face.style.backgroundSize=f[1]; face.style.backgroundPosition=f[2];
   kzWake(who==='kaczor');
   const K=$('#kaka'); K.classList.remove('talk','cheer');
   if(who==='kaka'&&(k.startsWith('done')||k==='star')){ K.src='art/kaka_cheer.webp'; void K.offsetWidth; K.classList.add('cheer'); }
-  else { K.src='art/kaka.webp'; if(who==='kaka') K.classList.add('talk'); }
+  else { K.src=worried?'art/kaka_worry.webp':'art/kaka.webp'; if(who==='kaka') K.classList.add('talk'); }
   d.querySelector('.who').textContent=NAMES[who];
   d.querySelector('.txt').textContent=txt;
   d.classList.remove('hidden');
@@ -1060,7 +1061,7 @@ function goFull(){ if(!matchMedia('(pointer:coarse)').matches) return; const d=d
   P.forEach(([x,y],i)=>{ const e=document.createElement('i'); e.style.left=x+'%'; e.style.top=y+'%';
     if(i%3===0) e.className='w'; e.style.animationDuration=(1.6+Math.random()*2.4).toFixed(2)+'s'; e.style.animationDelay=(-Math.random()*4).toFixed(2)+'s'; box.append(e); }); })();
 (function preload(){
-  const imgs=['room','title','stocking','loco_top','wagon_top','kaka','kaka_face','kaczor_face','kaka_cheer','kaczor','kaczor_sleep','mikolaj','mik_body','mik_head','mik_collar','tree_bare','tree_deco','table_empty','table_set','lights','presents','gift','cookies_on_sideboard','wigilia'].map(n=>'art/'+n+'.webp');
+  const imgs=['room','title','stocking','loco_top','wagon_top','kaka','kaka_face','kaczor_face','kaka_cheer','kaka_worry','kaka_face_worry','kaczor','kaczor_sleep','mikolaj','mik_body','mik_head','mik_collar','tree_bare','tree_deco','table_empty','table_set','lights','presents','gift','cookies_on_sideboard','wigilia'].map(n=>'art/'+n+'.webp');
   const auds=['audio/music.mp3','audio/intro.mp3','audio/kaczor_intro.mp3','audio/hub.mp3'];
   let ok=0; const total=imgs.length+auds.length;
   const tick=()=>{ ok++; const pct=Math.round(ok/total*100); $('#gFill').style.width=pct+'%'; $('#gTxt').textContent=`Wczytywanie… ${pct}%`; if(ok===total) ready(); };
