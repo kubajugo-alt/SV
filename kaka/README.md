@@ -9,10 +9,10 @@ Or open `kaka/index.html` through any static server (e.g. `python3 -m http.serve
 
 | Task | Where in the room | Mini-game |
 | --- | --- | --- |
-| Upiec pierniczki | Kitchen door | Catch the ingredients in the bowl, avoid Kaczor's socks (15 to win) |
-| Ubrać choinkę | Tree | Repeat the order the baubles light up in (3 rounds) |
+| Upiec pierniczki | Kitchen door | Catch 15 ingredients in the bowl, including at least one of each of the five kinds (shown as a row of icons); avoid Kaczor's socks |
+| Ubrać choinkę | Tree | Decorate by Kaka's plan: drag 8 baubles onto the hooks in the colours from her sketch, then the garland, then the star on top |
 | Dwanaście potraw | Sideboard (recipes) | Memory pairs of the twelve Wigilia dishes (2 × 6) |
-| Nakryć do stołu | Table | Step 1: lay the table in order (sianko → obrus → opłatek → talerze → świeca). Step 2: a seating puzzle for Kaka, Kaczor, Mikołaj and friends Jugo, Gayzilla, Inez and „Nieoczekiwany aktualny kochanek Inez” — seven wishes, one correct arrangement, each wish ticks green or red as you seat people |
+| Nakryć do stołu | Table | Step 1: drag items onto the table, which changes stage by stage (sianko → obrus → opłatek → talerze → świeca). Step 2: a seating puzzle for Kaka, Kaczor, Mikołaj and friends Jugo, Gayzilla, Inez and „Nieoczekiwany aktualny kochanek Inez” — seven wishes, one correct arrangement, each wish ticks green or red as you seat people |
 | Lampki z Kaczorem | Fireplace | Untangle the string of lights: drag bulbs until no wires cross (2 strings, 6 and 9 bulbs). Kaczor holds the cable — tap him when he dozes off, or he rolls onto it and tangles a couple of bulbs again |
 | Pociąg z Mikołajem | Mikołaj by the tree | Steer Mikołaj's toy train (arrows, swipe or on-screen buttons) to collect 10 presents; each adds a wagon. Crashing only costs a couple of wagons. Presents appear under the tree when done |
 | Quiz z Kaczorem | Castle poster above the fireplace | Kaka, a Harry Potter expert, quizzes Kaczor with hard questions (10 drawn from a pool of 15, Polish edition names); you answer for him, 7/10 to pass, unlimited retries |

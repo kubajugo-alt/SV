@@ -208,9 +208,24 @@ canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#f
 .rules li span{font-weight:700;width:1em;flex:none}
 .rules li.ok{background:#e3f1e2}.rules li.ok span{color:var(--green)}
 .rules li.bad{background:#fbe1dd}.rules li.bad span{color:var(--red)}
+.need{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.nd{display:flex;align-items:center;gap:4px;background:#f3e6cc;border-radius:99px;padding:3px 10px 3px 4px;opacity:.55;filter:grayscale(.8);transition:all .25s;font-size:14px}
+.nd img{width:28px;height:28px;object-fit:contain}
+.nd.got{opacity:1;filter:none;background:#dff1dc}
+.nd.pulse{transform:scale(1.15)}
+.tz{display:grid;grid-template-columns:1fr 210px;gap:14px;align-items:start}
+@media (max-width:640px){.tz{grid-template-columns:1fr}}
+.tzTree svg{width:min(330px,100%);display:block;margin:0 auto;touch-action:none}
+.tzSide{display:flex;flex-direction:column;gap:12px}
+.tzPlan{background:#fffdf6;border-radius:12px;padding:8px;box-shadow:0 3px 0 #e3d3b3;text-align:center;font-size:14px}
+.tzPlan svg{width:110px;display:block;margin:4px auto 0}
+.tzTray{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.bb2{display:inline-block;width:1.2em;height:1.2em;border-radius:50%;box-shadow:inset -3px -3px 0 rgba(0,0,0,.18),inset 3px 3px 0 rgba(255,255,255,.35)}
+.drop-in{animation:dropIn .35s ease-out}
+@keyframes dropIn{from{transform:translateY(-12px);opacity:0}}
 .tlay{display:grid;grid-template-columns:1fr 170px;gap:14px;align-items:center}
 @media (max-width:640px){.tlay{grid-template-columns:1fr}}
-.tdrop{position:relative;aspect-ratio:1100/604;border-radius:16px;background:radial-gradient(ellipse at 50% 60%,#fff8ea,#f1e2c4);border:3px dashed transparent;transition:border-color .2s,transform .2s}
+.tdrop{position:relative;aspect-ratio:1100/649;border-radius:16px;background:radial-gradient(ellipse at 50% 60%,#fff8ea,#f1e2c4);border:3px dashed transparent;transition:border-color .2s,transform .2s}
 .tdrop.over{border-color:var(--gold);background:radial-gradient(ellipse at 50% 60%,#fffbe8,#f6e6b8)}
 .tdrop.pop{transform:scale(1.02)}
 .tdrop .tst{position:absolute;inset:4%;width:92%;height:92%;object-fit:contain}
@@ -474,11 +489,15 @@ const loadImg=src=>{const i=new Image();i.src=src;return i;};
 const GAMES={
 // 1. catch ingredients
 bake(card,win){
-  card.append(el('<h2>🍪 Pierniczki</h2>'),el('<p class="sub">Przesuwaj miskę (palcem, myszką albo strzałkami). Złap 15 składników — omijaj skarpetki Kaczora!</p>'));
+  card.append(el('<h2>🍪 Pierniczki</h2>'),el('<p class="sub">Przesuwaj miskę (palcem, myszką albo strzałkami). Złap 15 składników — w tym <b>przynajmniej po jednym z każdego</b> — i omijaj skarpetki Kaczora!</p>'));
   const bar=el('<div class="bar"><i></i></div>'), cv=document.createElement('canvas'), msg=el('<div class="msg">&nbsp;</div>');
   card.append(bar,cv,msg);
   const W=800,H=460; cv.width=W; cv.height=H; const c=cv.getContext('2d');
-  const GOOD=['miod','maka','jajko','maslo','orzechy'].map(n=>loadImg('art/ing/'+n+'.webp')), BAD=loadImg('art/ing/skarpetka.webp');
+  const ING=[['miod','miód'],['maka','mąka'],['jajko','jajko'],['maslo','masło'],['orzechy','orzechy i przyprawy']];
+  const GOOD=ING.map(([n])=>loadImg('art/ing/'+n+'.webp')), BAD=loadImg('art/ing/skarpetka.webp'), have=ING.map(()=>0);
+  const need=el(`<div class="need">${ING.map(([n,l],i)=>`<span class="nd" data-i="${i}" title="${l}"><img src="art/ing/${n}.webp" alt="${l}"><b>0</b></span>`).join('')}</div>`);
+  card.insertBefore(need,card.querySelector('.msg'));
+  const missing=()=>ING.filter((_,i)=>!have[i]).map(x=>x[1]);
   let bx=W/2, items=[], score=0, raf, last=performance.now(), keys={}, over=false;
   const mv=e=>{const r=cv.getBoundingClientRect(); bx=(e.clientX-r.left)/r.width*W;};
   cv.addEventListener('pointermove',mv); cv.addEventListener('pointerdown',mv);
@@ -494,7 +513,9 @@ bake(card,win){
     items.forEach(it=>{ it.y+=it.v*dt; it.rot+=it.vr*dt; draw(it.img,it.x,it.y,it.rot);
       if(!it.hit && it.y>H-80 && it.y<H-20 && Math.abs(it.x-bx)<75){ it.hit=true;
         if(it.bad){ score=Math.max(0,score-1); msg.textContent='Skarpetka Kaczora! 🧦 −1'; msg.style.color='var(--red)'; }
-        else { score++; msg.textContent=['Mniam!','Pięknie!','Jeszcze!','Tak trzymać!'][score%4]; msg.style.color='var(--green)'; }
+        else { score++; const k=GOOD.indexOf(it.img); have[k]++; const nd=need.querySelector(`[data-i="${k}"]`); nd.classList.add('got','pulse'); nd.querySelector('b').textContent=have[k]; setTimeout(()=>nd.classList.remove('pulse'),300);
+          msg.textContent=['Mniam!','Pięknie!','Jeszcze!','Tak trzymać!'][score%4]; msg.style.color='var(--green)';
+          if(score>=15&&missing().length){ msg.style.color='var(--red)'; msg.textContent='Ciasto prawie gotowe, ale brakuje: '+missing().join(', ')+'!'; } }
       }});
     items=items.filter(it=>!it.hit&&it.y<H+50);
     // mixing bowl
@@ -503,37 +524,69 @@ bake(card,win){
     c.fillStyle='#f6e7c8'; c.beginPath(); c.ellipse(bx,H-62,80,12,0,0,Math.PI*2); c.fill();
     c.strokeStyle='#e9b949'; c.lineWidth=4; c.beginPath(); c.moveTo(bx-62,H-40); c.quadraticCurveTo(bx,H-30,bx+62,H-40); c.stroke();
     bar.firstChild.style.width=Math.min(100,score/15*100)+'%';
-    if(score>=15 && !over){ over=true; msg.textContent='Ciasto gotowe! 🍪'; win(); }
+    if(score>=15 && !missing().length && !over){ over=true; msg.style.color='var(--green)'; msg.textContent='Ciasto gotowe! 🍪'; win(); }
     raf=requestAnimationFrame(loop);
   }
   raf=requestAnimationFrame(loop);
   return ()=>{cancelAnimationFrame(raf); removeEventListener('keydown',kd); removeEventListener('keyup',kd);};
 },
-// 2. bauble sequence memory on the real tree
+// 2. decorate the tree by Kaka's plan: drag baubles onto matching hooks, then the garland, then the star
 tree(card,win){
-  card.append(el('<h2>🎄 Choinka</h2>'),el('<p class="sub">Patrz, które bombki zabłysną, i dotknij ich w tej samej kolejności. Trzy rundy.</p>'));
-  const COL=['#c0392b','#2f6fd1','#e9b949','#d2569b','#2fa37a','#8a5ad2'];
-  const POS=[[150,190],[108,265],[195,280],[85,370],[152,355],[220,385]];
-  const svg=el(`<svg id="treeSvg" viewBox="0 0 300 490"><image href="art/tree_bare.webp" x="0" y="0" width="300" height="490" preserveAspectRatio="xMidYMid meet"/>
-    ${POS.map((p,i)=>`<g class="bb" data-i="${i}"><circle cx="${p[0]}" cy="${p[1]}" r="21" fill="${COL[i]}" stroke="#fff6d8" stroke-width="3"/><circle cx="${p[0]-7}" cy="${p[1]-7}" r="5" fill="#fff" opacity=".7"/><rect x="${p[0]-4}" y="${p[1]-27}" width="8" height="7" fill="#e9b949"/></g>`).join('')}</svg>`);
-  const msg=el('<div class="msg">Patrz uważnie…</div>');
-  card.append(svg,msg);
-  const balls=[...svg.querySelectorAll('.bb')];
-  let round=0, seq=[], inp=0, busy=true, timers=[], dead=false;
-  const LEN=[3,4,5];
-  const flash=i=>{balls[i].classList.add('on'); timers.push(setTimeout(()=>balls[i].classList.remove('on'),420));};
-  function show(){ busy=true; inp=0; msg.textContent=`Runda ${round+1}/3 — patrz uważnie…`; msg.style.color='var(--green)';
-    seq.forEach((b,k)=>timers.push(setTimeout(()=>flash(b),700+k*650)));
-    timers.push(setTimeout(()=>{busy=false;msg.textContent='Teraz Ty!';},700+seq.length*650));
-  }
-  function newRound(){ seq=Array.from({length:LEN[round]},()=>Math.random()*6|0); show(); }
-  balls.forEach(b=>b.addEventListener('click',()=>{
-    if(busy||dead) return; const i=+b.dataset.i; flash(i);
-    if(i===seq[inp]){ inp++; if(inp===seq.length){ round++; if(round===3){ busy=true; msg.textContent='Choinka błyszczy! ✨'; svg.querySelector('image').setAttribute('href','art/tree_deco.webp'); win(); } else { msg.textContent='Brawo! Następna runda…'; busy=true; timers.push(setTimeout(newRound,900)); } } }
-    else { msg.textContent='Ups, prawie! Pokażę jeszcze raz.'; msg.style.color='var(--red)'; svg.classList.add('shake'); setTimeout(()=>svg.classList.remove('shake'),400); busy=true; timers.push(setTimeout(show,1100)); }
-  }));
-  timers.push(setTimeout(newRound,2500));
-  return ()=>{dead=true; timers.forEach(clearTimeout);};
+  card.append(el('<h2>🎄 Choinka</h2>'),el('<p class="sub">Kaka ma plan! Przeciągnij bombki na haczyki w kolorach z jej szkicu, potem łańcuch, a na koniec gwiazdę na czubek. (Możesz też dotknąć rzeczy, a potem miejsca.)</p>'));
+  const COLS={red:['#c0392b','czerwoną'],gold:['#e9b949','złotą'],blue:['#2f6fd1','niebieską'],pink:['#d2569b','różową']};
+  const HOOKS=[[150,150],[118,215],[185,225],[95,295],[150,285],[208,300],[80,378],[220,382]];
+  const plan=shuffle(['red','red','gold','gold','blue','blue','pink','pink']);
+  const svgNS='http://www.w3.org/2000/svg';
+  const wrap=el(`<div class="tz"><div class="tzTree"><svg viewBox="0 0 300 490"><image href="art/tree_bare.webp" x="0" y="0" width="300" height="490" preserveAspectRatio="xMidYMid meet"/>
+      <g class="garland" opacity="0"><path d="M108 205 Q150 235 196 210 M84 290 Q150 325 218 290 M66 372 Q150 410 236 372" fill="none" stroke="#e9b949" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 7"/></g>
+      ${HOOKS.map((h,i)=>`<g class="hook" data-i="${i}"><circle cx="${h[0]}" cy="${h[1]}" r="17" fill="rgba(255,255,255,.18)" stroke="#fff7d6" stroke-width="2" stroke-dasharray="4 4"/></g>`).join('')}
+      <g class="topspot"><circle cx="150" cy="38" r="22" fill="rgba(255,255,255,.15)" stroke="#fff7d6" stroke-width="2" stroke-dasharray="4 4"/></g>
+      <g class="star" opacity="0"><path d="M150 12 L157 31 L177 32 L161 44 L167 63 L150 52 L133 63 L139 44 L123 32 L143 31Z" fill="#ffd34e" stroke="#c9961f" stroke-width="2"/></g>
+    </svg></div>
+    <div class="tzSide"><div class="tzPlan"><b>📝 Plan Kaki</b><svg viewBox="0 0 300 490"><path d="M150 40 L270 440 H30Z" fill="#2f6b45" opacity=".85"/>${HOOKS.map((h,i)=>`<circle cx="${h[0]}" cy="${h[1]}" r="20" fill="${COLS[plan[i]][0]}" stroke="#fff" stroke-width="3"/>`).join('')}<path d="M150 18 l8 18 20 2 -15 13 5 19 -18 -11 -18 11 5 -19 -15 -13 20 -2z" fill="#ffd34e"/></svg></div>
+    <div class="tzTray"></div></div></div>`);
+  const msg=el('<div class="msg">&nbsp;</div>'); card.append(wrap,msg);
+  const svg=wrap.querySelector('.tzTree svg'), tray=wrap.querySelector('.tzTray');
+  const hooks=[...svg.querySelectorAll('.hook')], filled=new Array(HOOKS.length).fill(false);
+  let phase='baubles', picked=null, timers=[];
+  const say2=(t,ok)=>{ msg.style.color=ok?'var(--green)':'var(--red)'; msg.textContent=t; };
+  function addItem(html,data){ const it=el(`<button class="titem">${html}</button>`); Object.assign(it.dataset,data); tray.append(it); bindDrag(it); return it; }
+  function fillTray(){ tray.innerHTML='';
+    if(phase==='baubles') shuffle(plan.slice()).forEach(c=>addItem(`<span class="bb2" style="background:${COLS[c][0]}"></span>bombka`,{kind:'bauble',color:c}));
+    if(phase==='garland') addItem('<span class="ti">〰️</span>łańcuch',{kind:'garland'});
+    if(phase==='star') addItem('<span class="ti">⭐</span>gwiazda',{kind:'star'}); }
+  function targetAt(x,y){
+    const box=svg.getBoundingClientRect(); if(x<box.left||x>box.right||y<box.top||y>box.bottom) return null;
+    const top=svg.querySelector('.topspot'); if(top){ const tr=top.getBoundingClientRect(); if(Math.hypot(x-(tr.left+tr.width/2),y-(tr.top+tr.height/2))<tr.width) return 'top'; }
+    let best=null,bd=1e9; hooks.forEach((h,i)=>{ if(filled[i]) return; const r=h.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2, d=Math.hypot(x-cx,y-cy); if(d<bd){bd=d;best=i;} });
+    if(best===null) return 'tree'; const r0=hooks[best].getBoundingClientRect(); return bd<r0.width*1.1?best:'tree'; }
+  function drop(it,t){
+    if(t===null) return;
+    const k=it.dataset.kind;
+    if(k==='bauble'){ if(typeof t!=='number'){ say2('Zawieś bombkę na wolnym haczyku.',false); return bounce(it); }
+      if(plan[t]!==it.dataset.color){ say2(`Kaka chce tu ${COLS[plan[t]][1]}!`,false); return bounce(it); }
+      filled[t]=true; it.remove(); picked=null;
+      const [x,y]=HOOKS[t], g=document.createElementNS(svgNS,'g'); g.innerHTML=`<line x1="${x}" y1="${y-24}" x2="${x}" y2="${y-16}" stroke="#c9961f" stroke-width="2"/><circle cx="${x}" cy="${y}" r="17" fill="${COLS[plan[t]][0]}" stroke="#fff6d8" stroke-width="2"/><circle cx="${x-6}" cy="${y-6}" r="4.5" fill="#fff" opacity=".7"/>`;
+      g.classList.add('drop-in'); hooks[t].replaceWith(g); hooks[t]=g;
+      const left=filled.filter(f=>!f).length; say2(left?`Pięknie! Jeszcze ${left}.`:'Wszystkie bombki wiszą! Teraz łańcuch.',true);
+      if(!left){ phase='garland'; timers.push(setTimeout(fillTray,500)); } }
+    else if(k==='garland'){ if(t==='top'){ say2('Łańcuch na gałęzie, nie na czubek.',false); return bounce(it); } svg.querySelector('.garland').setAttribute('opacity','1'); it.remove(); picked=null; say2('Łańcuch na miejscu! A teraz gwiazda na czubek.',true); phase='star'; timers.push(setTimeout(fillTray,500)); }
+    else if(k==='star'){ if(t!=='top'){ say2('Gwiazda idzie na sam czubek!',false); return bounce(it); }
+      svg.querySelector('.star').setAttribute('opacity','1'); svg.querySelector('.topspot').remove(); it.remove(); picked=null; phase='done';
+      say2('Choinka gotowa! ✨',true); timers.push(setTimeout(()=>{ svg.querySelector('image').setAttribute('href','art/tree_deco.webp'); svg.querySelectorAll('g').forEach(g=>g.setAttribute('opacity','0')); },700)); win(); } }
+  function bounce(it){ it.classList.add('shake'); setTimeout(()=>it.classList.remove('shake'),400); }
+  function bindDrag(it){
+    it.addEventListener('click',()=>{ if(it.dataset.dragged){ delete it.dataset.dragged; return; } tray.querySelectorAll('.titem').forEach(x=>x.classList.remove('sel')); picked=picked===it?null:it; if(picked) it.classList.add('sel'); });
+    it.addEventListener('pointerdown',e=>{ const sx=e.clientX, sy=e.clientY; let ghost=null;
+      const move=ev=>{ if(!ghost && Math.hypot(ev.clientX-sx,ev.clientY-sy)<8) return;
+        if(!ghost){ ghost=it.cloneNode(true); ghost.classList.add('ghost'); document.body.append(ghost); it.classList.add('lifted'); }
+        ghost.style.left=ev.clientX+'px'; ghost.style.top=ev.clientY+'px'; };
+      const up=ev=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); removeEventListener('pointercancel',up);
+        if(!ghost) return; ghost.remove(); it.classList.remove('lifted'); it.dataset.dragged='1'; drop(it,targetAt(ev.clientX,ev.clientY)); };
+      addEventListener('pointermove',move); addEventListener('pointerup',up); addEventListener('pointercancel',up); }); }
+  svg.addEventListener('click',e=>{ if(!picked) return; drop(picked,targetAt(e.clientX,e.clientY)); });
+  fillTray();
+  return ()=>timers.forEach(clearTimeout);
 },
 // 3. memory pairs of the twelve dishes
 dishes(card,win){
@@ -564,7 +617,7 @@ dishes(card,win){
 table(card,win){
   card.append(el('<h2>🍽️ Nakrywamy do stołu</h2>'));
   const sub=el('<p class="sub">Krok 1 z 2: przeciągnij rzeczy na stół we właściwej kolejności — od samego dołu. (Albo dotknij rzeczy, a potem stołu.)</p>');
-  const lay=el('<div class="tlay"><div class="tdrop" aria-label="Stół"><img class="tst" src="art/table_empty.webp" alt=""><img class="tst tnext" alt=""><span class="thint">upuść tutaj</span></div><div class="ttray" role="list"></div></div>');
+  const lay=el('<div class="tlay"><div class="tdrop" aria-label="Stół"><img class="tst" src="art/table/t0_empty.webp" alt=""><img class="tst tnext" alt=""><span class="thint">upuść tutaj</span></div><div class="ttray" role="list"></div></div>');
   const msg=el('<div class="msg">&nbsp;</div>');
   card.append(sub,lay,msg);
   const drop=lay.querySelector('.tdrop'), tray=lay.querySelector('.ttray'), cur=lay.querySelector('.tst'), nxt=lay.querySelector('.tnext');
