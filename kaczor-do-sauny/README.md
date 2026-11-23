@@ -9,7 +9,7 @@ A 2D side-scrolling platformer starring Kaczor, deployed as its own Netlify proj
 - Maryańska, Kaczor's hippie mentor, stands by the middle checkpoint of every level (by the sauna in the last one): she gives a pep talk and keeps Kaka chatting for 3 seconds.
 - Between levels Jugo narrates the story (voiced story card before every level and at the finale), followed by Kaczor's own line.
 - Collect birch whisks (25 = +1 heart) and sauna ladles (+1 heart); birch posts with a towel are checkpoints.
-- At each sauna Kaczor changes into a towel and walks in; the last one is the gay sauna finale.
+- At each sauna Kaczor changes into a towel and walks in, then a full-screen sauna card for that world appears (`art/sauna_1-9.webp`); the last one is the gay sauna finale.
 - Phones get touch buttons and the game turns sideways when held upright. The title screen has a level picker for unlocked levels; `?level=N` jumps to a level. Progress is saved in `localStorage` (`kz-level`).
 
 ## Levels
@@ -22,4 +22,4 @@ Mechanics: moving lifts and gondolas, crumbling ice, springs, falling icicles, w
 - Animations: every character and action is a Ludo.ai sprite animation (`art/anim/*.webp` strips plus `anim.json`), baked to the same standing height so Kaczor, Kaka, Inez, Gayzilla and Maryańska match in size. Still Gemini frames (`art/kz_*`, `kaka_*`, `inez_*`, `gay_*`, `mar_idle`) are the fallback while strips load.
 - Backgrounds `art/bg*.webp` are cut to tile seamlessly (minimum-error seam + two-band blend), so they repeat forever with parallax.
 - Platforms are not images: they are drawn in code with a texture per world, snow caps, icicles and lights.
-- Voices from ElevenLabs (`audio/`), music `audio/music.mp3`.
+- Voices from ElevenLabs (`audio/`). Each level has its own Lyria soundtrack (`audio/music_1-10.mp3`; `music.mp3` plays on the title screen). Action sound effects are ElevenLabs samples in `audio/sfx/` (jump, punch, throw, splat, pickups, hurt, enemy knocked away, phone, spring, checkpoint, paraglider, splash, level complete) played through Web Audio.
