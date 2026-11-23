@@ -5,10 +5,10 @@ A 2D side-scrolling platformer starring Kaczor, deployed as its own Netlify proj
 ## Play
 - Difficulty on the title screen and in the pause menu: Spacer (slower Kaka, 5 hearts), Pościg (classic), Morsowanie (fast Kaka, 2 hearts).
 - Esc / P or ⏸ pauses (also when the tab loses focus): resume, back to checkpoint, restart level, menu, and volume sliders for music, effects and dialogue.
-- Stars per level: finish, ≥70% of the whisks, and the golden ladle hidden on a high ledge. World 1 starts gently with on-screen hints; the last world ends with a duel against a giant Gayzilla before the sauna, followed by the credits.
+- Stars per level: finish, ≥70% of the whisks, and the golden ladle hidden on a high ledge. World 1 starts gently with on-screen hints; the last world ends with a duel against Kaka at the sauna door (she throws chore lists, sends robot vacuums and charges with her mop), followed by the credits.
 - ◀ ▶ / A D — run · Space / ▲ / W — jump (hold in the air to open the paraglider) · X / J — punch · C / K — snowball
 - Kaka chases from the left with her chore list (meter at the top); if she catches up, the level restarts. She waits while Kaczor rides a lift.
-- Enemies: Inez clones blow kisses; Gayzilla wants a selfie and, when refused, angrily throws his phone (punch or snowball it away). A punch, a snowball or a jump on the head sends either of them spinning away. Kaka's robot vacuums charge along the ground and flying chore lists swoop in waves (stomp, punch or snowball them). The same Inez or Gayzilla is never on screen twice. Ice spikes hurt.
+- Enemies: Inez clones blow kisses; Gayzilla wants a selfie and, when refused, angrily throws his phone (punch or snowball it away). A punch, a snowball or a jump on the head sends either of them spinning away. Kaka's robot vacuums charge along the ground and flying chore lists swoop in waves (stomp, punch or snowball them); a name tag marks them the first time, and Kaczor comments when he spots, beats or is hit by them. The same Inez or Gayzilla is never on screen twice. Ice spikes hurt.
 - Maryańska, Kaczor's hippie mentor, stands by the middle checkpoint of every level (by the sauna in the last one): Kaczor greets her, she answers with a pep talk and keeps Kaka chatting for a few seconds.
 - Opening the paraglider catches an updraft once per jump.
 - Between levels Jugo narrates the story (voiced story card before every level and at the finale), followed by Kaczor's own line.
@@ -25,6 +25,7 @@ Every world mixes climbs over floating platforms, cliffs with spikes below, pill
 Mechanics: moving lifts and gondolas, crumbling ice, springs, falling icicles, wind gusts, steam vents that lift the paraglider, water.
 
 ## Art and code
+- The game renders at the screen's real resolution (up to 2x) and the animation strips are baked at 336px standing height, so sprites stay sharp on high-density screens.
 - Animations: every character and action is a Ludo.ai sprite animation (`art/anim/*.webp` strips plus `anim.json`), baked to the same standing height so Kaczor, Kaka, Inez, Gayzilla and Maryańska match in size. Still Gemini frames (`art/kz_*`, `kaka_*`, `inez_*`, `gay_*`, `mar_idle`) are the fallback while strips load.
 - Backgrounds `art/bg*.webp` are cut to tile seamlessly (minimum-error seam + two-band blend), so they repeat forever with parallax.
 - Environment art by Gemini (`art/env/`): per-world floating platforms (3-slice), crumbling blocks, moving platforms (gondola, sleigh, rafts…), seamless ground textures, checkpoint posts, springs, ice spikes, icicles and steam vents; `env.json` stores where each walkable top sits.
