@@ -117,9 +117,10 @@ const IMG={}; ['kz_idle','kz_run1','kz_run2','kz_run3','kz_run4','kz_jump','kz_f
 
 // ---------- smooth animations (Ludo.ai spritesheets, packed into strips with a body anchor) ----------
 const ANIM={}; fetch('art/anim/anim.json').then(r=>r.json()).then(j=>{ for(const k in j){ ANIM[k]=j[k]; ANIM[k].img=img('anim/'+k); } }).catch(()=>{});
+const CHAR=1.18; // on-screen size of every character
 function drawAnim(name,x,y,t,flip,prog,scale){ const a=ANIM[name]; if(!a||!a.img.complete||!a.img.naturalWidth) return false;
   const f=prog!=null?Math.max(0,Math.min(a.n-1,Math.floor(prog*a.n))):a.loop?Math.floor(t*a.fps)%a.n:Math.min(a.n-1,Math.floor(t*a.fps));
-  const sc=(scale||.5)*256/336; c.save(); c.translate(x,y); if(flip) c.scale(-1,1); c.drawImage(a.img,f*a.w,0,a.w,a.h,-a.ax*sc,-a.h*sc,a.w*sc,a.h*sc); c.restore(); return true; }
+  const sc=(scale||.5)*256/336*CHAR; c.save(); c.translate(x,y); if(flip) c.scale(-1,1); c.drawImage(a.img,f*a.w,0,a.w,a.h,-a.ax*sc,-a.h*sc,a.w*sc,a.h*sc); c.restore(); return true; }
 // ---------- audio ----------
 let muted=false, cur=null; let VOL={mus:70,sfx:70,voc:100}; try{ Object.assign(VOL,JSON.parse(localStorage.getItem('kz-vol')||'{}')); }catch(e){}
 const mv=()=>.43*VOL.mus/100, sfxMul=()=>VOL.sfx/70, vocV=()=>Math.min(1,VOL.voc/100);
@@ -336,7 +337,7 @@ function bossUpdate(e,dt,punching,hx0,hx1,hy0,hy1){ L.boss=e; const gy=surfAt(e.
     if(e.cool<=0){ const r=(e.pat=(e.pat||0)+1)%3; if(r===0&&Math.abs(P.x-e.x)<520){ e.mode='dash'; e.mt=.9; e.dir=Math.sign(P.x-e.x)||-1; } else { e.mode='cast'; e.mt=.7; e.fired=false; e.cast=r===1?'notes':'vac'; } } }
   // you cannot slip past her
   if(P.x>e.x-30&&P.y+P.h>gy-190){ P.x=e.x-30; P.vx=Math.min(P.vx,0); }
-  const top=gy-180, ox=Math.abs(P.x-e.x)<52;
+  const top=gy-210, ox=Math.abs(P.x-e.x)<56;
   const sb=snowballs.find(b=>b.t>0&&Math.abs(b.x-e.x)<48&&b.y>top&&b.y<gy);
   const stomp=ox&&P.vy>0&&P.y+P.h>top&&P.y+P.h<top+40;
   if(e.inv<=0&&(sb||stomp||punching&&e.x>hx0-40&&e.x<hx1+40&&top<hy1&&gy>hy0)){ if(sb) sb.t=0; if(stomp) P.vy=-650; e.hp--; e.inv=1.1; e.mode=null; e.cool=1.1; e.x+=(Math.sign(e.x-P.x)||1)*50; puff(e.x,gy-130,'#ffe08a',16); sfx('defeat');
@@ -347,9 +348,11 @@ function bossUpdate(e,dt,punching,hx0,hx1,hy0,hy1){ L.boss=e; const gy=surfAt(e.
 const REM={inez:{see:['kz_inez_see1','kz_inez_see2'],win:['kz_inez_win1','kz_inez_win2'],hit:['kz_hit','kz_inez_hit2']},gay:{see:['kz_gay_see1','kz_gay_see2'],win:['kz_gay_win1','kz_gay_win2'],hit:['kz_hit_gay','kz_gay_hit2']},vac:{see:['kz_vac_see1','kz_vac_see2'],win:['kz_vac_win1','kz_vac_win2'],hit:['kz_vac_hit']},note:{see:['kz_note_see1','kz_note_see2'],win:['kz_note_win1','kz_note_win2'],hit:['kz_note_hit']}};
 const REMTXT={kz_inez_see1:'O nie, Inez! Tylko nie całusy!',kz_inez_see2:'Inez znowu w akcji… Uciekam!',kz_inez_win1:'Nie dziś, Inez! Sauna czeka!',kz_inez_win2:'Przepraszam, Inez, jestem bardzo zajęty!',kz_hit:'Inez, nie! Jestem w drodze do sauny!',kz_inez_hit2:'Fuj, szminka! Inez!',kz_gay_see1:'Gayzilla z telefonem! Tylko bez selfie!',kz_gay_see2:'Uwaga, Gayzilla! Chowam twarz!',kz_gay_win1:'Bez selfie, Gayzilla! Może innym razem!',kz_gay_win2:'Telefon na ładowarkę, Gayzilla!',kz_hit_gay:'Gayzilla, nie! Żadnych selfie, lecę do sauny!',kz_gay_hit2:'Moje oko! Gayzilla, ten telefon jest ciężki!',kz_vac_see1:'O nie, odkurzacz Kaki! Ten to mnie wciągnie razem z kapciami!',kz_vac_see2:'Robot sprzątający? Kaka, serio?!',kz_vac_win1:'Wyłączony! Kurz może poczekać.',kz_vac_win2:'Odkurzacz ma dziś wolne!',kz_vac_hit:'Ała! Nie jestem okruchem!',kz_note_see1:'Lista zadań lata?! Tego jeszcze nie było!',kz_note_see2:'Kolejne obowiązki nadlatują…',kz_note_win1:'Skreślone! Zrobione! Następne!',kz_note_win2:'Ta lista jest już nieaktualna.',kz_note_hit:'Au! Papierowe skaleczenie od obowiązków!'};
 let remT=0, remN={}, kzSay=null;
-function spotted(e){ if(e.seen||Math.abs(e.x-P.x)>VW*.55||e.state) return; if(cur&&Math.abs(e.x-P.x)>VW*.25) return; e.seen=1; L.seenK=L.seenK||{}; const first=!L.seenK[e.k]; L.seenK[e.k]=1; if(first&&(e.k==='vac'||e.k==='note')) e.tag=3.5; if(first||Math.random()<.4) remark(e.k,'see',first); }
-function remark(kind,ev,force){ const now=performance.now(); if(cur||now-remT<(ev==='see'?5000:9000)) return; if(!force&&ev==='win'&&Math.random()<.4) return;
-  const list=REM[kind][ev], n=(remN[kind+ev]=(remN[kind+ev]||0)+1), key=list[(n-1)%list.length]; remT=now; play(key); kzSay={t:REMTXT[key],ttl:3}; }
+function spotted(e){ if(e.seen||Math.abs(e.x-P.x)>VW*.55||e.state) return; L.seenK=L.seenK||{}; const first=!L.seenK[e.k];
+  if(first){ if(e.k==='vac'||e.k==='note') e.tag=Math.max(e.tag||0,3.5); if(!remark(e.k,'see',true)) return; L.seenK[e.k]=1; e.seen=1; return; } // the first of each kind waits for its turn
+  if(cur&&Math.abs(e.x-P.x)>VW*.25) return; e.seen=1; if(Math.random()<.4) remark(e.k,'see'); }
+function remark(kind,ev,force){ const now=performance.now(); if(cur||now-remT<(ev==='see'?3500:8000)) return false; if(!force&&ev==='win'&&Math.random()<.4) return false;
+  const list=REM[kind][ev], n=(remN[kind+ev]=(remN[kind+ev]||0)+1), key=list[(n-1)%list.length]; remT=now; play(key); kzSay={t:REMTXT[key],ttl:3}; return true; }
 function breakVac(e){ remark('vac','win'); e.state='broken'; e.st=.9; puff(e.x,e.y-30,'#ffd27a',14); sfx('phone',.8); toast('Odkurzacz wyłączony! 🔌','#d6ffd9'); }
 function popNote(e){ if(!e.boss) remark('note','win'); e.alive=false; puff(e.x,e.y,'#fffbe8',12); sfx('splat',.6); }
 function defeat(e,dir){ e.state='hit'; e.st=.4; e.kx=dir*300; e.dir=-dir; puff(e.x,(e.y||0)-80,'#ff8fb3',14); sfx('defeat');
@@ -425,10 +428,11 @@ function update(dt){
       if(ng==null||Math.abs(ng-gy)>4) e.vx=-e.vx; else e.x=nx; e.dir=Math.sign(e.vx);
       const sb=snowballs.find(b=>b.t>0&&Math.abs(b.x-e.x)<38&&b.y>gy-64&&b.y<gy+6);
       if(sb||punching&&e.x>hx0-30&&e.x<hx1+30&&gy-64<hy1&&gy>hy0){ if(sb) sb.t=0; breakVac(e); return; }
-      const ox=Math.abs(P.x-e.x)<46; if(ox&&P.vy>0&&P.y+P.h>gy-66&&P.y+P.h<gy-22){ P.vy=-600; breakVac(e); return; }
+      const ox=Math.abs(P.x-e.x)<46; if(ox&&P.vy>0&&P.y+P.h>gy-76&&P.y+P.h<gy-24){ P.vy=-600; breakVac(e); return; }
       if(ox&&P.y+P.h>gy-40&&P.y<gy) hurt('Odkurzacz Kaki cię staranował! 🧹','vac'); return; }
     // flying chore lists: wake up when on screen, drift towards Kaczor in waves
-    if(e.k==='note'){ if(!e.act){ if(e.x-P.x<VW*.8){ e.act=true; e.by=e.y; e.t=0; spotted(e); } else return; }
+    if(e.k==='note'){ if(!e.act){ if(e.x-P.x<VW*.8){ e.act=true; e.by=e.y; e.t=0; } else return; }
+      if(!e.boss) spotted(e);
       e.t+=dt; e.x+=(e.vxN??-(105+75*dif))*dt; if(e.boss&&e.t>6){ e.alive=false; return; } e.by+=Math.sign(P.y+30-e.by)*45*dt; e.y=e.by+Math.sin(e.t*2.6)*46; if(e.x<cam-200){ e.alive=false; return; }
       const sb=snowballs.find(b=>b.t>0&&Math.hypot(b.x-e.x,b.y-e.y)<40);
       if(sb||punching&&e.x>hx0-20&&e.x<hx1+20&&e.y>hy0-30&&e.y<hy1+20){ if(sb) sb.t=0; popNote(e); return; }
@@ -465,10 +469,10 @@ function update(dt){
     if(e.k==='inez'||e.k==='gay'){ const who=e.k==='gay'?'Gayzilla':'Inez';
       const ey=surfAt(e.x,e.y)||VH; e.y=ey;
       // punched: she spins away into the sky with a huff
-      const sb=snowballs.find(b=>b.t>0&&Math.abs(b.x-e.x)<34&&b.y>ey-140&&b.y<ey); if(sb){ sb.t=0; puff(sb.x,sb.y,'#fff',8); }
-      if(sb||punching&&e.x>hx0-30&&e.x<hx1+30&&ey-140<hy1&&ey>hy0){ defeat(e,sb?Math.sign(sb.vx):P.face); toast(e.k==='gay'?'Bez selfie, Gayzilla! 📵':'Nie, dziękuję, Inez! 👋','#ffd1dc'); return; }
+      const sb=snowballs.find(b=>b.t>0&&Math.abs(b.x-e.x)<34&&b.y>ey-165&&b.y<ey); if(sb){ sb.t=0; puff(sb.x,sb.y,'#fff',8); }
+      if(sb||punching&&e.x>hx0-30&&e.x<hx1+30&&ey-165<hy1&&ey>hy0){ defeat(e,sb?Math.sign(sb.vx):P.face); toast(e.k==='gay'?'Bez selfie, Gayzilla! 📵':'Nie, dziękuję, Inez! 👋','#ffd1dc'); return; }
       // stomp on head or bump into her
-      const ox=Math.abs(P.x-e.x)<40, top=ey-138;
+      const ox=Math.abs(P.x-e.x)<44, top=ey-158;
       if(ox&&P.vy>0&&P.y+P.h>top&&P.y+P.h<top+34){ P.vy=-560; defeat(e,P.face); e.state='dizzy'; e.st=1.7; toast(`Nie dziś, ${who}! 👋`,'#ffd1dc'); }
       else if(ox&&P.y+P.h>top+30&&P.y<ey) hurt(e.k==='gay'?'Gayzilla wciąga cię do selfie! 🤳':'Inez chciała cię poderwać! 💋',e.k); } });
   phones.forEach(f=>{ f.t-=dt; f.vy+=900*dt; f.x+=f.vx*dt; f.y+=f.vy*dt; f.rot+=14*dt*Math.sign(f.vx||1);
@@ -678,38 +682,38 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); c.imageSmoothingEnabled=true; 
   const sx=L.goal-cam; if(sx>-500&&sx<VW+200){ drawImg(IMG.sauna,sx+140,(groundY(L.goal+140)||VH)+8,300,false); }
   ents.forEach(e=>{ if(!e.alive) return; const X=e.x-cam; if(X<-120||X>VW+120) return;
     if(e.k==='vac'){ const br=e.state==='broken', bob=br?0:Math.abs(Math.sin(e.t*14))*2; c.save(); c.translate(X,e.y+2-bob); if(br){ c.rotate(Math.sin(e.rot)*.25); c.globalAlpha=Math.min(1,e.st*2); }
-      if(IMG.enemy_vac.complete&&IMG.enemy_vac.naturalWidth) drawImg(IMG.enemy_vac,0,0,62,e.dir<0); else { c.fillStyle='#c9ccd6'; c.beginPath(); c.roundRect(-34,-40,68,36,14); c.fill(); }
+      if(IMG.enemy_vac.complete&&IMG.enemy_vac.naturalWidth) drawImg(IMG.enemy_vac,0,0,74,e.dir<0); else { c.fillStyle='#c9ccd6'; c.beginPath(); c.roundRect(-34,-40,68,36,14); c.fill(); }
       c.restore(); if(br&&Math.random()<.5) parts.push({x:e.x+(Math.random()-.5)*40,y:e.y-40,vx:(Math.random()-.5)*160,vy:-180,t:.4,col:'#ffd23f',r:3}); }
-    if(e.tag>0&&(e.k==='vac'||e.k==='note')){ c.save(); c.globalAlpha=Math.min(1,e.tag); c.font='800 16px "Baloo 2",sans-serif'; c.textAlign='center'; const tt=e.k==='vac'?'Odkurzacz Kaki':'Lista zadań Kaki', tw=c.measureText(tt).width+18, ty=(e.k==='vac'?e.y-78:e.y-50); c.fillStyle='rgba(120,30,40,.85)'; c.beginPath(); c.roundRect(X-tw/2,ty-18,tw,24,12); c.fill(); c.fillStyle='#fff'; c.fillText(tt,X,ty); c.restore(); }
+    if(e.tag>0&&(e.k==='vac'||e.k==='note')){ c.save(); c.globalAlpha=Math.min(1,e.tag); c.font='800 16px "Baloo 2",sans-serif'; c.textAlign='center'; const tt=e.k==='vac'?'Odkurzacz Kaki':'Lista zadań Kaki', tw=c.measureText(tt).width+18, ty=(e.k==='vac'?e.y-92:e.y-56); c.fillStyle='rgba(120,30,40,.85)'; c.beginPath(); c.roundRect(X-tw/2,ty-18,tw,24,12); c.fill(); c.fillStyle='#fff'; c.fillText(tt,X,ty); c.restore(); }
     if(e.k==='vac'); else if(e.k==='note'){ if(!e.act) return; c.save(); c.translate(X,e.y); c.scale(1,.85+Math.abs(Math.sin(e.t*12))*.15);
-      if(IMG.enemy_note.complete&&IMG.enemy_note.naturalWidth) drawImg(IMG.enemy_note,0,28,58,false); else drawImg(IMG.it_chore,0,22,44,false); c.restore(); }
+      if(IMG.enemy_note.complete&&IMG.enemy_note.naturalWidth) drawImg(IMG.enemy_note,0,32,68,false); else drawImg(IMG.it_chore,0,22,44,false); c.restore(); }
     else if(e.k==='vihta') drawImg(IMG.it_vihta,X,e.y+18+Math.sin(t0*3+e.x)*4,36);
     else if(e.k==='ladle') drawImg(IMG.it_ladle,X,e.y+22+Math.sin(t0*3)*4,46);
     else if(e.k==='gold'){ const gl=c.createRadialGradient(X,e.y,0,X,e.y,46); gl.addColorStop(0,'rgba(255,220,90,.55)'); gl.addColorStop(1,'rgba(255,220,90,0)'); c.fillStyle=gl; c.fillRect(X-46,e.y-46,92,92); c.save(); c.filter='sepia(1) saturate(3) brightness(1.15) hue-rotate(-12deg)'; drawImg(IMG.it_ladle,X,e.y+24+Math.sin(t0*3)*5,52); c.restore(); if(Math.random()<.2) parts.push({x:e.x+(Math.random()-.5)*40,y:e.y+(Math.random()-.5)*40,vx:0,vy:-30,t:.5,col:'#fff6b0',r:2}); }
     else if(e.k==='boss'){ const fl=e.dir<0, sc=.62;
       if(e.state==='gone'){ c.globalAlpha=Math.max(0,Math.min(1,e.st/1.5)); drawAnim('kaka_run',X,e.y+2,t0*.6,false,null,sc); c.globalAlpha=1; return; }
       if(e.inv>0&&Math.floor(e.inv*14)%2) return;
-      if(e.mode==='dash'||e.act&&e.intro<=0&&e.mode!=='cast') drawAnim('kaka_run',X,e.y+2,e.t*(e.mode==='dash'?1.6:.7),fl,null,sc); else drawImg(IMG.kaka_point,X,e.y+2,166,fl); }
+      if(e.mode==='dash'||e.act&&e.intro<=0&&e.mode!=='cast') drawAnim('kaka_run',X,e.y+2,e.t*(e.mode==='dash'?1.6:.7),fl,null,sc); else drawImg(IMG.kaka_point,X,e.y+2,166*CHAR,fl); }
     else if((e.k==='inez'||e.k==='gay')&&e.state){ const pre=e.k==='gay'?'gay_':'inez_';
       const ok=e.state==='hit'?drawAnim(pre+'hit',X,e.y+2,0,e.kx>0,1-e.st/.4):e.state==='dizzy'?drawAnim(pre+'dizzy',X,e.y+4,t0,e.dir<0):(c.globalAlpha=Math.max(0,Math.min(1,e.st)),drawAnim(pre+'huff',X,e.y+2,t0,e.hdir<0));
       c.globalAlpha=1; if(ok||e.k==='gay') return;
-      if(e.state==='hit') drawImg(IMG.inez_hit,X,e.y+2,144,e.kx<0);
+      if(e.state==='hit') drawImg(IMG.inez_hit,X,e.y+2,144*CHAR,e.kx<0);
       else if(e.state==='dizzy'){ drawImg(IMG.inez_dizzy,X,e.y+4,104,e.dir>0); for(let q=0;q<4;q++){ const a=t0*5+q*Math.PI/2; c.fillStyle='#ffd34e'; star(X+Math.cos(a)*34,e.y-96+Math.sin(a)*9,7); } }
-      else { c.globalAlpha=Math.max(0,Math.min(1,e.st)); drawImg(IMG.inez_huff,X,e.y+2,144,e.hdir>0); c.globalAlpha=1; } }
+      else { c.globalAlpha=Math.max(0,Math.min(1,e.st)); drawImg(IMG.inez_huff,X,e.y+2,144*CHAR,e.hdir>0); c.globalAlpha=1; } }
     else if(e.k==='gay'){ const fl=e.dir<0; if(e.mode==='throw') drawAnim('gay_throw',X,e.y+2,0,fl,1-e.mt/.55); else if(e.mode==='selfie') drawAnim('gay_selfie',X,e.y+2,e.t,fl); else drawAnim('gay_walk',X,e.y+2,e.t,fl); }
-    else if(e.k==='inez'){ const fl=e.dir<0; if(!(e.kissT>0?drawAnim('inez_kiss',X,e.y+2,0,fl,1-e.kissT/.5):drawAnim('inez_walk',X,e.y+2,e.t,fl))){ const im=e.kissT>0?IMG.inez_kiss:(Math.floor(e.t*5)%2?IMG.inez_walk1:IMG.inez_walk2); drawImg(im,X,e.y+2,128,fl); } }
+    else if(e.k==='inez'){ const fl=e.dir<0; if(!(e.kissT>0?drawAnim('inez_kiss',X,e.y+2,0,fl,1-e.kissT/.5):drawAnim('inez_walk',X,e.y+2,e.t,fl))){ const im=e.kissT>0?IMG.inez_kiss:(Math.floor(e.t*5)%2?IMG.inez_walk1:IMG.inez_walk2); drawImg(im,X,e.y+2,128*CHAR,fl); } }
     else if(e.k==='spring') drawSpring(X,e.y,e.sq||0);
     else if(e.k==='icicle') drawIcicle(X,e.y,e.st==='shake'?Math.sin(t0*60)*3:0); });
   kisses.forEach(k=>drawImg(IMG.it_kiss,k.x-cam,k.y+14,30));
   snowballs.forEach(b=>drawImg(IMG.it_snow,b.x-cam,b.y+12,24));
   phones.forEach(f=>{ c.save(); c.translate(f.x-cam,f.y); c.rotate(f.rot); drawImg(IMG.it_phone,0,18,36); c.restore(); });
-  flyers.forEach(f=>{ c.save(); c.translate(f.x-cam,f.y-70); c.rotate(f.rot); c.globalAlpha=Math.min(1,f.t); drawImg(IMG.inez_kiss,0,70,144,f.dir>0); c.restore(); });
+  flyers.forEach(f=>{ c.save(); c.translate(f.x-cam,f.y-70); c.rotate(f.rot); c.globalAlpha=Math.min(1,f.t); drawImg(IMG.inez_kiss,0,70,144*CHAR,f.dir>0); c.restore(); });
   // Maryańska
   if(L.mar){ const mx=L.mar-cam; if(mx>-150&&mx<VW+150){ const my=(groundY(L.mar)||VH)+2, fl=P.x<L.mar;
-    if(!drawAnim(L.marT>0?'mar_talk':'mar_cheer',mx,my,t0,fl)) drawImg(IMG.mar_idle,mx,my,128,fl);
-    if(L.marT>0){ if(L.marPh===1) bubble(P.x-cam,P.y-12,KZM_TXT[lvl],'Kaczor','#2e6da4'); else bubble(mx,my-150,MAR_TXT[lvl]); } } }
+    if(!drawAnim(L.marT>0?'mar_talk':'mar_cheer',mx,my,t0,fl)) drawImg(IMG.mar_idle,mx,my,128*CHAR,fl);
+    if(L.marT>0){ if(L.marPh===1) bubble(P.x-cam,P.y-52,KZM_TXT[lvl],'Kaczor','#2e6da4'); else bubble(mx,my-178,MAR_TXT[lvl]); } } }
   // Kaka
-  const kx=kaka.x-cam; if(kx>-200&&!L.kakaGone){ if(kaka.wait>0||!drawAnim('kaka_run',kx,kaka.y+2,kaka.anim,false)) drawImg(kaka.wait>0?IMG.kaka_point:(Math.floor(kaka.anim*7)%2?IMG.kaka_run1:IMG.kaka_run2),kx,kaka.y+2,128,false); }
+  const kx=kaka.x-cam; if(kx>-200&&!L.kakaGone){ if(kaka.wait>0||!drawAnim('kaka_run',kx,kaka.y+2,kaka.anim,false)) drawImg(kaka.wait>0?IMG.kaka_point:(Math.floor(kaka.anim*7)%2?IMG.kaka_run1:IMG.kaka_run2),kx,kaka.y+2,128*CHAR,false); }
   // Kaczor
   if(!(P.inv>0&&Math.floor(P.inv*12)%2)){ const X=P.x-cam, Y=P.y+P.h+2;
     const fl=P.face<0;
@@ -718,9 +722,9 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); c.imageSmoothingEnabled=true; 
       :!P.on?drawAnim(P.vy<0?'kz_air':'kz_fall',X,Y,t0,fl):Math.abs(P.vx)>30?drawAnim('kz_run',X,Y,P.runT,fl):drawAnim('kz_idle',X,Y,t0,fl);
     if(an){}
     else if(P.glide) drawImg(IMG.kz_glide,X,Y+22,240,P.face<0);
-    else if(P.towel){ const im=P.joy>0?IMG.kz_tjoy:Math.abs(P.vx)>20?(Math.floor(P.anim*6)%2?IMG.kz_twalk1:IMG.kz_twalk2):IMG.kz_towel; drawImg(im,X,Y,128,P.face<0); }
+    else if(P.towel){ const im=P.joy>0?IMG.kz_tjoy:Math.abs(P.vx)>20?(Math.floor(P.anim*6)%2?IMG.kz_twalk1:IMG.kz_twalk2):IMG.kz_towel; drawImg(im,X,Y,128*CHAR,P.face<0); }
     else { const RUN=[IMG.kz_run1,IMG.kz_run2,IMG.kz_run3,IMG.kz_run4];
-      const im=P.snowA>.22?IMG.kz_wind:P.snowA>0?IMG.kz_throw:P.punchT>0?IMG.kz_punch:!P.on?(P.vy<0?IMG.kz_jump:IMG.kz_fall):Math.abs(P.vx)>30?RUN[Math.floor(P.anim*11)%4]:IMG.kz_idle; drawImg(im,X,Y,128,P.face<0); } }
+      const im=P.snowA>.22?IMG.kz_wind:P.snowA>0?IMG.kz_throw:P.punchT>0?IMG.kz_punch:!P.on?(P.vy<0?IMG.kz_jump:IMG.kz_fall):Math.abs(P.vx)>30?RUN[Math.floor(P.anim*11)%4]:IMG.kz_idle; drawImg(im,X,Y,128*CHAR,P.face<0); } }
   parts.forEach(p=>{ c.globalAlpha=Math.max(0,Math.min(1,p.t/.7)); c.fillStyle=p.col; c.beginPath(); c.arc(p.x-cam,p.y,p.r,0,Math.PI*2); c.fill(); c.globalAlpha*=.35; c.beginPath(); c.arc(p.x-cam,p.y,p.r*1.8,0,Math.PI*2); c.fill(); }); c.globalAlpha=1;
   // falling snow
   c.fillStyle='rgba(255,255,255,.8)'; for(let i=0;i<60;i++){ const x=((i*197+t0*(20+i%5*8))%VW+VW)%VW, y=((i*131+t0*(40+i%7*9))%VH); c.beginPath(); c.arc(x,y,1.2+i%3,0,Math.PI*2); c.fill(); }
@@ -735,7 +739,7 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); c.imageSmoothingEnabled=true; 
     c.globalAlpha=.55; c.drawImage(FLAKE,fx-rr*2,fy-rr*2,rr*4,rr*4); } c.globalAlpha=1;
   // boss health
   if(L.boss&&L.boss.alive&&L.boss.act&&L.boss.state!=='gone'){ c.textAlign='center'; c.font='700 22px "Baloo 2",sans-serif'; c.fillStyle='#ffd1dc'; c.lineWidth=5; c.strokeStyle='rgba(0,0,0,.6)'; const bt='Kaka '+'❤'.repeat(L.boss.hp); c.strokeText(bt,VW/2,128); c.fillText(bt,VW/2,128); c.textAlign='left'; }
-  if(kzSay&&state==='play'){ kzSay.ttl-=1/60; if(kzSay.ttl<=0) kzSay=null; else bubble(P.x-cam,P.y-12,kzSay.t,'Kaczor','#2e6da4',Math.min(1,kzSay.ttl*2)); }
+  if(kzSay&&state==='play'){ kzSay.ttl-=1/60; if(kzSay.ttl<=0) kzSay=null; else bubble(P.x-cam,P.y-52,kzSay.t,'Kaczor','#2e6da4',Math.min(1,kzSay.ttl*2)); }
   // tutorial hint banner
   if(hint&&state==='play'){ c.save(); c.globalAlpha=Math.min(1,hint.ttl*2); c.font='700 24px "Baloo 2",sans-serif'; c.textAlign='center'; const w=c.measureText(hint.t).width+44; c.fillStyle='rgba(20,28,48,.72)'; c.beginPath(); c.roundRect(VW/2-w/2,VH-86,w,46,23); c.fill(); c.fillStyle='#fff'; c.fillText(hint.t,VW/2,VH-55); c.restore(); }
   // Kaka meter
@@ -800,7 +804,7 @@ let last=performance.now();
 const WARP=+(qs.get('warp')||1);
 function loop(now){ const dt=Math.min(.033,(now-last)/1000); last=now; if(state==='play'){ for(let w=0;w<WARP&&state==='play';w++) update(dt); } else if(state==='outro') outro(dt); else t0+=dt; if(L) draw(); requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
-window.__L=(x,y)=>L?tile(x,y):' '; window.__gen=i=>genLevel(LEVELS[i],i); window.__kz={get L(){return L}, get hearts(){return hearts}, set hearts(v){hearts=v}, get P(){return P}, get kaka(){return kaka}, get state(){return state}, get lvl(){return lvl}, K, finishLevel:()=>finishLevel()};
+window.__L=(x,y)=>L?tile(x,y):' '; window.__gen=i=>genLevel(LEVELS[i],i); window.__kz={get L(){return L}, get hearts(){return hearts}, set hearts(v){hearts=v}, get P(){return P}, get kaka(){return kaka}, get state(){return state}, get lvl(){return lvl}, get ents(){return ents}, K, finishLevel:()=>finishLevel()};
 </script>
 </body>
 </html>
