@@ -79,7 +79,7 @@ button{font:inherit;cursor:pointer}
 const $=s=>document.querySelector(s);
 const cv=$('#cv'), c=cv.getContext('2d'), VW=1280, VH=720, T=48, ROWS=15;
 const img=n=>{ const i=new Image(); i.src='art/'+n+'.webp'; return i; };
-const IMG={}; ['kz_idle','kz_run1','kz_run2','kz_run3','kz_run4','kz_jump','kz_fall','kz_punch','kz_glide','kz_towel','kz_twalk1','kz_twalk2','kz_tjoy','kaka_run1','kaka_run2','kaka_point','inez_walk1','inez_walk2','inez_kiss','it_vihta','it_ladle','it_snow','it_chore','it_kiss','sauna','bg1','bg2','bg3'].forEach(n=>IMG[n]=img(n));
+const IMG={}; ['kz_idle','kz_run1','kz_run2','kz_run3','kz_run4','kz_jump','kz_fall','kz_punch','kz_wind','kz_throw','kz_glide','kz_towel','kz_twalk1','kz_twalk2','kz_tjoy','kaka_run1','kaka_run2','kaka_point','inez_walk1','inez_walk2','inez_kiss','it_vihta','it_ladle','it_snow','it_chore','it_kiss','sauna','bg1','bg2','bg3'].forEach(n=>IMG[n]=img(n));
 
 // ---------- audio ----------
 let muted=false, cur=null; const bgm=new Audio('audio/music.mp3'); bgm.loop=true; bgm.volume=.28;
@@ -189,10 +189,12 @@ function update(dt){
   const fx=Math.floor(P.x/T); if(tile(fx,12)==='w'&&P.y+P.h>12*T+26){ puff(P.x,12*T,'#bfe6ff',18); fallOff('Plusk! Morsowanie… ale nie teraz!'); return; }
   if(P.y>VH+120){ fallOff(D.ice?'Plusk!':'Ups! Za krótki lot.'); return; }
   // punch: a big cartoon swing; it waves away Inez and her kisses
-  if(K.XHit&&P.punchT<-.1){ P.punchT=.28; sfx('throw'); puff(P.x+P.face*80,P.y+40,'rgba(255,255,255,.9)',5); }
+  if(K.XHit&&P.punchT<-.1&&!(P.snowA>0)){ P.punchT=.28; sfx('throw'); puff(P.x+P.face*80,P.y+40,'rgba(255,255,255,.9)',5); }
   // snowball: thrown in an arc, also sends Inez away and pops kisses
-  if(K.SHit&&(P.snowT||0)<=0){ P.snowT=.35; P.punchT=Math.max(P.punchT,.18); snowballs.push({x:P.x+P.face*34,y:P.y+30,vx:P.face*620+P.vx*.3,vy:-260,t:1.4}); sfx('throw'); }
-  P.snowT=(P.snowT||0)-dt;
+  // wind-up first, the snowball leaves the hand at the release frame
+  if(K.SHit&&(P.snowT||0)<=0&&P.punchT<=0){ P.snowT=.42; P.snowA=.36; P.snowFired=false; }
+  P.snowT=(P.snowT||0)-dt; P.snowA=(P.snowA||0)-dt;
+  if(P.snowA>0&&P.snowA<.22&&!P.snowFired){ P.snowFired=true; snowballs.push({x:P.x+P.face*44,y:P.y+22,vx:P.face*640+P.vx*.3,vy:-280,t:1.4}); sfx('throw'); }
   snowballs.forEach(b=>{ b.vy+=900*dt; b.x+=b.vx*dt; b.y+=b.vy*dt; b.t-=dt; if(solid(Math.floor(b.x/T),Math.floor(b.y/T))){ b.t=0; puff(b.x,b.y,'#fff',6); } });
   const punching=P.punchT>.08, hx0=P.face>0?P.x+5:P.x-100, hx1=P.face>0?P.x+100:P.x-5, hy0=P.y+8, hy1=P.y+78;
   // checkpoints
@@ -327,7 +329,7 @@ function draw(){ c.clearRect(0,0,VW,VH); drawBg(); drawVents(); drawTiles();
     if(P.glide) drawImg(IMG.kz_glide,X,Y+22,240,P.face<0);
     else if(P.towel){ const im=P.joy>0?IMG.kz_tjoy:Math.abs(P.vx)>20?(Math.floor(P.anim*6)%2?IMG.kz_twalk1:IMG.kz_twalk2):IMG.kz_towel; drawImg(im,X,Y,128,P.face<0); }
     else { const RUN=[IMG.kz_run1,IMG.kz_run2,IMG.kz_run3,IMG.kz_run4];
-      const im=P.punchT>0?IMG.kz_punch:!P.on?(P.vy<0?IMG.kz_jump:IMG.kz_fall):Math.abs(P.vx)>30?RUN[Math.floor(P.anim*11)%4]:IMG.kz_idle; drawImg(im,X,Y,128,P.face<0); } }
+      const im=P.snowA>.22?IMG.kz_wind:P.snowA>0?IMG.kz_throw:P.punchT>0?IMG.kz_punch:!P.on?(P.vy<0?IMG.kz_jump:IMG.kz_fall):Math.abs(P.vx)>30?RUN[Math.floor(P.anim*11)%4]:IMG.kz_idle; drawImg(im,X,Y,128,P.face<0); } }
   parts.forEach(p=>{ c.globalAlpha=Math.max(0,p.t/.7); c.fillStyle=p.col; c.beginPath(); c.arc(p.x-cam,p.y,p.r,0,Math.PI*2); c.fill(); }); c.globalAlpha=1;
   // falling snow
   c.fillStyle='rgba(255,255,255,.8)'; for(let i=0;i<60;i++){ const x=((i*197+t0*(20+i%5*8))%VW+VW)%VW, y=((i*131+t0*(40+i%7*9))%VH); c.beginPath(); c.arc(x,y,1.2+i%3,0,Math.PI*2); c.fill(); }

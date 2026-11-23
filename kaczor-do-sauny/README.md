@@ -16,7 +16,7 @@ A 2D side-scrolling platformer starring Kaczor, deployed as its own Netlify proj
 3. Góry i paralotnia — rock, floating rock ledges, wide gaps and hot-spring steam that lifts the paraglider
 
 ## Art and code
-- Characters: Gemini sprite sheets cut into frames (`art/kz_*` run ×4, idle, jump, fall, punch, glide, towel ×4; `kaka_*`, `inez_*`).
+- Characters: Gemini sprite sheets cut into frames (`art/kz_*` run ×4, idle, jump, fall, punch, snowball wind-up + throw, glide, towel ×4; `kaka_*`, `inez_*`).
 - Backgrounds `art/bg1-3.webp` are cut to tile seamlessly (minimum-error seam + two-band blend), so they repeat forever with parallax.
 - Platforms are not images: they are drawn in code (`drawTiles`, `platform`) with a generated texture per world (earth with pebbles, ice with streaks and cracks, layered rock), bumpy snow caps with drips, edge shading, icicles and blinking lights.
 - Voices from ElevenLabs (`audio/`), music `audio/music.mp3`.
