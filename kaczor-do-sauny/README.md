@@ -15,7 +15,7 @@ A 2D side-scrolling platformer starring Kaczor, deployed as its own Netlify proj
 - Between levels Jugo narrates the story (voiced story card before every level and at the finale), followed by Kaczor's own line.
 - Collect birch whisks (25 = +1 heart) and sauna ladles (+1 heart); birch posts with a towel are checkpoints.
 - At each sauna Kaczor changes into a towel and walks in, then a full-screen sauna card for that world appears (`art/sauna_1-9.webp`); the last one is the gay sauna finale.
-- Phones get touch buttons and the game turns sideways when held upright. The title screen has a level picker for unlocked levels; `?level=N` jumps to a level, `?boss` straight to the final duel with Kaka. Progress is saved in `localStorage` (`kz-level`).
+- Phones get touch buttons and the game turns sideways when held upright. The title screen has a level picker for unlocked levels; `?level=N` jumps to a level, `?boss` straight to the final duel with Kaka, `?ending` to the finale after it (Maryańska, the sauna, the end card and the credits). Progress is saved in `localStorage` (`kz-level`).
 
 ## Levels
 Ten generated levels (seeded chunks, about 860–1000 tiles each) with checkpoints every ~85 tiles:
