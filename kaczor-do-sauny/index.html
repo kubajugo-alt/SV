@@ -178,7 +178,7 @@ function rng(seed){ return ()=>{ seed=(seed*16807)%2147483647; return seed/21474
 // each chunk takes (b, x, h, r, lv) and returns [newX, newH]; h = top row of the ground (9..12)
 const CH={
   // every chunk: (builder, x, ground row h, rng, difficulty 0..1) -> [new x, new ground row]
-  flat:(b,x,h,r,d)=>{ const n=5+Math.floor(r()*5); b.ground(x,x+n-1,h); b.v(x+1,h-2,Math.min(4,n-2)); if(n>=7&&r()<.45+d*.35) b.foe(x+n-2,x+1,x+n-1); if(r()<.05) b.ladle(x+Math.floor(n/2),h-4); return [x+n,h]; },
+  flat:(b,x,h,r,d)=>{ const n=5+Math.floor(r()*5); b.ground(x,x+n-1,h); b.v(x+1,h-2,Math.min(4,n-2)); if(n>=6&&r()<.62+d*.3) b.foe(x+n-2,x+1,x+n-1); if(r()<.05) b.ladle(x+Math.floor(n/2),h-4); return [x+n,h]; },
   bump:(b,x,h,r,d)=>{ const t=Math.max(5,h-1-Math.floor(r()*2)); b.ground(x,x+2,h); b.ground(x+3,x+6,t); b.v(x+3,t-2,4); b.ground(x+7,x+9,h); if(r()<.4+d*.3) b.foe(x+8,x+7,x+9); return [x+10,h]; },
   spikes:(b,x,h,r,d)=>{ const n=11+Math.floor(r()*5); b.ground(x,x+n-1,h); let k=x+2; while(k<x+n-3){ const w=1+Math.floor(r()*(1.6+d*1.5)); b.spikes(k,Math.min(k+w-1,x+n-3),h); b.v(k,h-3,w); k+=w+2+Math.floor(r()*3); } return [x+n,h]; },
   gap:(b,x,h,r,d)=>{ const dh=Math.floor(r()*5)-2, nh=Math.max(6,Math.min(12,h+dh)); let w=2+Math.floor(r()*(2+d*1.6)); w=nh<h?Math.min(w,h-nh>1?2:3):Math.min(w,4); b.arc(x,Math.min(h,nh)-2,w+2); return [x+w,nh]; },
@@ -204,7 +204,7 @@ const CH={
 };
 const GAPPY=['gap','pillars','crumbleBridge','movingPit','plats','bigGap','ventGap','wind'];
 function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=i/9; let x=0,h=12;
-  b.foe=(x,a,c)=>{ const q=r(); b[q<.36?'inez':q<.62+d*.08?'gay':'vac'](x,a,c); };
+  b.foe=(x,a,c)=>{ const q=r(); b[q<.44?'inez':q<.84?'gay':'vac'](x,a,c); };
   b.ground(0,13,12); b.v(5,10,5); x=14;
   const pool=[]; Object.entries(D.mix).forEach(([k,n])=>{ for(let q=0;q<n;q++) pool.push(k); });
   let sinceCp=0, sinceLadle=0, prev='';
@@ -221,8 +221,17 @@ function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=
   if(i===9){ b.ground(x,x+5,h); x+=6; }
   if(h<12){ b.ground(x,x+3,h); x+=4; }
   b.ground(x,W-1,12); b.v(x+2,10,8); L.goal=(W-20)*T; L.W=W;
+  // more Inez and Gayzilla: walk the level and drop one on any free stretch of flat ground about every screen, alternating
+  { const free=(tx,y)=>L.g[y]&&L.g[y][tx]==='#'&&!['#','=','c'].includes(L.g[y-1][tx])&&!['#','=','c'].includes(L.g[y-2][tx])&&!['#','='].includes(L.g[y-3]?L.g[y-3][tx]:' ');
+    const top=tx=>{ for(let y=2;y<ROWS;y++) if(L.g[y][tx]!==' '&&L.g[y][tx]!=='w') return y; return -1; };
+    const fits=(k,a,b,gap)=>L.ent.every(e=>e.k!==k||e.b<a-gap||e.a>b+gap), anyFoe=(a,b)=>L.ent.every(e=>!['inez','gay','vac'].includes(e.k)||e.x<a-VW*.4||e.x>b+VW*.4); let turn=0;
+    for(let tx=40;tx<W-50;tx++){ const y=top(tx); if(y<0||!free(tx,y)) continue; let n=0; while(n<9&&top(tx+n)===y&&free(tx+n,y)) n++; if(n<6) continue;
+      const a=tx*T, b=(tx+n-1)*T; if(L.cps.some(c=>Math.abs(c-a)<T*8)||L.spikes.some(([sa,sb])=>sb>a-T&&sa<b+T)) { tx+=n; continue; }
+      const order=turn++%2?['gay','inez']:['inez','gay']; if(r()<.9&&anyFoe(a,b)) for(const k of order) if(fits(k,a,b,VW*1.06)){ L.ent.push({k,x:(a+b)/2,a,b}); break; }
+      tx+=n; } }
+  L.ent.sort((p,q)=>(p.a??p.x)-(q.a??q.x));
   // the same kind of enemy is never on screen twice: an Inez / Gayzilla that would share the screen with the previous one becomes a robot vacuum instead
-  ['inez','gay'].forEach(k=>{ let lastB=-1e9; L.ent.forEach(e=>{ if(e.k!==k) return; if(e.a-lastB<VW*1.15){ e.k='vac'; return; } lastB=e.b; }); });
+  ['inez','gay'].forEach(k=>{ let lastB=-1e9; L.ent.forEach(e=>{ if(e.k!==k) return; if(e.a-lastB<VW*1.04){ e.k='vac'; return; } lastB=e.b; }); });
   let lastV=-1e9; L.ent=L.ent.filter(e=>{ if(e.k!=='vac') return true; if(e.a-lastV<VW*.45) return false; lastV=e.b; return true; });
   // the golden ladle: one per world, on a high ledge somewhere in the middle
   { const cand=[]; for(let tx=Math.floor(W*.3);tx<W*.85;tx++) for(let ty=2;ty<=8;ty++) if(L.g[ty][tx]==='='&&L.g[ty-1][tx]===' '&&L.g[ty-2][tx]===' ') cand.push([tx,ty]);
@@ -301,7 +310,7 @@ addEventListener('keyup',e=>{ const k=map[e.code]; if(k) press(k,false); });
 const toast=(txt,col='#fff')=>toasts.push({txt,col,t:2.2});
 function splash(x,y){ rings.push({x,t:1}); for(let i=0;i<26;i++) parts.push({x:x+(Math.random()-.5)*30,y,vx:(Math.random()-.5)*300,vy:-180-Math.random()*380,t:.7+Math.random()*.3,col:i%3?'#d8f3ff':'#ffffff',r:2+Math.random()*4}); for(let i=0;i<5;i++) emitSteam(x,y,{up:20,r:10,grow:30,life:1.2,a:.35,spread:40}); }
 function puff(x,y,col,n=10){ for(let i=0;i<n;i++) parts.push({x,y,vx:(Math.random()-.5)*240,vy:-Math.random()*240,t:.7,col,r:4+Math.random()*5}); }
-function hurt(why,src){ if(P.inv>0) return; hearts--; lvlHits++; P.inv=1.6; P.vy=-480; P.vx=-P.face*220; sfx('hurt',.4); if(hitCool<=0&&!cur){ if(src==='vac'||src==='note'){ remark(src,'hit',1); } else play(src==='inez'?'kz_hit':src==='gay'?'kz_hit_gay':'kz_hit_any'); hitCool=7; } else grunt('hurt'); toast(why,'#ffd1dc');
+function hurt(why,src){ if(P.inv>0) return; hearts--; lvlHits++; P.inv=1.6; P.vy=-480; P.vx=-P.face*220; sfx('hurt',.4); if(hitCool<=0&&!cur){ if(REM[src]){ remark(src,'hit',1); } else play('kz_hit_any'); hitCool=7; } else grunt('hurt'); toast(why,'#ffd1dc');
   if(hearts<=0) gameOver('Inez cię poderwała, a Kaka tylko na to czekała. Lista zadań czeka!'); }
 function fallOff(why){ hearts--; sfx(why.startsWith('Plusk')?'splash':'hurt'); toast(why,'#cdeaff'); if(hearts<=0){ gameOver('Za dużo morsowania na jeden dzień. Kaka cię przechwyciła.'); return; } spawn(); P.inv=1.5; }
 function gameOver(txt){ state='over'; $('#oTxt').textContent=txt; $('#over').classList.remove('hidden'); }
@@ -335,15 +344,16 @@ function bossUpdate(e,dt,punching,hx0,hx1,hy0,hy1){ L.boss=e; const gy=surfAt(e.
     else { if(!cur) play(e.hp%2?'kaka_boss_hit1':'kaka_boss_hit2'); } return; }
   if(ox&&e.inv<=0&&P.y+P.h>top+40&&P.y<gy) hurt(e.mode==='dash'?'Kaka zamiotła cię mopem! 🧹':'Kaka wręcza ci listę zadań! 📋','kaka'); }
 // Kaczor comments when he spots, beats or gets hit by Kaka's helpers (not too often, never over other dialogue)
-const REM={vac:{see:['kz_vac_see1','kz_vac_see2'],win:['kz_vac_win1','kz_vac_win2'],hit:['kz_vac_hit']},note:{see:['kz_note_see1','kz_note_see2'],win:['kz_note_win1','kz_note_win2'],hit:['kz_note_hit']}};
-const REMTXT={kz_vac_see1:'O nie, odkurzacz Kaki! Ten to mnie wciągnie razem z kapciami!',kz_vac_see2:'Robot sprzątający? Kaka, serio?!',kz_vac_win1:'Wyłączony! Kurz może poczekać.',kz_vac_win2:'Odkurzacz ma dziś wolne!',kz_vac_hit:'Ała! Nie jestem okruchem!',kz_note_see1:'Lista zadań lata?! Tego jeszcze nie było!',kz_note_see2:'Kolejne obowiązki nadlatują…',kz_note_win1:'Skreślone! Zrobione! Następne!',kz_note_win2:'Ta lista jest już nieaktualna.',kz_note_hit:'Au! Papierowe skaleczenie od obowiązków!'};
+const REM={inez:{see:['kz_inez_see1','kz_inez_see2'],win:['kz_inez_win1','kz_inez_win2'],hit:['kz_hit','kz_inez_hit2']},gay:{see:['kz_gay_see1','kz_gay_see2'],win:['kz_gay_win1','kz_gay_win2'],hit:['kz_hit_gay','kz_gay_hit2']},vac:{see:['kz_vac_see1','kz_vac_see2'],win:['kz_vac_win1','kz_vac_win2'],hit:['kz_vac_hit']},note:{see:['kz_note_see1','kz_note_see2'],win:['kz_note_win1','kz_note_win2'],hit:['kz_note_hit']}};
+const REMTXT={kz_inez_see1:'O nie, Inez! Tylko nie całusy!',kz_inez_see2:'Inez znowu w akcji… Uciekam!',kz_inez_win1:'Nie dziś, Inez! Sauna czeka!',kz_inez_win2:'Przepraszam, Inez, jestem bardzo zajęty!',kz_hit:'Inez, nie! Jestem w drodze do sauny!',kz_inez_hit2:'Fuj, szminka! Inez!',kz_gay_see1:'Gayzilla z telefonem! Tylko bez selfie!',kz_gay_see2:'Uwaga, Gayzilla! Chowam twarz!',kz_gay_win1:'Bez selfie, Gayzilla! Może innym razem!',kz_gay_win2:'Telefon na ładowarkę, Gayzilla!',kz_hit_gay:'Gayzilla, nie! Żadnych selfie, lecę do sauny!',kz_gay_hit2:'Moje oko! Gayzilla, ten telefon jest ciężki!',kz_vac_see1:'O nie, odkurzacz Kaki! Ten to mnie wciągnie razem z kapciami!',kz_vac_see2:'Robot sprzątający? Kaka, serio?!',kz_vac_win1:'Wyłączony! Kurz może poczekać.',kz_vac_win2:'Odkurzacz ma dziś wolne!',kz_vac_hit:'Ała! Nie jestem okruchem!',kz_note_see1:'Lista zadań lata?! Tego jeszcze nie było!',kz_note_see2:'Kolejne obowiązki nadlatują…',kz_note_win1:'Skreślone! Zrobione! Następne!',kz_note_win2:'Ta lista jest już nieaktualna.',kz_note_hit:'Au! Papierowe skaleczenie od obowiązków!'};
 let remT=0, remN={}, kzSay=null;
-function remark(kind,ev,force){ const now=performance.now(); if(cur||now-remT<(ev==='see'?5000:9000)) return; if(!force&&ev==='win'&&Math.random()<.45) return;
+function spotted(e){ if(e.seen||Math.abs(e.x-P.x)>VW*.55||e.state) return; if(cur&&Math.abs(e.x-P.x)>VW*.25) return; e.seen=1; L.seenK=L.seenK||{}; const first=!L.seenK[e.k]; L.seenK[e.k]=1; if(first&&(e.k==='vac'||e.k==='note')) e.tag=3.5; if(first||Math.random()<.4) remark(e.k,'see',first); }
+function remark(kind,ev,force){ const now=performance.now(); if(cur||now-remT<(ev==='see'?5000:9000)) return; if(!force&&ev==='win'&&Math.random()<.4) return;
   const list=REM[kind][ev], n=(remN[kind+ev]=(remN[kind+ev]||0)+1), key=list[(n-1)%list.length]; remT=now; play(key); kzSay={t:REMTXT[key],ttl:3}; }
 function breakVac(e){ remark('vac','win'); e.state='broken'; e.st=.9; puff(e.x,e.y-30,'#ffd27a',14); sfx('phone',.8); toast('Odkurzacz wyłączony! 🔌','#d6ffd9'); }
 function popNote(e){ if(!e.boss) remark('note','win'); e.alive=false; puff(e.x,e.y,'#fffbe8',12); sfx('splat',.6); }
 function defeat(e,dir){ e.state='hit'; e.st=.4; e.kx=dir*300; e.dir=-dir; puff(e.x,(e.y||0)-80,'#ff8fb3',14); sfx('defeat');
-  if(inezHitCool<=0){ play(e.k==='gay'?'gay_hit'+(1+(gayLine++%3)):'inez_hit'+(1+(inezLine++%6))); inezHitCool=1.2; } }
+  if(inezHitCool<=0&&!cur){ play(e.k==='gay'?'gay_hit'+(1+(gayLine++%3)):'inez_hit'+(1+(inezLine++%6)),()=>remark(e.k,'win')); inezHitCool=1.2; } else remark(e.k,'win'); }
 // ---------- update ----------
 function update(dt){
   t0+=dt; inezHitCool-=dt; gayCool-=dt; gayAngryCool-=dt; P.runT=(P.runT||0)+dt*2.1*Math.max(.45,Math.abs(P.vx)/330); hitCool-=dt; kakaCool-=dt; inezCool-=dt; P.inv-=dt; P.punchT-=dt; P.anim+=dt;
@@ -406,7 +416,7 @@ function update(dt){
   const dif=lvl/9;
   ents.forEach(e=>{ if(!e.alive) return;
     // Kaka's robot vacuum: trundles along, charges when it sees Kaczor; stomp, punch or snowball switches it off
-    if(e.k==='vac'&&!e.seen&&Math.abs(e.x-P.x)<VW*.6){ e.seen=1; if(!L.seenV){ L.seenV=1; e.tag=3.5; remark('vac','see'); } }
+    if((e.k==='vac'||e.k==='inez'||e.k==='gay')&&!e.boss) spotted(e);
     if(e.tag>0) e.tag-=dt;
     if(e.k==='vac'){ if(e.state==='broken'){ e.st-=dt; e.rot=(e.rot||0)+dt*6; if(e.st<=0) e.alive=false; return; }
       const gy=surfAt(e.x,e.y)??VH; e.y=gy; e.t=(e.t||0)+dt; const near=Math.abs(P.x-e.x)<400&&Math.abs(P.y+P.h-gy)<130, spd=near?175+70*dif:80;
@@ -417,7 +427,7 @@ function update(dt){
       const ox=Math.abs(P.x-e.x)<46; if(ox&&P.vy>0&&P.y+P.h>gy-66&&P.y+P.h<gy-22){ P.vy=-600; breakVac(e); return; }
       if(ox&&P.y+P.h>gy-40&&P.y<gy) hurt('Odkurzacz Kaki cię staranował! 🧹','vac'); return; }
     // flying chore lists: wake up when on screen, drift towards Kaczor in waves
-    if(e.k==='note'){ if(!e.act){ if(e.x-P.x<VW*.8){ e.act=true; e.by=e.y; e.t=0; if(!L.seenN){ L.seenN=1; e.tag=3.5; remark('note','see'); } } else return; }
+    if(e.k==='note'){ if(!e.act){ if(e.x-P.x<VW*.8){ e.act=true; e.by=e.y; e.t=0; spotted(e); } else return; }
       e.t+=dt; e.x+=(e.vxN??-(105+75*dif))*dt; if(e.boss&&e.t>6){ e.alive=false; return; } e.by+=Math.sign(P.y+30-e.by)*45*dt; e.y=e.by+Math.sin(e.t*2.6)*46; if(e.x<cam-200){ e.alive=false; return; }
       const sb=snowballs.find(b=>b.t>0&&Math.hypot(b.x-e.x,b.y-e.y)<40);
       if(sb||punching&&e.x>hx0-20&&e.x<hx1+20&&e.y>hy0-30&&e.y<hy1+20){ if(sb) sb.t=0; popNote(e); return; }
