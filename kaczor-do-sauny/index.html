@@ -60,6 +60,11 @@ body.touch .kk.kb,body:not(.touch) .kk.tc{display:none}
 #credits{background:radial-gradient(circle at 50% 30%,#3a2a4a,#0d1020);overflow:hidden;color:#fff8ea}#credits .roll{position:absolute;top:100%;width:80%;animation:roll 34s linear forwards}@keyframes roll{to{transform:translateY(calc(-100% - 100cqh*1.05))}}
 #credits h1{font-family:Lobster,cursive;font-weight:400;font-size:6cqw;margin:0 0 2cqw;color:#ffd34e}#credits .sub{font-family:Lobster,cursive;font-size:3cqw;color:#ff9e8a;margin:3cqw 0 1cqw}#credits p{font-size:max(14px,1.8cqw);line-height:1.5}#credits .fin{font-size:max(16px,2.4cqw);margin:5cqw 0 3cqw}
 #credits .cast{display:grid;grid-template-columns:repeat(3,1fr);gap:2cqw}#credits .cast div{display:flex;flex-direction:column;align-items:center}#credits .cast i{width:11cqw;height:11cqw;border-radius:50%;background:#f1dfc0 center 20%/cover;border:.4cqw solid #ffd34e}#credits .cast i.tall{background-size:120%;background-position:center 8%}#credits .cast b{font-size:max(15px,2.2cqw);margin-top:.6cqw}#credits .cast span{opacity:.8;font-size:max(12px,1.4cqw)}
+#nameRow{display:flex;gap:1cqw;justify-content:center;align-items:center;margin-top:1.2cqw;flex-wrap:wrap}
+.nameIn{font:inherit;font-weight:700;font-size:max(15px,1.6cqw);padding:.45em .9em;border-radius:999px;border:2px solid #d9a400;background:rgba(255,248,234,.95);color:#3a2a1a;width:max(180px,22cqw);text-align:center}
+#rank .card{min-width:min(92vw,46cqw);max-height:86%;overflow:auto}
+#rTab{width:100%;border-collapse:collapse;margin:1cqw 0;font-size:max(14px,1.5cqw)}#rTab td{padding:.25em .5em;border-bottom:1px solid rgba(0,0,0,.08)}#rTab td:first-child{font-weight:800;width:2.5em}#rTab td:nth-child(3){text-align:right;font-weight:800}#rTab tr.me{background:#ffe9a8}
+#rTab .lv{opacity:.65;font-size:.85em;text-align:right}
 #pause .tBtns{display:flex;gap:.6cqw;justify-content:center;flex-wrap:wrap}
 #load{margin:1cqw auto 0;width:40%;height:1.6cqw;border-radius:99px;background:rgba(0,0,0,.35);position:relative;overflow:hidden}#loadBar{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,#7ed957,#ffd34e);transition:width .2s}#loadTxt{position:relative;color:#fff;font-weight:700;font-size:max(11px,1.1cqw);line-height:1.6cqw;text-shadow:0 1px 3px #000}
 #mute{position:absolute;right:1%;top:1.5%;z-index:6;border:0;background:rgba(255,250,240,.85);border-radius:50%;width:3.4cqw;height:3.4cqw;font-size:1.6cqw}
@@ -78,6 +83,7 @@ body.touch .kk.kb,body:not(.touch) .kk.tc{display:none}
         <div class="logo"><small>Wielka ucieczka</small><b>Kaczor do sauny!</b></div>
     <div>
       <div class="tBtns"><button class="btn" id="play">Graj ▶</button><button class="btn alt hidden" id="fresh">Od początku</button></div>
+      <div id="nameRow"><input id="pName" class="nameIn" maxlength="16" placeholder="Twoje imię do rankingu" autocomplete="nickname"><button class="btn alt" id="rankBtn">🏆 Ranking</button></div>
       <div class="diffs" id="tDiff"></div>
       <div class="lvls" id="lvls"></div>
       <div id="load"><div id="loadBar"></div><span id="loadTxt">Ładowanie… 0%</span></div>
@@ -92,6 +98,7 @@ body.touch .kk.kb,body:not(.touch) .kk.tc{display:none}
     <div class="pkeys"><b>Sterowanie</b><div class="kk kb"><div><kbd>◀ ▶ / A D</kbd><span>bieg</span></div><div><kbd>Spacja / ▲ / W</kbd><span>skok</span></div><div><kbd>przytrzymaj skok w powietrzu</kbd><span>paralotnia 🪂</span></div><div><kbd>X / J</kbd><span>cios 👊</span></div><div><kbd>C / K</kbd><span>śnieżka ❄</span></div><div><kbd>Esc / P</kbd><span>pauza</span></div><div><kbd>H</kbd><span>ta legenda</span></div></div><div class="kk tc"><div><kbd>◀ ▶</kbd><span>bieg</span></div><div><kbd>⤒</kbd><span>skok (przytrzymaj: paralotnia 🪂)</span></div><div><kbd>👊</kbd><span>cios</span></div><div><kbd>❄</kbd><span>śnieżka</span></div><div><kbd>⏸</kbd><span>pauza</span></div></div></div>
     <div class="tBtns"><button class="btn" id="pGo">Wznów</button><button class="btn alt" id="pCp">Od punktu kontrolnego</button><button class="btn alt" id="pRe">Restart poziomu</button><button class="btn alt" id="pMenu">Menu</button></div></div></div>
   <div id="over" class="ov dim hidden"><div class="card"><div class="face" style="background-image:url(art/kaka_face.webp)"></div><h2>Złapany!</h2><p id="oTxt"></p><p id="oCp" class="kq"></p><div class="tBtns"><button class="btn" id="oGo">Od punktu kontrolnego ↺</button> <button class="btn alt" id="oRe">Od początku poziomu</button></div></div></div>
+  <div id="rank" class="ov dim hidden"><div class="card"><h2>🏆 Ranking graczy</h2><p class="kq" id="rInfo">Ładowanie…</p><table id="rTab"></table><p id="rMe" class="kq"></p><div class="tBtns"><button class="btn" id="rClose">Zamknij</button></div></div></div>
   <div id="sauna" class="ov hidden"><div class="card"><h2 id="sName"></h2><p id="sTxt"></p><div class="tBtns"><button class="btn" id="sGo">Dalej ➜</button></div></div></div>
   <div id="credits" class="ov hidden"><div class="roll" id="roll">
     <h1>Kaczor do sauny!</h1><p class="sub">Obsada</p>
@@ -884,7 +891,30 @@ function outro(dt){ t0+=dt; P.anim+=dt; stepSteam(dt); const door=L.goal+140; to
   cam+=((P.x-VW*.5)-cam)*Math.min(1,dt*3); cam=Math.max(0,Math.min(L.W*T-VW,cam)); }
 const SAUNA_TXT=['Pierwsza para! Lista zadań została za drzwiami.','Brzozowa witka, brzozowa sauna. Las pachnie wolnością.','Najpierw sauna, potem przerębel. Tak się żyje!','Sauna w beczce na jarmarku. Grzaniec poczeka.','Po stoku tylko jedno: gorąca ława i święty spokój.','Ciepło w samym środku lodowej jaskini. Kaka tu nie wejdzie.','Sauna na molo, morze za plecami. Morsy machają!','Paralotnia złożona, kamienie gorące, Tatry za oknem.','Gorące źródła to jednak nie sauna. Ta jest prawdziwa.'];
 function hideGameButtons(){ ['#keys','#keysBtn','#pauseBtn'].forEach(q=>$(q).classList.add('hidden')); }
-function showSauna(i){ hideGameButtons(); state='sauna'; stopAmb(); ambName=null; $('#sauna').style.backgroundImage=`url(art/sauna_${i+1}.webp)`; $('#sName').textContent=`Poziom ${i+1} ukończony! 🧖`; $('#sTxt').innerHTML=`<b style="font-size:1.5em;color:#d9a400">${starLine(levelStars())}</b><br>Kaczor: „${SAUNA_TXT[i]}”`; $('#sauna').classList.remove('hidden'); }
+function showSauna(i){ hideGameButtons(); state='sauna'; stopAmb(); ambName=null; $('#sauna').style.backgroundImage=`url(art/sauna_${i+1}.webp)`; $('#sName').textContent=`Poziom ${i+1} ukończony! 🧖`; $('#sTxt').innerHTML=`<b style="font-size:1.5em;color:#d9a400">${starLine(levelStars())}</b><br>Kaczor: „${SAUNA_TXT[i]}”<br><span id="sPts"></span>`; $('#sauna').classList.remove('hidden'); levelScore(i); }
+// ---------- points and the online scoreboard ----------
+let PTS={}; try{ PTS=JSON.parse(localStorage.getItem('kz-pts')||'{}'); }catch(e){}
+let PID=''; try{ PID=localStorage.getItem('kz-pid')||''; if(!PID){ PID=(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2)+Date.now().toString(36)); localStorage.setItem('kz-pid',PID); } }catch(e){ PID='p'+Math.random().toString(36).slice(2,12); }
+let PNAME=''; try{ PNAME=localStorage.getItem('kz-name')||''; }catch(e){}
+const DIFFMUL={easy:.7,normal:1,hard:1.5};
+const totalPts=()=>Object.values(PTS).reduce((a,b)=>a+b,0);
+function setName(n){ PNAME=String(n||'').replace(/\s+/g,' ').trim().slice(0,16); try{ localStorage.setItem('kz-name',PNAME); }catch(e){} if($('#pName').value!==PNAME) $('#pName').value=PNAME; }
+function levelScore(i){ const pts=Math.round((1000+lvlV*10+(L.gold?500:0)+([2,5,9].includes(i)?1000:0))*(DIFFMUL[diff]||1)); const better=pts>(PTS[i]||0); if(better){ PTS[i]=pts; try{ localStorage.setItem('kz-pts',JSON.stringify(PTS)); }catch(e){} }
+  const el=$('#sPts'); el.innerHTML=`<b>+${pts} pkt</b>${better?'':' (rekord poziomu: '+PTS[i]+')'} · razem <b>${totalPts()}</b>`;
+  if(!PNAME){ const w=document.createElement('div'); w.id='sName2'; w.style.marginTop='.6em'; w.innerHTML='<input class="nameIn" maxlength="16" placeholder="Wpisz imię, by trafić do rankingu"> <button class="btn alt">Zapisz</button>'; el.after(w); const inp=w.querySelector('input'); const save=()=>{ if(!inp.value.trim()) return; setName(inp.value); w.remove(); submitScore(el); }; w.querySelector('button').onclick=save; inp.addEventListener('keydown',e=>{ if(e.key==='Enter') save(); }); return; }
+  submitScore(el); }
+function submitScore(el){ if(!PNAME) return; const stars=Object.values(STARS).reduce((a,b)=>a+b,0);
+  fetch('/api/scores',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:PID,name:PNAME,score:totalPts(),levels:Object.keys(PTS).length,stars})}).then(r=>r.json()).then(j=>{ if(j.rank&&el&&el.isConnected) el.insertAdjacentHTML('beforeend',` · <b>#${j.rank}</b> w rankingu (z ${j.total})`); }).catch(()=>{}); }
+function showRank(){ $('#rank').classList.remove('hidden'); $('#rInfo').textContent='Ładowanie…'; $('#rTab').innerHTML=''; $('#rMe').textContent='';
+  fetch('/api/scores?id='+encodeURIComponent(PID)).then(r=>r.json()).then(j=>{ $('#rInfo').textContent=j.total?`Graczy w rankingu: ${j.total}`:'Ranking jest jeszcze pusty — ukończ poziom i bądź pierwszy!';
+    const tb=$('#rTab'); j.top.forEach((e,k)=>{ const tr=document.createElement('tr'); if(e.me) tr.className='me'; const cells=[(k<3?['🥇','🥈','🥉'][k]:k+1+'.'),e.name,e.score,`${e.levels} poz. · ${'★'.repeat(Math.min(3,Math.round(e.stars/Math.max(1,e.levels))))}`]; cells.forEach((v,ci)=>{ const td=document.createElement('td'); td.textContent=v; if(ci===3) td.className='lv'; tr.append(td); }); tb.append(tr); });
+    $('#rMe').textContent=j.rank?(j.rank>25?`Twoje miejsce: #${j.rank} (${totalPts()} pkt)`:''):(PNAME?`Twoje punkty: ${totalPts()} — ukończ poziom, by trafić do rankingu.`:'Wpisz imię na ekranie tytułowym, by trafić do rankingu.'); })
+  .catch(()=>{ $('#rInfo').textContent='Nie udało się połączyć z rankingiem. Spróbuj później.'; }); }
+$('#rankBtn').onclick=showRank; $('#rClose').onclick=()=>$('#rank').classList.add('hidden');
+$('#pName').value=PNAME; $('#pName').addEventListener('change',e=>{ setName(e.target.value); if(PNAME&&totalPts()) submitScore(null); });
+// typing a name must not steer Kaczor or press buttons
+document.addEventListener('keydown',e=>{ if(e.target&&e.target.tagName==='INPUT'&&e.target.type!=='range') e.stopPropagation(); });
+$('#pName').addEventListener('keydown',e=>{ if(e.key==='Enter') e.target.blur(); });
 $('#sGo').onclick=()=>{ $('#sauna').classList.add('hidden'); showIntro(lvl+1); };
 function levelStars(){ const st=1+(L.vTot&&lvlV>=L.vTot*.7?1:0)+(L.gold?1:0); if(st>(STARS[lvl]||0)){ STARS[lvl]=st; try{ localStorage.setItem('kz-stars',JSON.stringify(STARS)); }catch(e){} } return st; }
 function starLine(st){ return `${'★'.repeat(st)}${'☆'.repeat(3-st)}  ·  witki ${lvlV}/${L.vTot||0}${L.gold?' · złota chochla ✨':''}`; }
