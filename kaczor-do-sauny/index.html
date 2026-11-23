@@ -900,8 +900,8 @@ let PNAME=''; try{ PNAME=localStorage.getItem('kz-name')||''; }catch(e){}
 const DIFFMUL={easy:.7,normal:1,hard:1.5};
 const totalPts=()=>Object.values(PTS).reduce((a,b)=>a+b,0);
 function setName(n){ PNAME=String(n||'').replace(/\s+/g,' ').trim().slice(0,16); try{ localStorage.setItem('kz-name',PNAME); }catch(e){} if($('#pName').value!==PNAME) $('#pName').value=PNAME; }
-function levelScore(i){ const pts=Math.round((1000+lvlV*10+(L.gold?500:0)+([2,5,9].includes(i)?1000:0))*(DIFFMUL[diff]||1)); const better=pts>(PTS[i]||0); if(better){ PTS[i]=pts; try{ localStorage.setItem('kz-pts',JSON.stringify(PTS)); }catch(e){} }
-  const el=$('#sPts'); el.innerHTML=`<b>+${pts} pkt</b>${better?'':' (rekord poziomu: '+PTS[i]+')'} · razem <b>${totalPts()}</b>`;
+function levelScore(i,elId){ const pts=Math.round((1000+lvlV*10+(L.gold?500:0)+([2,5,9].includes(i)?1000:0))*(DIFFMUL[diff]||1)); const better=pts>(PTS[i]||0); if(better){ PTS[i]=pts; try{ localStorage.setItem('kz-pts',JSON.stringify(PTS)); }catch(e){} }
+  const el=$(elId||'#sPts'); el.innerHTML=`<b>+${pts} pkt</b>${better?'':' (rekord poziomu: '+PTS[i]+')'} · razem <b>${totalPts()}</b>`;
   if(!PNAME){ const w=document.createElement('div'); w.id='sName2'; w.style.marginTop='.6em'; w.innerHTML='<input class="nameIn" maxlength="16" placeholder="Wpisz imię, by trafić do rankingu"> <button class="btn alt">Zapisz</button>'; el.after(w); const inp=w.querySelector('input'); const save=()=>{ if(!inp.value.trim()) return; setName(inp.value); w.remove(); submitScore(el); }; w.querySelector('button').onclick=save; inp.addEventListener('keydown',e=>{ if(e.key==='Enter') save(); }); return; }
   submitScore(el); }
 function submitScore(el){ if(!PNAME) return; const stars=Object.values(STARS).reduce((a,b)=>a+b,0);
@@ -912,7 +912,8 @@ function showRank(){ $('#rank').classList.remove('hidden'); $('#rInfo').textCont
     $('#rMe').textContent=j.rank?(j.rank>25?`Twoje miejsce: #${j.rank} (${totalPts()} pkt)`:''):(PNAME?`Twoje punkty: ${totalPts()} — ukończ poziom, by trafić do rankingu.`:'Wpisz imię na ekranie tytułowym, by trafić do rankingu.'); })
   .catch(()=>{ $('#rInfo').textContent='Nie udało się połączyć z rankingiem. Spróbuj później.'; }); }
 $('#rankBtn').onclick=showRank; $('#rClose').onclick=()=>$('#rank').classList.add('hidden');
-$('#pName').value=PNAME; $('#pName').addEventListener('change',e=>{ setName(e.target.value); if(PNAME&&totalPts()) submitScore(null); });
+$('#pName').value=PNAME; if(PNAME&&totalPts()) submitScore(null); // resend on every visit, in case an earlier save never reached the server
+$('#pName').addEventListener('change',e=>{ setName(e.target.value); if(PNAME&&totalPts()) submitScore(null); });
 // typing a name must not steer Kaczor or press buttons
 document.addEventListener('keydown',e=>{ if(e.target&&e.target.tagName==='INPUT'&&e.target.type!=='range') e.stopPropagation(); });
 $('#pName').addEventListener('keydown',e=>{ if(e.key==='Enter') e.target.blur(); });
@@ -924,7 +925,7 @@ function loadSave(){ try{ return JSON.parse(localStorage.getItem('kz-save')||'nu
 function nextAfterSauna(){ hideGameButtons(); try{ localStorage.removeItem('kz-save'); }catch(e){} const st=levelStars();
   if(lvl+1>best){ best=lvl+1; try{ localStorage.setItem('kz-level',best); }catch(e){} }
   if(lvl<LEVELS.length-1) showSauna(lvl);
-  else { $('#end').classList.remove('hidden'); $('#eTxt').innerHTML=`<b style="font-size:1.4em;color:#d9a400">${starLine(st)}</b><br>Dotarłeś do gejowskiej sauny! Wszystkie zebrane witki: ${vihta}. Para, chłopaki i święty spokój — tu żadna lista zadań cię nie znajdzie. ${JUGO_END}`; play('kz_win'); setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play('kaka_end'); },6500); setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play('jugo_end',()=>setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) showCredits(); },1500)); },12500); } }
+  else { $('#end').classList.remove('hidden'); $('#eTxt').innerHTML=`<b style="font-size:1.4em;color:#d9a400">${starLine(st)}</b><br>Dotarłeś do gejowskiej sauny! Wszystkie zebrane witki: ${vihta}. Para, chłopaki i święty spokój — tu żadna lista zadań cię nie znajdzie. ${JUGO_END}<br><span id="ePts"></span>`; levelScore(lvl,'#ePts'); play('kz_win'); setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play('kaka_end'); },6500); setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play('jugo_end',()=>setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) showCredits(); },1500)); },12500); } }
 // retry from the last checkpoint: the level stays as it is, Kaczor gets full hearts; in the duel Kaka starts over at full strength
 function retryFromCheckpoint(){ $('#over').classList.add('hidden'); if(cur){ cur.onended=null; cur.pause(); cur=null; bgm.volume=mv(); }
   hearts=DF().hearts; phones=[]; kisses=[]; snowballs=[]; waves=[]; rain=[];
