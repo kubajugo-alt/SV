@@ -43,7 +43,7 @@ button{font:inherit;cursor:pointer}
 #touch{position:absolute;inset:0;z-index:4;pointer-events:none}
 #touch button{position:absolute;bottom:3%;width:9cqw;height:9cqw;border-radius:50%;border:.3cqw solid rgba(255,255,255,.7);background:rgba(20,20,40,.35);color:#fff;font-size:3.6cqw;pointer-events:auto;touch-action:none;display:grid;place-items:center}
 #touch button.on{background:rgba(255,255,255,.35)}
-#bL{left:3%}#bR{left:14%}#bT{right:15%}#bJ{right:3%;width:11cqw!important;height:11cqw!important}
+#bL{left:3%}#bR{left:14%}#bT{right:15%}#bS{right:25.5%;bottom:14%!important}#bJ{right:3%;width:11cqw!important;height:11cqw!important}
 #mute{position:absolute;right:1%;top:1.5%;z-index:6;border:0;background:rgba(255,250,240,.85);border-radius:50%;width:3.4cqw;height:3.4cqw;font-size:1.6cqw}
 #back{position:absolute;left:1%;top:1.5%;z-index:6;color:#fff;font-size:max(11px,1.2cqw);text-decoration:none;background:rgba(6,10,28,.5);padding:.2em .8em;border-radius:99px}
 </style>
@@ -52,14 +52,14 @@ button{font:inherit;cursor:pointer}
 <div id="rot">
 <div id="stage">
   <canvas id="cv" width="1280" height="720" aria-label="Gra: Kaczor ucieka do sauny"></canvas>
-  <div id="touch" class="hidden"><button id="bL" aria-label="W lewo">◀</button><button id="bR" aria-label="W prawo">▶</button><button id="bT" aria-label="Uderzenie">👊</button><button id="bJ" aria-label="Skok">⤒</button></div>
+  <div id="touch" class="hidden"><button id="bL" aria-label="W lewo">◀</button><button id="bR" aria-label="W prawo">▶</button><button id="bT" aria-label="Uderzenie">👊</button><button id="bS" aria-label="Rzuć śnieżką">❄</button><button id="bJ" aria-label="Skok">⤒</button></div>
   <button id="mute" title="Dźwięk">🔊</button>
 
   <div id="title" class="ov">
         <div class="logo"><small>Wielka ucieczka</small><b>Kaczor do sauny!</b></div>
     <div>
       <div class="tBtns"><button class="btn" id="play">Graj ▶</button><button class="btn alt hidden" id="fresh">Od początku</button></div>
-      <p class="help">◀ ▶ / A D — bieg · Spacja / ▲ — skok (przytrzymaj w powietrzu: <b>paralotnia</b>) · X / J — uderzenie<br>Uciekaj przed Kaką i jej listą zadań, unikaj całusów Inez, zbieraj witki do sauny 🌿</p>
+      <p class="help">◀ ▶ / A D — bieg · Spacja / ▲ — skok (przytrzymaj w powietrzu: <b>paralotnia</b>) · X / J — uderzenie · C / K — śnieżka<br>Uciekaj przed Kaką i jej listą zadań, unikaj całusów Inez, zbieraj witki do sauny 🌿</p>
     </div>
   </div>
 
@@ -129,24 +129,24 @@ const LEVELS=[
 ];
 
 // ---------- state ----------
-let lvl=0, L=null, P=null, kaka=null, ents=[], flyers=[], kisses=[], parts=[], toasts=[], cam=0, hearts=3, vihta=0, cp=0, state='title', t0=0, kakaCool=0, inezCool=0, hitCool=0;
+let lvl=0, L=null, P=null, kaka=null, ents=[], flyers=[], snowballs=[], kisses=[], parts=[], toasts=[], cam=0, hearts=3, vihta=0, cp=0, state='title', t0=0, kakaCool=0, inezCool=0, hitCool=0;
 let best=+(localStorage.getItem('kz-level')||0);
 const solid=(tx,ty)=>{ if(ty<0) return false; if(ty>=ROWS||tx<0||tx>=L.W) return false; return L.g[ty][tx]==='#'; };
 const tile=(tx,ty)=>(ty<0||ty>=ROWS||tx<0||tx>=L.W)?' ':L.g[ty][tx];
 function groundY(x){ const tx=Math.floor(x/T); if(tx<0||tx>=L.W) return null; for(let y=0;y<ROWS;y++){ const t=L.g[y][tx]; if(t==='#'||t==='=') return y*T; } return null; }
 
 function loadLevel(i,keep){
-  lvl=i; const D=LEVELS[i]; L=D.make(); L.D=D; ents=L.ent.map(e=>({...e,alive:true,vx:-60,t:Math.random()*3,cool:1+Math.random()})); flyers=[]; kisses=[]; parts=[]; toasts=[];
+  lvl=i; const D=LEVELS[i]; L=D.make(); L.D=D; ents=L.ent.map(e=>({...e,alive:true,vx:-60,t:Math.random()*3,cool:1+Math.random()})); flyers=[]; snowballs=[]; kisses=[]; parts=[]; toasts=[];
   if(!keep){ hearts=3; } cp=0; spawn(); }
 function spawn(){ const sx=cp||2*T; const gy=groundY(sx+T)||9*T; P={x:sx+T*.5,y:gy-96,vx:0,vy:0,w:40,h:96,on:false,face:1,coyote:0,buf:0,inv:1.2,glide:false,punchT:0,anim:0,towel:false,joy:0};
   kaka={x:P.x-760,y:groundY(P.x)||9*T,anim:0,wait:2.2}; cam=Math.max(0,P.x-VW*.35); }
 
 // ---------- input ----------
 const K={}; const press=(k,v)=>{ if(v&&!K[k]) K[k+'Hit']=true; K[k]=v; };
-const map={ArrowLeft:'L',KeyA:'L',ArrowRight:'R',KeyD:'R',Space:'J',ArrowUp:'J',KeyW:'J',KeyX:'X',KeyJ:'X',KeyK:'X'};
+const map={ArrowLeft:'L',KeyA:'L',ArrowRight:'R',KeyD:'R',Space:'J',ArrowUp:'J',KeyW:'J',KeyX:'X',KeyJ:'X',KeyC:'S',KeyK:'S'};
 addEventListener('keydown',e=>{ const k=map[e.code]; if(k){ e.preventDefault(); press(k,true); } if((e.code==='Enter'||e.code==='Space')&&state!=='play'){ const b=[...document.querySelectorAll('.ov:not(.hidden) .btn')][0]; if(b&&!e.repeat){ e.preventDefault(); b.click(); } } });
 addEventListener('keyup',e=>{ const k=map[e.code]; if(k) press(k,false); });
-[['bL','L'],['bR','R'],['bJ','J'],['bT','X']].forEach(([id,k])=>{ const b=$('#'+id);
+[['bL','L'],['bR','R'],['bJ','J'],['bT','X'],['bS','S']].forEach(([id,k])=>{ const b=$('#'+id);
   b.addEventListener('pointerdown',e=>{ e.preventDefault(); b.setPointerCapture(e.pointerId); press(k,true); b.classList.add('on'); });
   const up=()=>{ press(k,false); b.classList.remove('on'); }; b.addEventListener('pointerup',up); b.addEventListener('pointercancel',up); b.addEventListener('lostpointercapture',up); });
 
@@ -190,6 +190,10 @@ function update(dt){
   if(P.y>VH+120){ fallOff(D.ice?'Plusk!':'Ups! Za krótki lot.'); return; }
   // punch: a big cartoon swing; it waves away Inez and her kisses
   if(K.XHit&&P.punchT<-.1){ P.punchT=.28; sfx('throw'); puff(P.x+P.face*80,P.y+40,'rgba(255,255,255,.9)',5); }
+  // snowball: thrown in an arc, also sends Inez away and pops kisses
+  if(K.SHit&&(P.snowT||0)<=0){ P.snowT=.35; P.punchT=Math.max(P.punchT,.18); snowballs.push({x:P.x+P.face*34,y:P.y+30,vx:P.face*620+P.vx*.3,vy:-260,t:1.4}); sfx('throw'); }
+  P.snowT=(P.snowT||0)-dt;
+  snowballs.forEach(b=>{ b.vy+=900*dt; b.x+=b.vx*dt; b.y+=b.vy*dt; b.t-=dt; if(solid(Math.floor(b.x/T),Math.floor(b.y/T))){ b.t=0; puff(b.x,b.y,'#fff',6); } });
   const punching=P.punchT>.08, hx0=P.face>0?P.x+5:P.x-100, hx1=P.face>0?P.x+100:P.x-5, hy0=P.y+8, hy1=P.y+78;
   // checkpoints
   L.cps.forEach(x=>{ if(P.x>x&&cp<x){ cp=x; toast('Punkt kontrolny — ręcznik zostawiony ✓','#d6ffd9'); sfx('life'); } });
@@ -204,14 +208,16 @@ function update(dt){
       else { e.x+=e.vx*dt; if(e.x<e.a){ e.x=e.a; e.vx=60; } if(e.x>e.b){ e.x=e.b; e.vx=-60; } e.dir=Math.sign(e.vx); }
       const ey=groundY(e.x)||VH; e.y=ey;
       // punched: she spins away into the sky with a huff
-      if(punching&&e.x>hx0-30&&e.x<hx1+30&&ey-140<hy1&&ey>hy0){ e.alive=false; flyers.push({x:e.x,y:ey,vx:P.face*520,vy:-680,rot:0,dir:e.dir,t:1.6}); puff(e.x,ey-80,'#ff8fb3',14); sfx('pop'); toast('Nie, dziękuję, Inez! 👋','#ffd1dc'); return; }
+      const sb=snowballs.find(b=>b.t>0&&Math.abs(b.x-e.x)<34&&b.y>ey-140&&b.y<ey); if(sb){ sb.t=0; puff(sb.x,sb.y,'#fff',8); }
+      if(sb||punching&&e.x>hx0-30&&e.x<hx1+30&&ey-140<hy1&&ey>hy0){ e.alive=false; flyers.push({x:e.x,y:ey,vx:P.face*520,vy:-680,rot:0,dir:e.dir,t:1.6}); puff(e.x,ey-80,'#ff8fb3',14); sfx('pop'); toast('Nie, dziękuję, Inez! 👋','#ffd1dc'); return; }
       // stomp on head or bump into her
       const ox=Math.abs(P.x-e.x)<40, top=ey-138;
       if(ox&&P.vy>0&&P.y+P.h>top&&P.y+P.h<top+34){ e.alive=false; P.vy=-560; puff(e.x,top,'#ff8fb3',16); sfx('pop'); toast('Nie dziś, Inez! 👋','#ffd1dc'); }
       else if(ox&&P.y+P.h>top+30&&P.y<ey) hurt('Inez chciała cię poderwać! 💋'); } });
   kisses.forEach(k=>{ k.t-=dt; k.x+=k.vx*dt; k.y+=Math.sin(t0*5+k.ph)*40*dt; if(Math.abs(k.x-P.x)<30&&k.y>P.y&&k.y<P.y+P.h){ k.t=0; hurt('Całus od Inez! 💋'); }
-    if(punching&&k.x>hx0&&k.x<hx1&&k.y>hy0-20&&k.y<hy1+20){ k.t=0; puff(k.x,k.y,'#ff8fb3',8); } });
-  kisses=kisses.filter(k=>k.t>0);
+    if(punching&&k.x>hx0&&k.x<hx1&&k.y>hy0-20&&k.y<hy1+20){ k.t=0; puff(k.x,k.y,'#ff8fb3',8); }
+    snowballs.forEach(b=>{ if(b.t>0&&Math.hypot(b.x-k.x,b.y-k.y)<30){ b.t=0; k.t=0; puff(k.x,k.y,'#ff8fb3',6); } }); });
+  kisses=kisses.filter(k=>k.t>0); snowballs=snowballs.filter(b=>b.t>0);
   flyers.forEach(f=>{ f.t-=dt; f.vy+=900*dt; f.x+=f.vx*dt; f.y+=f.vy*dt; f.rot+=f.vx>0?9*dt:-9*dt; }); flyers=flyers.filter(f=>f.t>0);
   parts.forEach(p=>{ p.t-=dt; p.vy+=500*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; }); parts=parts.filter(p=>p.t>0);
   toasts.forEach(t=>t.t-=dt); toasts=toasts.filter(t=>t.t>0);
@@ -223,7 +229,7 @@ function update(dt){
   // goal
   if(P.x>L.goal+40&&P.x<L.goal+240) finishLevel();
   cam+=((P.x-VW*.38+P.vx*.4)-cam)*Math.min(1,dt*4); cam=Math.max(0,Math.min(L.W*T-VW,cam));
-  K.JHit=K.XHit=false;
+  K.JHit=K.XHit=K.SHit=false;
 }
 
 // ---------- drawing ----------
@@ -312,6 +318,7 @@ function draw(){ c.clearRect(0,0,VW,VH); drawBg(); drawVents(); drawTiles();
     else if(e.k==='ladle') drawImg(IMG.it_ladle,X,e.y+22+Math.sin(t0*3)*4,46);
     else if(e.k==='inez'){ const im=e.kissT>0?IMG.inez_kiss:(Math.floor(e.t*5)%2?IMG.inez_walk1:IMG.inez_walk2); drawImg(im,X,e.y+2,144,e.dir>0); } });
   kisses.forEach(k=>drawImg(IMG.it_kiss,k.x-cam,k.y+14,30));
+  snowballs.forEach(b=>drawImg(IMG.it_snow,b.x-cam,b.y+12,24));
   flyers.forEach(f=>{ c.save(); c.translate(f.x-cam,f.y-70); c.rotate(f.rot); c.globalAlpha=Math.min(1,f.t); drawImg(IMG.inez_kiss,0,70,144,f.dir>0); c.restore(); });
   // Kaka
   const kx=kaka.x-cam; if(kx>-200){ drawImg(kaka.wait>0?IMG.kaka_point:(Math.floor(kaka.anim*7)%2?IMG.kaka_run1:IMG.kaka_run2),kx,kaka.y+2,134,false); }

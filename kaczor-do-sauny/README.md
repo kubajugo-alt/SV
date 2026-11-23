@@ -3,9 +3,9 @@
 A 2D side-scrolling platformer starring Kaczor, deployed as its own Netlify project: https://kaczor-do-sauny.netlify.app (publish directory `.`, no build).
 
 ## Play
-- ◀ ▶ / A D — run · Space / ▲ / W — jump (hold in the air to open the paraglider) · X / J — punch
+- ◀ ▶ / A D — run · Space / ▲ / W — jump (hold in the air to open the paraglider) · X / J — punch · C / K — snowball
 - Kaka chases from the left with her chore list (meter at the top); if she catches up, the level restarts.
-- Inez clones patrol and blow kisses; a punch (or a jump on her head) sends her spinning away with a „Nie, dziękuję!”.
+- Inez clones patrol and blow kisses; a punch, a snowball or a jump on her head sends her spinning away with a „Nie, dziękuję!”.
 - Collect birch whisks (25 = +1 heart) and sauna ladles (+1 heart); birch posts with a towel are checkpoints.
 - At each sauna Kaczor changes into a towel and walks in; the last one is the gay sauna finale.
 - Phones get touch buttons and the game turns sideways when held upright. `?level=N` jumps to a level; progress is saved in `localStorage` (`kz-level`).
