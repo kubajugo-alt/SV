@@ -86,7 +86,11 @@ button{font:inherit;cursor:pointer}
 const $=s=>document.querySelector(s);
 const cv=$('#cv'), c=cv.getContext('2d'), VW=1280, VH=720, T=48, ROWS=15;
 const img=n=>{ const i=new Image(); i.src='art/'+n+'.webp'; return i; };
-const IMG={}; ['kz_idle','kz_run1','kz_run2','kz_run3','kz_run4','kz_jump','kz_fall','kz_punch','kz_wind','kz_throw','kz_glide','kz_towel','kz_twalk1','kz_twalk2','kz_tjoy','kaka_run1','kaka_run2','kaka_point','inez_walk1','inez_walk2','inez_kiss','it_vihta','it_ladle','it_snow','it_chore','it_kiss','it_phone','sauna','bg1','bg2','bg3','bg_birch','bg_market','bg_ski','bg_cave','bg_pier','bg_springs','bg_village','inez_hit','inez_dizzy','inez_huff','mar_idle'].forEach(n=>IMG[n]=img(n));
+const ENV={}, ENVM={}; ['earth','forest','ice','cobble','snowpack','cave','pier','rock','wood'].forEach(s=>['plat','crum','mov'].forEach(k=>ENV[s+'_'+k]=img('env/'+s+'_'+k)));
+['cp_on','cp_off','spring','spikes','icicle','vent'].forEach(n=>ENV[n]=img('env/'+n)); ['earth','forest','ice','cobble','snowpack','cave','pier','rock','wood'].forEach(s=>ENV['tex_'+s]=img('env/tex_'+s));
+fetch('art/env/env.json').then(r=>r.json()).then(j=>Object.assign(ENVM,j)).catch(()=>{});
+const envImg=n=>{ const i=ENV[n]; return i&&i.complete&&i.naturalWidth?i:null; };
+const IMG={}; ['kz_idle','kz_run1','kz_run2','kz_run3','kz_run4','kz_jump','kz_fall','kz_punch','kz_wind','kz_throw','kz_glide','kz_towel','kz_twalk1','kz_twalk2','kz_tjoy','kaka_run1','kaka_run2','kaka_point','inez_walk1','inez_walk2','inez_kiss','it_vihta','it_ladle','it_snow','it_chore','it_kiss','it_phone','sauna','bg1','bg2','bg3','bg_birch','bg_market','bg_ski','bg_cave','bg_pier','bg_springs','bg_village','inez_hit','inez_dizzy','inez_huff','mar_idle','enemy_vac','enemy_note'].forEach(n=>IMG[n]=img(n));
 
 // ---------- smooth animations (Ludo.ai spritesheets, packed into strips with a body anchor) ----------
 const ANIM={}; fetch('art/anim/anim.json').then(r=>r.json()).then(j=>{ for(const k in j){ ANIM[k]=j[k]; ANIM[k].img=img('anim/'+k); } }).catch(()=>{});
@@ -94,13 +98,16 @@ function drawAnim(name,x,y,t,flip,prog){ const a=ANIM[name]; if(!a||!a.img.compl
   const f=prog!=null?Math.max(0,Math.min(a.n-1,Math.floor(prog*a.n))):a.loop?Math.floor(t*a.fps)%a.n:Math.min(a.n-1,Math.floor(t*a.fps));
   const sc=.5; c.save(); c.translate(x,y); if(flip) c.scale(-1,1); c.drawImage(a.img,f*a.w,0,a.w,a.h,-a.ax*sc,-a.h*sc,a.w*sc,a.h*sc); c.restore(); return true; }
 // ---------- audio ----------
-let muted=false, cur=null; const bgm=new Audio('audio/music.mp3'); bgm.loop=true; bgm.volume=.28;
-function play(key){ if(muted) return; if(cur) cur.pause(); const a=new Audio('audio/'+key+'.mp3'); cur=a; bgm.volume=.1; a.onended=()=>{ bgm.volume=.28; }; a.play().catch(()=>{}); }
+let muted=false, cur=null; const MUS=.3, MUS_DUCK=.07; const bgm=new Audio('audio/music.mp3'); bgm.loop=true; bgm.volume=MUS;
+// dialogue: one line at a time, music ducked underneath; onend chains the next line of a conversation
+function play(key,onend){ if(muted){ if(onend) onend(); return; } if(cur){ cur.onended=null; cur.pause(); } const a=new Audio('audio/'+key+'.mp3'); a.volume=1; cur=a; bgm.volume=MUS_DUCK; a.onended=()=>{ if(cur===a){ cur=null; bgm.volume=MUS; } if(onend) onend(); }; a.play().catch(()=>{ if(onend) onend(); }); }
 // sound effects: ElevenLabs samples (audio/sfx) played through Web Audio, with the old synth beeps as a fallback while they load
-let AC=null; const SB={}, SFXN=['jump','punch','throw','splat','pick','ladle','hurt','defeat','phone','spring','cp','glide','splash','win'];
+let AC=null; const SB={}, SLAST={}, SFXN=['jump','punch','throw','splat','pick','ladle','hurt','defeat','phone','spring','cp','glide','splash','win','kz_jump1','kz_jump2','kz_jump3','kz_hurt1','kz_hurt2','kz_punch1','kz_throw1'];
+// Kaczor's own grunts
+let gruntT=0; function grunt(kind,ch=1){ const t=performance.now(); if(t-gruntT<450||Math.random()>ch) return; gruntT=t; const n={jump:['kz_jump1','kz_jump2','kz_jump3'],hurt:['kz_hurt1','kz_hurt2'],punch:['kz_punch1'],throw:['kz_throw1']}[kind]; sfx(n[Math.floor(Math.random()*n.length)],.7); }
 const SYN={punch:'throw',splat:'pop',ladle:'life',hurt:'hit',defeat:'pop',phone:'pop',spring:'jump',cp:'life',glide:'jump',splash:'hit',win:'life'};
 function initAudio(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); if(!SB._l){ SB._l=1; SFXN.forEach(n=>fetch('audio/sfx/'+n+'.mp3').then(r=>r.arrayBuffer()).then(b=>AC.decodeAudioData(b)).then(buf=>{ SB[n]=buf; }).catch(()=>{})); } }catch(e){} }
-function sfx(type,vol=.75){ if(muted) return; initAudio(); const b=SB[type]; if(b&&AC){ try{ const src=AC.createBufferSource(), g=AC.createGain(); src.buffer=b; g.gain.value=vol; src.connect(g).connect(AC.destination); src.start(); }catch(e){} return; } synth(SYN[type]||type); }
+function sfx(type,vol=.55){ if(muted) return; initAudio(); const now=performance.now(); if(now-(SLAST[type]||0)<90) return; SLAST[type]=now; const b=SB[type]; if(b&&AC){ try{ const src=AC.createBufferSource(), g=AC.createGain(); src.buffer=b; g.gain.value=vol; src.connect(g).connect(AC.destination); src.start(); }catch(e){} return; } if(!type.startsWith('kz_')) synth(SYN[type]||type); }
 function synth(type){ try{ const t=AC.currentTime, o=AC.createOscillator(), g=AC.createGain(); o.connect(g).connect(AC.destination);
   const S={jump:[['triangle',420,720,.12,.12]],pick:[['sine',880,1320,.09,.12]],hit:[['sawtooth',300,110,.25,.14]],throw:[['square',600,300,.08,.06]],pop:[['triangle',700,200,.18,.12]],life:[['sine',660,1320,.3,.14]]}[type][0];
   o.type=S[0]; o.frequency.setValueAtTime(S[1],t); o.frequency.exponentialRampToValueAtTime(S[2],t+S[3]); g.gain.setValueAtTime(S[4],t); g.gain.exponentialRampToValueAtTime(.001,t+S[3]+.05); o.start(t); o.stop(t+S[3]+.06); }catch(e){} }
@@ -109,7 +116,7 @@ $('#mute').onclick=e=>{ e.stopPropagation(); muted=!muted; $('#mute').textConten
 // ---------- levels: 10 worlds, each generated from hand-designed chunks (seeded, so every run is the same) ----------
 // tiles: # ground   = one-way platform   c crumbling platform   w water (lake hole)
 // entities: vihta, ladle, inez, spring, icicle; plus moving platforms, steam vents, wind zones, checkpoints, goal
-function build(W){ const g=Array.from({length:ROWS},()=>Array(W).fill(' ')), L={W,g,ent:[],vents:[],cps:[],movs:[],winds:[],goal:0};
+function build(W){ const g=Array.from({length:ROWS},()=>Array(W).fill(' ')), L={W,g,ent:[],vents:[],cps:[],movs:[],winds:[],spikes:[],goal:0};
   const api={ L, ground:(a,b,top)=>{ for(let x=a;x<=b;x++) for(let y=top;y<ROWS;y++) g[y][x]='#'; },
     plat:(x,y,n,ch='=')=>{ for(let i=0;i<n;i++) if(x+i<W) g[y][x+i]=ch; },
     water:(a,b)=>{ for(let x=a;x<=b;x++) g[12][x]='w'; },
@@ -118,6 +125,8 @@ function build(W){ const g=Array.from({length:ROWS},()=>Array(W).fill(' ')), L={
     ladle:(x,y)=>L.ent.push({k:'ladle',x:x*T+T/2,y:y*T+T/2}),
     inez:(x,a,b)=>L.ent.push({k:'inez',x:x*T,a:a*T,b:b*T}),
     gay:(x,a,b)=>L.ent.push({k:'gay',x:x*T,a:a*T,b:b*T}),
+    vac:(x,a,b)=>L.ent.push({k:'vac',x:x*T,a:a*T,b:b*T}),
+    spikes:(a,b,top)=>{ if(b>=a) L.spikes.push([a*T,(b+1)*T,top*T]); },
     spring:(x,top)=>L.ent.push({k:'spring',x:x*T+T/2,y:top*T}),
     icicle:(x)=>L.ent.push({k:'icicle',x:x*T+T/2,y:0}),
     mov:(x,y,w,ax,range,sp)=>L.movs.push({x0:x*T,y0:y*T,w:w*T,ax,range:range*T,sp,ph:0,x:x*T,y:y*T,dx:0,dy:0}),
@@ -128,62 +137,79 @@ function build(W){ const g=Array.from({length:ROWS},()=>Array(W).fill(' ')), L={
 function rng(seed){ return ()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; }; }
 // each chunk takes (b, x, h, r, lv) and returns [newX, newH]; h = top row of the ground (9..12)
 const CH={
-  flat:(b,x,h,r,lv)=>{ const n=10+Math.floor(r()*8); b.ground(x,x+n-1,h); b.v(x+2,h-2,Math.min(6,n-4));
-    if(n>=12&&r()<.55+lv*.04) b[r()<.3+lv*.04?'gay':'inez'](x+n-4,x+2,x+n-2); if(r()<.06) b.ladle(x+Math.floor(n/2),h-4); return [x+n,h]; },
-  inezRow:(b,x,h,r,lv)=>{ const n=16; b.ground(x,x+n-1,h); b.inez(x+5,x+2,x+7); b.gay(x+13,x+10,x+15); b.arc(x+2,h-3,6); return [x+n,h]; },
-  gap:(b,x,h,r)=>{ const w=2+Math.floor(r()*3); b.arc(x,h-2,w+2); const nh=w>=3?Math.min(12,h+Math.floor(r()*2)):Math.max(9,Math.min(12,h+Math.floor(r()*4)-2)); return [x+w,nh]; },
-  step:(b,x,h,r)=>{ const up=r()<.5&&h>9; const nh=up?h-1-Math.floor(r()*Math.min(2,h-9)):Math.min(12,h+1+Math.floor(r()*2)); b.ground(x,x+5,nh); b.v(x+1,nh-2,4); return [x+6,nh]; },
-  plats:(b,x,h,r)=>{ const w=7+Math.floor(r()*3); let y=h-2; for(let k=0;k<3;k++){ const px=x+1+k*Math.floor(w/3); y=Math.max(4,h-2-k); b.plat(px,y,3); b.v(px,y-1,3); } return [x+w,Math.max(9,h-1)]; },
-  bigGap:(b,x,h,r)=>{ const w=8+Math.floor(r()*4); b.v(x,h-3,w,1,.12); return [x+w,Math.min(12,h+1)]; },
-  ventGap:(b,x,h,r)=>{ const w=12+Math.floor(r()*5); b.vent(x+Math.floor(w*.33)); b.vent(x+Math.floor(w*.7)); b.v(x+2,h-5,w-4); return [x+w,Math.max(9,h-1)]; },
-  water:(b,x,h,r)=>{ b.ground(x,x+2,12); const w=3+Math.floor(r()*5); b.water(x+3,x+2+w); for(let k=x+4;k<x+2+w;k+=3) b.plat(k,11,2); b.arc(x+2,9,w+2,1.6); b.ground(x+3+w,x+5+w,12); return [x+6+w,12]; },
-  moving:(b,x,h,r)=>{ const w=8+Math.floor(r()*3); b.mov(x+1,h-1,3,'x',w-5,.6+r()*.4); b.v(x+2,h-3,w-3); return [x+w,h]; },
-  elevator:(b,x,h,r)=>{ const top=Math.max(5,h-5); b.ground(x,x+4,h); b.mov(x+3,h-1,2,'y',-(h-top),1.1); b.ground(x+5,x+11,top); b.v(x+6,top-2,5); b.inez(x+9,x+6,x+11); return [x+12,top]; },
-  down:(b,x,h,r)=>{ const nh=12; b.ground(x,x+5,nh); b.v(x+1,nh-2,4); return [x+6,nh]; },
-  crumble:(b,x,h,r)=>{ const w=5+Math.floor(r()*4); b.plat(x,h,w,'c'); b.v(x,h-2,w); return [x+w,h]; },
-  spring:(b,x,h,r)=>{ const top=Math.max(5,h-5); b.ground(x,x+3,h); b.spring(x+3,h); b.ground(x+4,x+11,top); b.v(x+3,h-4,1); b.v(x+3,top-3,3,1,-.5); b.v(x+6,top-2,5); return [x+12,top]; },
-  icicles:(b,x,h,r)=>{ const n=14; b.ground(x,x+n-1,h); for(let k=x+3;k<x+n-1;k+=3) b.icicle(k); b.v(x+1,h-2,n-2); return [x+n,h]; },
-  wind:(b,x,h,r)=>{ const w=13+Math.floor(r()*4); b.wind(x-2,x+w,260); b.v(x+1,h-4,w-2,1,0); return [x+w,Math.min(12,h+1)]; },
+  // every chunk: (builder, x, ground row h, rng, difficulty 0..1) -> [new x, new ground row]
+  flat:(b,x,h,r,d)=>{ const n=5+Math.floor(r()*5); b.ground(x,x+n-1,h); b.v(x+1,h-2,Math.min(4,n-2)); if(n>=7&&r()<.45+d*.35) b.foe(x+n-2,x+1,x+n-1); if(r()<.05) b.ladle(x+Math.floor(n/2),h-4); return [x+n,h]; },
+  bump:(b,x,h,r,d)=>{ const t=Math.max(5,h-1-Math.floor(r()*2)); b.ground(x,x+2,h); b.ground(x+3,x+6,t); b.v(x+3,t-2,4); b.ground(x+7,x+9,h); if(r()<.4+d*.3) b.foe(x+8,x+7,x+9); return [x+10,h]; },
+  spikes:(b,x,h,r,d)=>{ const n=11+Math.floor(r()*5); b.ground(x,x+n-1,h); let k=x+2; while(k<x+n-3){ const w=1+Math.floor(r()*(1.6+d*1.5)); b.spikes(k,Math.min(k+w-1,x+n-3),h); b.v(k,h-3,w); k+=w+2+Math.floor(r()*3); } return [x+n,h]; },
+  gap:(b,x,h,r,d)=>{ const dh=Math.floor(r()*5)-2, nh=Math.max(6,Math.min(12,h+dh)); let w=2+Math.floor(r()*(2+d*1.6)); w=nh<h?Math.min(w,h-nh>1?2:3):Math.min(w,4); b.arc(x,Math.min(h,nh)-2,w+2); return [x+w,nh]; },
+  pillars:(b,x,h,r,d)=>{ const n=3+Math.floor(r()*2+d*1.5); let px=x, ph=h; for(let i=0;i<n;i++){ const nh=Math.max(6,Math.min(12,ph+Math.floor(r()*4)-2)); px+=nh<ph?2:2+Math.floor(r()*2); const pw=r()<.75-d*.4?2:1; b.ground(px,px+pw-1,nh); b.v(px,nh-2,pw); px+=pw; ph=nh; } return [px+2,ph]; },
+  climb:(b,x,h,r,d)=>{ if(h<9) return CH.drop(b,x,h,r,d); const steps=2+(h>=11?1:0); b.ground(x,x+2,h); let y=h, px=x+3; const under=px;
+    for(let i=0;i<steps;i++){ px+=1+Math.floor(r()*2); y-=2; b.plat(px,y,3); b.v(px,y-1,3); px+=3; }
+    if(d>.35) b.ground(under,px,h), b.spikes(under+1,px-1,h); else b.ground(under,px,h);
+    const nh=Math.max(5,y); b.ground(px+1,px+7,nh); b.v(px+2,nh-2,4); if(r()<.6) b.foe(px+6,px+3,px+7); return [px+8,nh]; },
+  drop:(b,x,h,r,d)=>{ if(h>9) return CH.bump(b,x,h,r,d); const nh=Math.min(12,h+3+Math.floor(r()*2)); b.ground(x,x+3,h); b.ground(x+4,x+12,nh); if(d>.25) b.spikes(x+4,x+5,nh); b.v(x+4,h-1,4,1,.6); if(r()<.5+d*.3) b.foe(x+11,x+8,x+12); return [x+13,nh]; },
+  crumbleBridge:(b,x,h,r,d)=>{ const w=5+Math.floor(r()*(3+d*3)); b.plat(x,h,w,'c'); b.v(x,h-2,w); return [x+w,h]; },
+  movingPit:(b,x,h,r,d)=>{ const w=8+Math.floor(r()*(3+d*3)); b.mov(x+1,h-1,3,'x',w-5,.55+r()*.35+d*.2); b.v(x+2,h-3,w-3); return [x+w,h]; },
+  enemyPlat:(b,x,h,r,d)=>{ const n=13; b.ground(x,x+n-1,h); const py=Math.max(4,h-3); b.plat(x+3,py,6); b.v(x+3,py-2,6); b[r()<.5?'inez':'gay'](x+6,x+3,x+8); if(d>.3) b.spikes(x+10,x+11,h); return [x+n,h]; },
+  twoRoutes:(b,x,h,r,d)=>{ const n=17; b.ground(x,x+n-1,h); const y1=Math.max(4,h-3), y2=Math.max(3,h-5); b.plat(x+2,y1,4); b.plat(x+7,y2,5); b.v(x+7,y2-2,5); b.ladle(x+11,y2-2);
+    b.spikes(x+6,x+8,h); b.vac(x+13,x+12,x+16); return [x+n,h]; },
+  plats:(b,x,h,r,d)=>{ const w=8+Math.floor(r()*3); for(let k=0;k<3;k++){ const px=x+1+k*Math.floor(w/3), y=Math.max(4,h-2-k); b.plat(px,y,k===1&&d>.5?2:3); b.v(px,y-1,2); } return [x+w,Math.max(8,h-1)]; },
+  bigGap:(b,x,h,r,d)=>{ const w=8+Math.floor(r()*(3+d*2)); b.v(x,h-3,w,1,.12); return [x+w,Math.min(12,h+1)]; },
+  ventGap:(b,x,h,r,d)=>{ const w=12+Math.floor(r()*5); b.vent(x+Math.floor(w*.33)); b.vent(x+Math.floor(w*.7)); b.v(x+2,h-5,w-4); return [x+w,Math.max(8,h-1)]; },
+  water:(b,x,h,r,d)=>{ b.ground(x,x+2,12); const w=3+Math.floor(r()*(4+d*3)); b.water(x+3,x+2+w); for(let k=x+4;k<x+2+w;k+=3) b.plat(k,11,2); b.arc(x+2,9,w+2,1.6); b.ground(x+3+w,x+5+w,12); return [x+6+w,12]; },
+  elevator:(b,x,h,r,d)=>{ const top=Math.max(4,h-5); b.ground(x,x+4,h); b.mov(x+3,h-1,2,'y',-(h-top),1.1); b.ground(x+5,x+11,top); b.v(x+6,top-2,5); b.foe(x+9,x+7,x+11); return [x+12,top]; },
+  spring:(b,x,h,r,d)=>{ const top=Math.max(4,h-5); b.ground(x,x+3,h); b.spring(x+3,h); b.ground(x+4,x+11,top); b.v(x+3,h-4,1); b.v(x+3,top-3,3,1,-.5); b.v(x+6,top-2,5); if(r()<.5) b.foe(x+10,x+7,x+11); return [x+12,top]; },
+  icicles:(b,x,h,r,d)=>{ const n=12+Math.floor(r()*4); b.ground(x,x+n-1,h); for(let k=x+3;k<x+n-1;k+=Math.max(2,3-Math.round(d))) b.icicle(k); b.v(x+1,h-2,n-2); return [x+n,h]; },
+  wind:(b,x,h,r,d)=>{ const w=13+Math.floor(r()*4); b.wind(x-2,x+w,260); b.v(x+1,h-4,w-2,1,0); return [x+w,Math.min(12,h+1)]; },
 };
-function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L; let x=0,h=12;
+const GAPPY=['gap','pillars','crumbleBridge','movingPit','plats','bigGap','ventGap','wind'];
+function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=i/9; let x=0,h=12;
+  b.foe=(x,a,c)=>{ const q=r(); b[q<.36?'inez':q<.62+d*.08?'gay':'vac'](x,a,c); };
   b.ground(0,13,12); b.v(5,10,5); x=14;
   const pool=[]; Object.entries(D.mix).forEach(([k,n])=>{ for(let q=0;q<n;q++) pool.push(k); });
   let sinceCp=0, sinceLadle=0, prev='';
-  while(x<W-46){ let k=pool[Math.floor(r()*pool.length)]; if(k===prev&&k!=='flat') k='flat'; prev=k;
-    const x0=x; [x,h]=CH[k](b,x,h,r,i); if(k!=='gap'&&k!=='bigGap'&&k!=='ventGap'&&k!=='wind'&&k!=='plats'&&k!=='moving'&&k!=='crumble') {} 
-    // after any gap-like chunk always land on solid ground
-    if(['gap','bigGap','ventGap','wind','plats','moving','crumble'].includes(k)){ const n=6+Math.floor(r()*4); b.ground(x,x+n-1,h); b.v(x+1,h-2,3); x+=n; }
+  while(x<W-46){ let k=pool[Math.floor(r()*pool.length)]; if(k===prev) k=pool[Math.floor(r()*pool.length)]; if(k===prev) k='bump'; prev=k;
+    const x0=x; [x,h]=CH[k](b,x,h,r,d);
+    // after any gap-like chunk always land on a short piece of solid ground
+    if(GAPPY.includes(k)){ const n=3+Math.floor(r()*3); b.ground(x,x+n-1,h); b.v(x+1,h-2,2); x+=n; }
     sinceCp+=x-x0; sinceLadle+=x-x0;
     if(sinceCp>85){ b.ground(x,x+6,h); b.cp(x+2); x+=7; sinceCp=0; }
-    if(sinceLadle>180){ b.ladle(x-3,h-3); sinceLadle=0; } }
+    if(sinceLadle>170){ b.ladle(x-3,h-3); sinceLadle=0; } }
+  if(h<12){ b.ground(x,x+3,h); x+=4; }
   b.ground(x,W-1,12); b.v(x+2,10,8); L.goal=(W-20)*T; L.W=W;
-  // the same kind of enemy is never on screen twice: drop any Inez / Gayzilla whose patrol comes within a screen and a half of the previous one
-  ['inez','gay'].forEach(k=>{ let lastB=-1e9; L.ent=L.ent.filter(e=>{ if(e.k!==k) return true; if(e.a-lastB<VW*1.5){ return false; } lastB=e.b; return true; }); });
+  // the same kind of enemy is never on screen twice: an Inez / Gayzilla that would share the screen with the previous one becomes a robot vacuum instead
+  ['inez','gay'].forEach(k=>{ let lastB=-1e9; L.ent.forEach(e=>{ if(e.k!==k) return; if(e.a-lastB<VW*1.15){ e.k='vac'; return; } lastB=e.b; }); });
+  let lastV=-1e9; L.ent=L.ent.filter(e=>{ if(e.k!=='vac') return true; if(e.a-lastV<VW*.45) return false; lastV=e.b; return true; });
+  // flying chore lists, more of them in later worlds
+  for(let fx=70;fx<W-40;fx+=Math.round(58-d*26+r()*14)) L.ent.push({k:'note',x:fx*T,y:(2+Math.floor(r()*4))*T,a:0,b:0});
+  // nothing hostile right next to a checkpoint
+  L.ent=L.ent.filter(e=>!['inez','gay','vac','note'].includes(e.k)||!L.cps.some(c=>Math.abs(c-e.x)<T*4));
   // Maryańska, Kaczor's hippie mentor, waits by the middle checkpoint (in the last level: right before the sauna)
   L.mar=i===9?(W-32)*T:(L.cps.length?L.cps[Math.floor(L.cps.length/2)]-T*2:W*T/2); L.marDone=false; L.marT=0;
   return L; }
+const KZM_TXT=['Witaj, Maryańska! Uciekam przed Kaką, masz dla mnie jakąś radę?','Maryańska! Co ty robisz w lesie? Zbierasz witki?','Cześć, Maryańska! Ślisko tu jak diabli!','Maryańska! Masz dla mnie grzańca? Kaka depcze mi po piętach!','Witaj, Maryańska! Jak ty tu wjechałaś w tej spódnicy?','Maryańska?! Co ty robisz w jaskini? Medytujesz?','Hej, Maryańska! Idziesz morsować?','Maryańska! Pożyczysz mi trochę wolności? Kaka zabrała moją.','Witaj, Maryańska… Już nie mam siły uciekać.','Maryańska! Udało się! Widzisz tę saunę?'];
 const MAR_TXT=['Kaczorku, kochanie! Kaka ma listę zadań, a ty masz jedno życie. Biegnij, wolny ptaku!','Las szumi: rób, co kochasz! Odkurzanie poczeka, sauna nie.','Lód jest śliski jak wymówki Kaki. Stąpaj lekko i nie daj się zniewolić!','Na jarmarku kup sobie grzańca, nie mopa! Twoje życie, twoje zasady.','Pamiętaj, słoneczko: nikt nie ma prawa trzymać cię na smyczy z listą obowiązków.','W ciemności słuchaj serca, nie Kaki. A serce mówi: sauna!','Morsowanie hartuje ducha! Zimna woda, gorąca dusza. Peace!','Leć, Kaczorze! Wolność smakuje najlepiej z wysokości!','Gorące źródła, gorące serce. Już prawie! Nie oglądaj się za siebie.','To tu, kochany! Ręcznik na biodra i do sauny. Jestem z ciebie dumna!'];
 const LEVELS=[
- {name:'Osiedle',bg:'bg1',style:'earth',snow:'#fdfdff',kaka:200,line:'kz_start',len:860,
-  txt:'Kaka ma dla mnie listę zadań. Długą. Czas uciekać… do sauny!',mix:{flat:5,gap:4,step:3,plats:3,bigGap:1,inezRow:1}},
- {name:'Las brzozowy',bg:'bg_birch',style:'forest',snow:'#fdfdff',kaka:205,line:'kz_birch',len:880,
-  txt:'Las brzozowy! Każda brzoza to potencjalna witka do sauny. Uwaga na spróchniałe gałęzie i sprężyste pnie!',mix:{flat:4,gap:3,step:3,plats:2,crumble:3,spring:2,inezRow:1}},
- {name:'Zamarznięte jezioro',bg:'bg2',style:'ice',snow:'#ffffff',kaka:210,line:'kz_lake',len:900,slip:true,
-  txt:'Przerębel! Morsowanie? Zawsze. Ale nie teraz. Lód jest śliski, a kry się kołyszą!',mix:{flat:4,water:5,gap:2,plats:2,crumble:1,inezRow:1}},
- {name:'Jarmark świąteczny',bg:'bg_market',style:'cobble',snow:'#ffffff',kaka:212,line:'kz_market',len:900,
-  txt:'Grzaniec, oscypki… Nie! Skup się, Kaczor. Skacz po dachach straganów i jeżdżących saniach!',mix:{flat:4,gap:2,step:2,plats:4,moving:3,spring:2,inezRow:2}},
- {name:'Stok narciarski',bg:'bg_ski',style:'snowpack',snow:'#ffffff',kaka:215,line:'kz_ski',len:920,slip:true,
-  txt:'Wyciągi, gondole… i ani jednej listy zadań na horyzoncie. Gondole wożą w górę i w poprzek!',mix:{flat:3,gap:2,step:2,moving:4,elevator:3,wind:2,down:1,inezRow:1}},
- {name:'Lodowa jaskinia',bg:'bg_cave',style:'cave',snow:'#e6f8ff',kaka:205,line:'kz_cave',len:900,dark:true,slip:true,
-  txt:'Lodowa jaskinia… Kaka tu mnie nie znajdzie. Chyba. Ciemno, a sople spadają, gdy przechodzisz!',mix:{flat:3,icicles:4,crumble:3,gap:2,elevator:2,plats:2,inezRow:1}},
- {name:'Bałtyk zimą',bg:'bg_pier',style:'pier',snow:'#ffffff',kaka:220,line:'kz_pier',len:940,
-  txt:'Bałtyk! Morsy! Molo, kry i morski wiatr, który niesie paralotnię daleko.',mix:{flat:3,water:4,moving:2,wind:3,gap:2,bigGap:2,inezRow:2}},
- {name:'Tatry i paralotnia',bg:'bg3',style:'rock',snow:'#ffffff',kaka:215,line:'kz_fly',len:940,
-  txt:'Paralotnia, wiatr, góry… Przytrzymaj skok w powietrzu, para z gorących źródeł niesie w górę.',mix:{flat:3,ventGap:4,bigGap:3,step:3,plats:2,wind:2,inezRow:1}},
- {name:'Gorące źródła',bg:'bg_springs',style:'wood',snow:'#ffffff',kaka:225,line:'kz_springs',len:960,
-  txt:'Gorące źródła… Para unosi w górę, gejzery wystrzeliwują wysoko. Prawie jak sauna!',mix:{flat:3,ventGap:3,spring:3,water:2,crumble:2,moving:2,inezRow:2}},
- {name:'Wioska saun',bg:'bg_village',style:'wood',snow:'#ffffff',kaka:230,line:'kz_village',len:1000,
-  txt:'Zorza polarna nad wioską saun… Ostatnia prosta, a Inez jest tu najwięcej. Chłopaki czekają!',mix:{flat:3,inezRow:3,gap:2,plats:2,moving:2,crumble:2,spring:2,ventGap:2,water:2,wind:1,elevator:1}},
+ {name:'Osiedle',bg:'bg1',style:'earth',snow:'#fdfdff',kaka:205,line:'kz_start',len:860,
+  txt:'Kaka ma dla mnie listę zadań. Długą. Czas uciekać… do sauny!',mix:{flat:3,bump:3,gap:4,spikes:2,climb:2,drop:2,pillars:1,enemyPlat:2,twoRoutes:2,plats:2}},
+ {name:'Las brzozowy',bg:'bg_birch',style:'forest',snow:'#fdfdff',kaka:210,line:'kz_birch',len:880,
+  txt:'Las brzozowy! Każda brzoza to potencjalna witka do sauny. Uwaga na spróchniałe gałęzie i sprężyste pnie!',mix:{flat:2,bump:2,gap:3,spikes:2,climb:2,drop:2,pillars:2,crumbleBridge:3,spring:2,enemyPlat:2,twoRoutes:1}},
+ {name:'Zamarznięte jezioro',bg:'bg2',style:'ice',snow:'#ffffff',kaka:212,line:'kz_lake',len:900,slip:true,
+  txt:'Przerębel! Morsowanie? Zawsze. Ale nie teraz. Lód jest śliski, a kry się kołyszą!',mix:{flat:2,bump:2,water:4,gap:3,spikes:2,crumbleBridge:2,movingPit:2,climb:2,drop:2,enemyPlat:2,pillars:1}},
+ {name:'Jarmark świąteczny',bg:'bg_market',style:'cobble',snow:'#ffffff',kaka:216,line:'kz_market',len:900,
+  txt:'Grzaniec, oscypki… Nie! Skup się, Kaczor. Skacz po dachach straganów i jeżdżących saniach!',mix:{flat:2,bump:2,gap:3,movingPit:3,spring:2,plats:2,climb:3,twoRoutes:3,pillars:2,spikes:2,enemyPlat:2,drop:2}},
+ {name:'Stok narciarski',bg:'bg_ski',style:'snowpack',snow:'#ffffff',kaka:220,line:'kz_ski',len:920,slip:true,
+  txt:'Wyciągi, gondole… i ani jednej listy zadań na horyzoncie. Gondole wożą w górę i w poprzek!',mix:{flat:2,gap:3,movingPit:3,elevator:3,wind:2,drop:3,climb:2,spikes:3,pillars:2,enemyPlat:2,bump:1}},
+ {name:'Lodowa jaskinia',bg:'bg_cave',style:'cave',snow:'#e6f8ff',kaka:214,line:'kz_cave',len:900,dark:true,slip:true,
+  txt:'Lodowa jaskinia… Kaka tu mnie nie znajdzie. Chyba. Ciemno, a sople spadają, gdy przechodzisz!',mix:{flat:2,icicles:4,crumbleBridge:3,elevator:2,pillars:3,spikes:3,climb:2,drop:2,gap:3,enemyPlat:2}},
+ {name:'Bałtyk zimą',bg:'bg_pier',style:'pier',snow:'#ffffff',kaka:224,line:'kz_pier',len:940,
+  txt:'Bałtyk! Morsy! Molo, kry i morski wiatr, który niesie paralotnię daleko.',mix:{flat:2,water:3,movingPit:3,wind:3,bigGap:2,pillars:3,gap:3,spikes:2,twoRoutes:2,enemyPlat:2,drop:1,climb:1}},
+ {name:'Tatry i paralotnia',bg:'bg3',style:'rock',snow:'#ffffff',kaka:222,line:'kz_fly',len:940,
+  txt:'Paralotnia, wiatr, góry… Przytrzymaj skok w powietrzu, para z gorących źródeł niesie w górę.',mix:{flat:2,ventGap:3,bigGap:3,climb:3,pillars:3,drop:2,wind:2,spikes:2,gap:3,enemyPlat:2}},
+ {name:'Gorące źródła',bg:'bg_springs',style:'wood',snow:'#ffffff',kaka:228,line:'kz_springs',len:960,
+  txt:'Gorące źródła… Para unosi w górę, gejzery wystrzeliwują wysoko. Prawie jak sauna!',mix:{flat:2,ventGap:3,spring:3,water:2,crumbleBridge:3,movingPit:2,pillars:3,spikes:3,climb:2,twoRoutes:2,enemyPlat:2,drop:1}},
+ {name:'Wioska saun',bg:'bg_village',style:'wood',snow:'#ffffff',kaka:234,line:'kz_village',len:1000,
+  txt:'Zorza polarna nad wioską saun… Ostatnia prosta, a Inez jest tu najwięcej. Chłopaki czekają!',mix:{flat:2,bump:1,gap:3,pillars:3,climb:2,drop:2,spikes:3,crumbleBridge:2,movingPit:2,spring:2,ventGap:2,water:1,wind:1,elevator:1,twoRoutes:2,enemyPlat:3,icicles:1}},
 ];
 LEVELS.forEach((D,i)=>D.make=()=>genLevel(D,i));
 
@@ -213,7 +239,7 @@ addEventListener('keyup',e=>{ const k=map[e.code]; if(k) press(k,false); });
 // ---------- helpers ----------
 const toast=(txt,col='#fff')=>toasts.push({txt,col,t:2.2});
 function puff(x,y,col,n=10){ for(let i=0;i<n;i++) parts.push({x,y,vx:(Math.random()-.5)*240,vy:-Math.random()*240,t:.7,col,r:4+Math.random()*5}); }
-function hurt(why){ if(P.inv>0) return; hearts--; P.inv=1.6; P.vy=-480; P.vx=-P.face*220; sfx('hurt'); if(hitCool<=0){ play('kz_hit'); hitCool=7; } toast(why,'#ffd1dc');
+function hurt(why,src){ if(P.inv>0) return; hearts--; P.inv=1.6; P.vy=-480; P.vx=-P.face*220; sfx('hurt',.4); if(hitCool<=0&&!cur){ play(src==='inez'?'kz_hit':src==='gay'?'kz_hit_gay':'kz_hit_any'); hitCool=7; } else grunt('hurt'); toast(why,'#ffd1dc');
   if(hearts<=0) gameOver('Inez cię poderwała, a Kaka tylko na to czekała. Lista zadań czeka!'); }
 function fallOff(why){ hearts--; sfx(why.startsWith('Plusk')?'splash':'hurt'); toast(why,'#cdeaff'); if(hearts<=0){ gameOver('Za dużo morsowania na jeden dzień. Kaka cię przechwyciła.'); return; } spawn(); P.inv=1.5; }
 function gameOver(txt){ state='over'; $('#oTxt').textContent=txt; $('#over').classList.remove('hidden'); }
@@ -221,6 +247,8 @@ function caught(){ state='over'; play('kaka_caught'); $('#oTxt').textContent='�
 
 // Inez gets knocked back, sits dazed with stars, then storms off offended
 let inezHitCool=0, inezLine=0, gayLine=0, gayCool=0, gayAngryCool=0, phones=[];
+function breakVac(e){ e.state='broken'; e.st=.9; puff(e.x,e.y-30,'#ffd27a',14); sfx('phone',.8); toast('Odkurzacz wyłączony! 🔌','#d6ffd9'); }
+function popNote(e){ e.alive=false; puff(e.x,e.y,'#fffbe8',12); sfx('splat',.6); }
 function defeat(e,dir){ e.state='hit'; e.st=.4; e.kx=dir*300; e.dir=-dir; puff(e.x,(e.y||0)-80,'#ff8fb3',14); sfx('defeat');
   if(inezHitCool<=0){ play(e.k==='gay'?'gay_hit'+(1+(gayLine++%3)):'inez_hit'+(1+(inezLine++%6))); inezHitCool=1.2; } }
 // ---------- update ----------
@@ -237,11 +265,11 @@ function update(dt){
   P.vx=Math.max(-max,Math.min(max,P.vx));
   // jump: coyote time + buffer + variable height; hold in the air while falling = paraglider
   P.coyote=P.on?.1:P.coyote-dt; if(K.JHit){ P.buf=.13; } else P.buf-=dt;
-  if(P.buf>0&&P.coyote>0){ P.vy=-830; P.on=false; P.coyote=0; P.buf=0; sfx('jump'); }
+  if(P.buf>0&&P.coyote>0){ P.vy=-830; P.on=false; P.coyote=0; P.buf=0; grunt('jump',.75); P.boosted=false; }
   if(!K.J&&P.vy<-300) P.vy=-300;
   P.vy+=2200*dt;
-  const wasGlide=P.glide; P.glide=!P.on&&K.J&&P.vy>0; if(P.glide&&!wasGlide&&!P.glideSnd){ sfx('glide',.5); P.glideSnd=true; } if(P.on) P.glideSnd=false;
-  if(P.glide) P.vy=Math.min(P.vy,95);
+  const wasGlide=P.glide; P.glide=!P.on&&K.J&&P.vy>0; if(P.glide&&!wasGlide&&!P.glideSnd){ sfx('glide',.45); P.glideSnd=true; } if(P.glide&&!P.boosted){ P.boosted=true; P.vy=-450; P.glide=false; puff(P.x,P.y-20,'rgba(255,255,255,.8)',6); } if(P.on){ P.glideSnd=false; P.boosted=false; }
+  if(P.glide) P.vy=Math.min(P.vy,120);
   // steam vents (hot springs) lift you up when gliding through them
   L.vents.forEach(vx=>{ if(Math.abs(P.x-vx)<T*1.3&&P.y>VH-T*11){ if(P.glide||P.vy>-200) P.vy-=3400*dt; P.vy=Math.max(P.vy,-460); } });
   P.vy=Math.min(P.vy,900);
@@ -262,21 +290,40 @@ function update(dt){
   const fx=Math.floor(P.x/T); if(tile(fx,12)==='w'&&P.y+P.h>12*T+26){ puff(P.x,12*T,'#bfe6ff',18); fallOff('Plusk! Morsowanie… ale nie teraz!'); return; }
   if(P.y>VH+120){ fallOff(D.ice?'Plusk!':'Ups! Za krótki lot.'); return; }
   // punch: a big cartoon swing; it waves away Inez and her kisses
-  if(K.XHit&&P.punchT<-.1&&!(P.snowA>0)){ P.punchT=.28; sfx('punch'); puff(P.x+P.face*80,P.y+40,'rgba(255,255,255,.9)',5); }
+  if(K.XHit&&P.punchT<-.1&&!(P.snowA>0)){ P.punchT=.28; sfx('punch',.4); grunt('punch',.6); puff(P.x+P.face*80,P.y+40,'rgba(255,255,255,.9)',5); }
   // snowball: thrown in an arc, also sends Inez away and pops kisses
   // wind-up first, the snowball leaves the hand at the release frame
   if(K.SHit&&(P.snowT||0)<=0&&P.punchT<=0){ P.snowT=.42; P.snowA=.36; P.snowFired=false; }
   P.snowT=(P.snowT||0)-dt; P.snowA=(P.snowA||0)-dt;
-  if(P.snowA>0&&P.snowA<.22&&!P.snowFired){ P.snowFired=true; snowballs.push({x:P.x+P.face*44,y:P.y+22,vx:P.face*640+P.vx*.3,vy:-280,t:1.4}); sfx('throw'); }
+  if(P.snowA>0&&P.snowA<.22&&!P.snowFired){ P.snowFired=true; snowballs.push({x:P.x+P.face*44,y:P.y+22,vx:P.face*640+P.vx*.3,vy:-280,t:1.4}); sfx('throw',.35); grunt('throw',.5); }
   snowballs.forEach(b=>{ b.vy+=900*dt; b.x+=b.vx*dt; b.y+=b.vy*dt; b.t-=dt; if(solid(Math.floor(b.x/T),Math.floor(b.y/T))){ b.t=0; puff(b.x,b.y,'#fff',6); sfx('splat',.35); } });
   const punching=P.punchT>.08, hx0=P.face>0?P.x+5:P.x-100, hx1=P.face>0?P.x+100:P.x-5, hy0=P.y+8, hy1=P.y+78;
   // checkpoints
   L.cps.forEach(x=>{ if(P.x>x&&cp<x){ cp=x; toast('Punkt kontrolny — ręcznik zostawiony ✓','#d6ffd9'); sfx('cp'); } });
   // Maryańska: a pep talk, and she keeps Kaka busy chatting for a moment
-  if(L.mar&&!L.marDone&&P.x>L.mar-260){ L.marDone=true; L.marT=6.5; play('mar_'+(lvl+1)); kaka.wait=Math.max(kaka.wait,3); toast('Maryańska zagaduje Kakę ☮','#ffe6a8'); }
-  L.marT-=dt;
+  if(L.mar&&!L.marDone&&P.x>L.mar-300){ L.marDone=true; L.marPh=1; L.marT=6; const n=lvl+1; play('kzm_'+n,()=>{ if(lvl+1!==n) return; L.marPh=2; L.marT=7.5; play('mar_'+n); }); kaka.wait=Math.max(kaka.wait,4); toast('Maryańska zagaduje Kakę ☮','#ffe6a8'); }
+  L.marT-=dt; if(L.marPh===1&&L.marT<=0&&!cur){ L.marPh=2; L.marT=6; }
   // entities
+  // ice spikes hurt and bounce you up
+  L.spikes.forEach(([a,b,y])=>{ if(P.x+14>a&&P.x-14<b&&P.y+P.h>y-30&&P.y+P.h<=y+6&&P.inv<=0){ hurt('Au! Lodowe kolce! 🧊'); P.vy=-720; } });
+  const dif=lvl/9;
   ents.forEach(e=>{ if(!e.alive) return;
+    // Kaka's robot vacuum: trundles along, charges when it sees Kaczor; stomp, punch or snowball switches it off
+    if(e.k==='vac'){ if(e.state==='broken'){ e.st-=dt; e.rot=(e.rot||0)+dt*6; if(e.st<=0) e.alive=false; return; }
+      const gy=groundY(e.x)??VH; e.y=gy; e.t=(e.t||0)+dt; const near=Math.abs(P.x-e.x)<400&&Math.abs(P.y+P.h-gy)<130, spd=near?175+70*dif:80;
+      e.vx=near?Math.sign(P.x-e.x||1)*spd:Math.sign(e.vx||-1)*spd; const nx=e.x+e.vx*dt, ng=groundY(nx+Math.sign(e.vx)*26);
+      if(ng==null||Math.abs(ng-gy)>4) e.vx=-e.vx; else e.x=nx; e.dir=Math.sign(e.vx);
+      const sb=snowballs.find(b=>b.t>0&&Math.abs(b.x-e.x)<38&&b.y>gy-64&&b.y<gy+6);
+      if(sb||punching&&e.x>hx0-30&&e.x<hx1+30&&gy-64<hy1&&gy>hy0){ if(sb) sb.t=0; breakVac(e); return; }
+      const ox=Math.abs(P.x-e.x)<46; if(ox&&P.vy>0&&P.y+P.h>gy-66&&P.y+P.h<gy-22){ P.vy=-600; breakVac(e); return; }
+      if(ox&&P.y+P.h>gy-40&&P.y<gy) hurt('Odkurzacz Kaki cię staranował! 🧹'); return; }
+    // flying chore lists: wake up when on screen, drift towards Kaczor in waves
+    if(e.k==='note'){ if(!e.act){ if(e.x-P.x<VW*.8){ e.act=true; e.by=e.y; e.t=0; } else return; }
+      e.t+=dt; e.x-=(105+75*dif)*dt; e.by+=Math.sign(P.y+30-e.by)*45*dt; e.y=e.by+Math.sin(e.t*2.6)*46; if(e.x<cam-200){ e.alive=false; return; }
+      const sb=snowballs.find(b=>b.t>0&&Math.hypot(b.x-e.x,b.y-e.y)<40);
+      if(sb||punching&&e.x>hx0-20&&e.x<hx1+20&&e.y>hy0-30&&e.y<hy1+20){ if(sb) sb.t=0; popNote(e); return; }
+      if(Math.abs(P.x-e.x)<40&&P.vy>0&&P.y+P.h>e.y-24&&P.y+P.h<e.y+16){ P.vy=-560; popNote(e); return; }
+      if(Math.abs(P.x-e.x)<34&&e.y>P.y&&e.y<P.y+P.h){ popNote(e); hurt('Lista zadań cię dopadła! 📝'); } return; }
     if(e.k==='vihta'||e.k==='ladle'){ if(Math.abs(e.x-P.x)<34&&e.y>P.y-10&&e.y<P.y+P.h+10){ e.alive=false;
       if(e.k==='vihta'){ vihta++; sfx('pick'); puff(e.x,e.y,'#7fbf5a',5); if(vihta%25===0&&hearts<5){ hearts++; sfx('ladle'); toast('25 witek: +1 ❤','#ffd1dc'); } }
       else { if(hearts<5) hearts++; sfx('ladle'); toast('Chochla gorącej pary: +1 ❤','#ffd1dc'); } } return; }
@@ -311,14 +358,14 @@ function update(dt){
       // stomp on head or bump into her
       const ox=Math.abs(P.x-e.x)<40, top=ey-138;
       if(ox&&P.vy>0&&P.y+P.h>top&&P.y+P.h<top+34){ P.vy=-560; defeat(e,P.face); e.state='dizzy'; e.st=1.7; toast(`Nie dziś, ${who}! 👋`,'#ffd1dc'); }
-      else if(ox&&P.y+P.h>top+30&&P.y<ey) hurt(e.k==='gay'?'Gayzilla wciąga cię do selfie! 🤳':'Inez chciała cię poderwać! 💋'); } });
+      else if(ox&&P.y+P.h>top+30&&P.y<ey) hurt(e.k==='gay'?'Gayzilla wciąga cię do selfie! 🤳':'Inez chciała cię poderwać! 💋',e.k); } });
   phones.forEach(f=>{ f.t-=dt; f.vy+=900*dt; f.x+=f.vx*dt; f.y+=f.vy*dt; f.rot+=14*dt*Math.sign(f.vx||1);
-    if(Math.abs(f.x-P.x)<30&&f.y>P.y&&f.y<P.y+P.h){ f.t=0; puff(f.x,f.y,'#ff9de0',8); sfx('phone',.6); hurt('Telefonem w głowę! 📱'); }
+    if(Math.abs(f.x-P.x)<30&&f.y>P.y&&f.y<P.y+P.h){ f.t=0; puff(f.x,f.y,'#ff9de0',8); sfx('phone',.6); hurt('Telefonem w głowę! 📱','gay'); }
     else if(punching&&f.x>hx0&&f.x<hx1&&f.y>hy0-20&&f.y<hy1+20){ f.t=0; puff(f.x,f.y,'#ff9de0',8); sfx('phone'); }
     else { const gy=groundY(f.x); if(gy!=null&&f.y>gy-6||f.y>VH+60){ f.t=0; puff(f.x,f.y,'#cfd8ff',8); sfx('phone',.35); } }
     snowballs.forEach(b=>{ if(b.t>0&&Math.hypot(b.x-f.x,b.y-f.y)<34){ b.t=0; f.t=0; puff(f.x,f.y,'#ff9de0',6); } }); });
   phones=phones.filter(f=>f.t>0);
-  kisses.forEach(k=>{ k.t-=dt; k.x+=k.vx*dt; k.y+=Math.sin(t0*5+k.ph)*40*dt; if(Math.abs(k.x-P.x)<30&&k.y>P.y&&k.y<P.y+P.h){ k.t=0; hurt('Całus od Inez! 💋'); }
+  kisses.forEach(k=>{ k.t-=dt; k.x+=k.vx*dt; k.y+=Math.sin(t0*5+k.ph)*40*dt; if(Math.abs(k.x-P.x)<30&&k.y>P.y&&k.y<P.y+P.h){ k.t=0; hurt('Całus od Inez! 💋','inez'); }
     if(punching&&k.x>hx0&&k.x<hx1&&k.y>hy0-20&&k.y<hy1+20){ k.t=0; puff(k.x,k.y,'#ff8fb3',8); }
     snowballs.forEach(b=>{ if(b.t>0&&Math.hypot(b.x-k.x,b.y-k.y)<30){ b.t=0; k.t=0; puff(k.x,k.y,'#ff8fb3',6); } }); });
   kisses=kisses.filter(k=>k.t>0); snowballs=snowballs.filter(b=>b.t>0);
@@ -337,12 +384,12 @@ function update(dt){
 }
 
 // ---------- drawing ----------
-function bubble(x,y,txt){ c.save(); c.font='600 17px "Baloo 2",sans-serif'; const words=txt.split(' '), lines=[]; let ln='';
+function bubble(x,y,txt,who='Maryańska ☮',col='#c8622a'){ c.save(); c.font='600 17px "Baloo 2",sans-serif'; const words=txt.split(' '), lines=[]; let ln='';
   words.forEach(w=>{ const tt=ln?ln+' '+w:w; if(c.measureText(tt).width>270&&ln){ lines.push(ln); ln=w; } else ln=tt; }); lines.push(ln);
   const bw=300, bh=34+lines.length*21, bx=Math.max(10,Math.min(VW-bw-10,x-bw/2)), by=y-bh;
-  c.globalAlpha=Math.min(1,L.marT*2); c.fillStyle='rgba(255,250,238,.96)'; c.strokeStyle='#c8622a'; c.lineWidth=3; c.beginPath(); c.roundRect(bx,by,bw,bh,14); c.fill(); c.stroke();
+  c.globalAlpha=Math.min(1,L.marT*2); c.fillStyle='rgba(255,250,238,.96)'; c.strokeStyle=col; c.lineWidth=3; c.beginPath(); c.roundRect(bx,by,bw,bh,14); c.fill(); c.stroke();
   c.beginPath(); c.moveTo(x-10,by+bh-1); c.lineTo(x,by+bh+16); c.lineTo(x+10,by+bh-1); c.fill();
-  c.fillStyle='#c8622a'; c.font='800 15px "Baloo 2",sans-serif'; c.textAlign='left'; c.fillText('Maryańska ☮',bx+14,by+22);
+  c.fillStyle=col; c.font='800 15px "Baloo 2",sans-serif'; c.textAlign='left'; c.fillText(who,bx+14,by+22);
   c.fillStyle='#3b2a1e'; c.font='600 17px "Baloo 2",sans-serif'; lines.forEach((l,i)=>c.fillText(l,bx+14,by+44+i*21)); c.restore(); }
 function drawImg(im,x,y,h,flip){ if(!im.complete||!im.naturalWidth) return; const w=h*im.naturalWidth/im.naturalHeight; c.save(); c.translate(x,y); if(flip) c.scale(-1,1); c.drawImage(im,-w/2,-h,w,h); c.restore(); }
 function drawBg(){ const im=IMG[L.D.bg]; if(!im.complete||!im.naturalWidth){ c.fillStyle='#6a86b8'; c.fillRect(0,0,VW,VH); return; }
@@ -352,7 +399,7 @@ function drawBg(){ const im=IMG[L.D.bg]; if(!im.complete||!im.naturalWidth){ c.f
 
 // ---------- coded platform designs: a texture per world, drawn in world space so it scrolls with the level ----------
 const TEX={};
-function texture(style){ if(TEX[style]) return TEX[style]; const S=256, o=document.createElement('canvas'); o.width=o.height=S; const g=o.getContext('2d'), r=rng(style.length*977+13);
+function texture(style){ const ti=envImg('tex_'+style); if(ti){ if(!TEX['g_'+style]){ const o=document.createElement('canvas'); o.width=o.height=192; o.getContext('2d').drawImage(ti,0,0,192,192); TEX['g_'+style]=c.createPattern(o,'repeat'); } return TEX['g_'+style]; } if(TEX[style]) return TEX[style]; const S=256, o=document.createElement('canvas'); o.width=o.height=S; const g=o.getContext('2d'), r=rng(style.length*977+13);
   if(style==='earth'){ g.fillStyle='#6e4a31'; g.fillRect(0,0,S,S);
     for(let i=0;i<900;i++){ g.fillStyle=`rgba(${r()<.5?'40,24,14':'150,105,70'},${.08+r()*.12})`; g.fillRect(r()*S,r()*S,2+r()*3,2+r()*3); }
     for(let i=0;i<26;i++){ const x=r()*S,y=r()*S,rx=5+r()*10,ry=3+r()*6; g.fillStyle=['#8d6a4d','#5b3c27','#9a8676','#7a6a60'][i%4]; g.beginPath(); g.ellipse(x,y,rx,ry,r()*3,0,Math.PI*2); g.fill(); g.fillStyle='rgba(255,255,255,.18)'; g.beginPath(); g.ellipse(x-rx*.3,y-ry*.4,rx*.4,ry*.3,0,0,Math.PI*2); g.fill(); }
@@ -412,6 +459,7 @@ function drawTiles(){ const D=L.D, st=D.style, x0=Math.max(0,Math.floor(cam/T)-2
   // crumbling platforms: brittle boards / thin ice, shaking before they drop
   for(let tx=x0;tx<=x1;tx++) for(let ty=0;ty<ROWS;ty++){ if(L.g[ty][tx]!=='c') continue; const cr=L.crum[ty*L.W+tx]; if(cr&&cr.gone>0) continue;
     const sh=cr&&cr.t!=null?Math.sin(t0*70+tx)*2.5:0, X=tx*T-cam+sh, Y=ty*T+(cr&&cr.t!=null?(.5-cr.t)*6:0), icy=['ice','cave','snowpack'].includes(st);
+    const cim=envImg(st+'_crum'); if(cim){ const m=ENVM[st+'_crum']||{top:0}, s=(T+2)/cim.naturalWidth; c.drawImage(cim,X-1,Y-m.top*cim.naturalHeight*s,T+2,cim.naturalHeight*s); continue; }
     c.fillStyle=icy?'rgba(200,238,255,.9)':'#9b7650'; c.beginPath(); c.roundRect(X+1,Y+2,T-2,16,4); c.fill();
     c.strokeStyle=icy?'rgba(40,110,150,.7)':'rgba(60,35,15,.75)'; c.lineWidth=1.5; c.beginPath(); c.moveTo(X+8,Y+3); c.lineTo(X+18,Y+12); c.lineTo(X+14,Y+17); c.moveTo(X+30,Y+3); c.lineTo(X+26,Y+10); c.lineTo(X+36,Y+17); c.stroke();
     c.fillStyle=L.D.snow; c.beginPath(); c.roundRect(X,Y-3,T,7,3); c.fill(); }
@@ -421,7 +469,11 @@ function drawTiles(){ const D=L.D, st=D.style, x0=Math.max(0,Math.floor(cam/T)-2
     c.fillStyle='rgba(190,235,255,.55)'; for(let i=0;i<2;i++){ c.beginPath(); c.ellipse(X+T/2+Math.sin(t0*2+tx+i)*10,Y+16+i*9,15,2.5,0,0,Math.PI*2); c.fill(); }
     if(L.g[12][tx-1]!=='w'){ c.fillStyle='#e8f7ff'; c.beginPath(); c.roundRect(X-6,Y+4,12,14,5); c.fill(); } if(L.g[12][tx+1]!=='w'){ c.fillStyle='#e8f7ff'; c.beginPath(); c.roundRect(X+T-6,Y+4,12,14,5); c.fill(); }
     if((tx+Math.floor(t0*2))%3===0){ c.fillStyle='rgba(255,255,255,.28)'; c.beginPath(); c.arc(X+T/2,Y-((t0*30+tx*17)%70),11,0,Math.PI*2); c.fill(); } } }
+// draw a Gemini platform image so its walkable top sits on y; long runs stretch only the middle (3-slice)
+function slice3(im,meta,x0,x1,y,body){ const top=(meta&&meta.top)||0, s=body/((1-top)*im.naturalHeight), H=im.naturalHeight*s, yT=y-top*im.naturalHeight*s, w=x1-x0, cw=im.naturalWidth*.24;
+  if(w<=cw*2*s*1.1) c.drawImage(im,x0,yT,w,H); else { c.drawImage(im,0,0,cw,im.naturalHeight,x0,yT,cw*s,H); c.drawImage(im,cw,0,im.naturalWidth-2*cw,im.naturalHeight,x0+cw*s,yT,w-2*cw*s,H); c.drawImage(im,im.naturalWidth-cw,0,cw,im.naturalHeight,x1-cw*s,yT,cw*s,H); } }
 function platform(st,a,b,ty){ const D=L.D, X0=a*T-cam, X1=(b+1)*T-cam, Y=ty*T, w=X1-X0;
+  const pim=envImg(st+'_plat'); if(pim){ slice3(pim,ENVM[st+'_plat'],X0-8,X1+8,Y,48); return; }
   if(st==='cobble'){ // market stall roof: striped awning with a scalloped edge
     const n=Math.round(w/16); for(let k=0;k<n;k++){ c.fillStyle=k%2?'#fff4e0':'#c0392b'; c.fillRect(X0+k*16,Y+2,16,20); c.beginPath(); c.arc(X0+k*16+8,Y+22,8,0,Math.PI); c.fill(); }
     c.fillStyle='rgba(0,0,0,.15)'; c.fillRect(X0,Y+2,w,4); c.fillStyle='#e9b949'; for(let x=X0+8;x<X1;x+=16){ c.beginPath(); c.arc(x,Y+34,2.5,0,Math.PI*2); c.fill(); } snowCap(X0+2,X1-2,Y+2,D.snow); return; }
@@ -446,12 +498,16 @@ function platform(st,a,b,ty){ const D=L.D, X0=a*T-cam, X1=(b+1)*T-cam, Y=ty*T, w
     c.strokeStyle='rgba(30,28,36,.6)'; c.lineWidth=2.5; c.stroke(); c.restore();
     c.fillStyle='#2f5b3a'; const px=X0+w*.75; c.beginPath(); c.moveTo(px,Y-22); c.lineTo(px+9,Y+2); c.lineTo(px-9,Y+2); c.fill(); c.fillStyle='#fff'; c.beginPath(); c.moveTo(px,Y-22); c.lineTo(px+4,Y-12); c.lineTo(px-4,Y-12); c.fill();
     snowCap(X0,X1,Y+3,D.snow); } }
+function drawSpikes(){ L.spikes.forEach(([a,b,y])=>{ if(b-cam<-40||a-cam>VW+40) return; for(let x=a;x<b;x+=T){ const X=x-cam;
+  const si=envImg('spikes'); if(si) c.drawImage(si,X-4,y-40,T+8,46);
+  else { c.fillStyle='rgba(210,240,255,.95)'; for(let k=0;k<3;k++){ c.beginPath(); c.moveTo(X+k*16,y); c.lineTo(X+k*16+8,y-28); c.lineTo(X+k*16+16,y); c.fill(); } } } }); }
 function star(x,y,r){ c.beginPath(); for(let i=0;i<10;i++){ const a=i*Math.PI/5-Math.PI/2, rr=i%2?r*.45:r; c.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr); } c.closePath(); c.fill(); }
-function drawSpring(X,Y,sq){ const h=26-sq*40; c.fillStyle='#5b3a25'; c.fillRect(X-24,Y-6,48,6); c.strokeStyle='#c9cdd6'; c.lineWidth=4; c.beginPath(); for(let i=0;i<=6;i++) c.lineTo(X+(i%2?-14:14),Y-6-i*h/6); c.stroke();
+function drawSpring(X,Y,sq){ const spi=envImg('spring'); if(spi){ const w=66, h=spi.naturalHeight*w/spi.naturalWidth*(1-sq*1.4); c.drawImage(spi,X-w/2,Y-h,w,h); return; } const h=26-sq*40; c.fillStyle='#5b3a25'; c.fillRect(X-24,Y-6,48,6); c.strokeStyle='#c9cdd6'; c.lineWidth=4; c.beginPath(); for(let i=0;i<=6;i++) c.lineTo(X+(i%2?-14:14),Y-6-i*h/6); c.stroke();
   c.fillStyle='#d24a3f'; c.beginPath(); c.roundRect(X-28,Y-12-h,56,10,5); c.fill(); c.fillStyle='rgba(255,255,255,.6)'; c.fillRect(X-22,Y-10-h,44,2); }
-function drawIcicle(X,Y,sh){ c.save(); c.translate(X+sh,Y); c.fillStyle='rgba(220,245,255,.95)'; c.beginPath(); c.moveTo(-14,0); c.lineTo(14,0); c.lineTo(2,62); c.lineTo(-2,62); c.closePath(); c.fill();
+function drawIcicle(X,Y,sh){ const ici=envImg('icicle'); if(ici){ c.drawImage(ici,X-17+sh,Y-6,34,34*ici.naturalHeight/ici.naturalWidth); return; } c.save(); c.translate(X+sh,Y); c.fillStyle='rgba(220,245,255,.95)'; c.beginPath(); c.moveTo(-14,0); c.lineTo(14,0); c.lineTo(2,62); c.lineTo(-2,62); c.closePath(); c.fill();
   c.fillStyle='rgba(255,255,255,.8)'; c.fillRect(-6,4,3,34); c.fillStyle='#b8d8e8'; c.fillRect(-22,-6,44,8); c.restore(); }
 function drawMovs(){ const st=L.D.style; L.movs.forEach(m=>{ const X=m.x-cam, Y=m.y; if(X>VW+50||X+m.w<-50) return;
+  const mim=envImg(st+'_mov'); if(mim){ const mt=(ENVM[st+'_mov']||{top:0}).top, s=(m.w+16)/mim.naturalWidth; if(m.ax==='y'){ c.strokeStyle='#555'; c.lineWidth=2; c.beginPath(); c.moveTo(X+8,Y); c.lineTo(X+8,0); c.moveTo(X+m.w-8,Y); c.lineTo(X+m.w-8,0); c.stroke(); } c.drawImage(mim,X-8,Y-mt*mim.naturalHeight*s,m.w+16,mim.naturalHeight*s); return; }
   if(st==='snowpack'){ c.strokeStyle='#444'; c.lineWidth=2; c.beginPath(); c.moveTo(X+m.w/2,Y-60); c.lineTo(X+m.w/2,Y); c.stroke(); c.beginPath(); c.moveTo(X-300,Y-60); c.lineTo(X+m.w+300,Y-60); c.stroke();
     c.fillStyle='#d23a2f'; c.beginPath(); c.roundRect(X,Y,m.w,30,8); c.fill(); c.fillStyle='#bfe6ff'; for(let k=8;k<m.w-14;k+=24) c.fillRect(X+k,Y+6,16,10); }
   else if(st==='cobble'){ c.fillStyle='#b5332a'; c.beginPath(); c.moveTo(X,Y); c.lineTo(X+m.w,Y); c.quadraticCurveTo(X+m.w+18,Y+10,X+m.w,Y+24); c.lineTo(X+8,Y+24); c.quadraticCurveTo(X-6,Y+12,X,Y); c.fill();
@@ -461,23 +517,28 @@ function drawMovs(){ const st=L.D.style; L.movs.forEach(m=>{ const X=m.x-cam, Y=
   c.fillStyle=L.D.snow; c.beginPath(); c.roundRect(X-2,Y-5,m.w+4,9,4); c.fill(); }); }
 function drawWinds(){ L.winds.forEach(([a,b,f])=>{ if(b-cam<0||a-cam>VW) return; c.strokeStyle='rgba(255,255,255,.45)'; c.lineWidth=2;
   for(let i=0;i<14;i++){ const y=80+((i*97)%520), x=a+((t0*f*1.6+i*173)%(b-a)); c.beginPath(); c.moveTo(x-cam,y); c.quadraticCurveTo(x-cam+30,y-6,x-cam+70,y); c.stroke(); } }); }
-function drawVents(){ L.vents.forEach(vx=>{ const X=vx-cam; if(X<-80||X>VW+80) return; const g=c.createLinearGradient(0,VH,0,VH-T*11); g.addColorStop(0,'rgba(255,220,180,.45)'); g.addColorStop(1,'rgba(255,255,255,0)'); c.fillStyle=g; c.fillRect(X-T*1.3,VH-T*11,T*2.6,T*11);
+function drawVents(){ L.vents.forEach(vx=>{ const X=vx-cam; if(X<-80||X>VW+80) return; const vi=envImg('vent'); if(vi) c.drawImage(vi,X-70,VH-70,140,140*vi.naturalHeight/vi.naturalWidth); const g=c.createLinearGradient(0,VH,0,VH-T*11); g.addColorStop(0,'rgba(255,220,180,.45)'); g.addColorStop(1,'rgba(255,255,255,0)'); c.fillStyle=g; c.fillRect(X-T*1.3,VH-T*11,T*2.6,T*11);
   for(let i=0;i<7;i++){ const p=(t0*.6+i/7)%1; c.fillStyle=`rgba(255,255,255,${.5*(1-p)})`; c.beginPath(); c.arc(X+Math.sin(p*9+i)*18,VH-p*T*11,14+p*20,0,Math.PI*2); c.fill(); } }); }
-function draw(){ c.clearRect(0,0,VW,VH); drawBg(); drawWinds(); drawVents(); drawTiles(); drawMovs();
+function draw(){ c.clearRect(0,0,VW,VH); drawBg(); drawWinds(); drawVents(); drawTiles(); drawSpikes(); drawMovs();
   // checkpoints (birch post with a towel) and the sauna
-  L.cps.forEach(x=>{ const X=x-cam, gy=groundY(x+4)||VH; if(X<-60||X>VW+60) return; c.fillStyle='#f3efe6'; c.fillRect(X-4,gy-90,8,90); c.fillStyle='#333'; for(let i=0;i<5;i++) c.fillRect(X-4,gy-80+i*16,8,3); c.fillStyle=cp>=x?'#ff6f61':'#ddd'; c.beginPath(); c.roundRect(X+4,gy-88,34,24,4); c.fill(); });
+  L.cps.forEach(x=>{ const X=x-cam, gy=groundY(x+4)||VH; if(X<-60||X>VW+60) return; const cpi=envImg(cp>=x?'cp_on':'cp_off'); if(cpi){ const h=124, w=h*cpi.naturalWidth/cpi.naturalHeight; c.drawImage(cpi,X-w*.3,gy-h+4,w,h); return; } c.fillStyle='#f3efe6'; c.fillRect(X-4,gy-90,8,90); c.fillStyle='#333'; for(let i=0;i<5;i++) c.fillRect(X-4,gy-80+i*16,8,3); c.fillStyle=cp>=x?'#ff6f61':'#ddd'; c.beginPath(); c.roundRect(X+4,gy-88,34,24,4); c.fill(); });
   const sx=L.goal-cam; if(sx>-500&&sx<VW+200){ drawImg(IMG.sauna,sx+140,(groundY(L.goal+140)||VH)+8,300,false); if(Math.random()<.15) parts.push({x:L.goal+140+(Math.random()-.5)*60,y:(groundY(L.goal+140)||VH)-260,vx:(Math.random()-.5)*30,vy:-60,t:.7,col:'rgba(255,255,255,.6)',r:10}); }
   ents.forEach(e=>{ if(!e.alive) return; const X=e.x-cam; if(X<-120||X>VW+120) return;
-    if(e.k==='vihta') drawImg(IMG.it_vihta,X,e.y+18+Math.sin(t0*3+e.x)*4,36);
+    if(e.k==='vac'){ const br=e.state==='broken', bob=br?0:Math.abs(Math.sin(e.t*14))*2; c.save(); c.translate(X,e.y+2-bob); if(br){ c.rotate(Math.sin(e.rot)*.25); c.globalAlpha=Math.min(1,e.st*2); }
+      if(IMG.enemy_vac.complete&&IMG.enemy_vac.naturalWidth) drawImg(IMG.enemy_vac,0,0,62,e.dir<0); else { c.fillStyle='#c9ccd6'; c.beginPath(); c.roundRect(-34,-40,68,36,14); c.fill(); }
+      c.restore(); if(br&&Math.random()<.5) parts.push({x:e.x+(Math.random()-.5)*40,y:e.y-40,vx:(Math.random()-.5)*160,vy:-180,t:.4,col:'#ffd23f',r:3}); }
+    else if(e.k==='note'){ if(!e.act) return; c.save(); c.translate(X,e.y); c.scale(1,.85+Math.abs(Math.sin(e.t*12))*.15);
+      if(IMG.enemy_note.complete&&IMG.enemy_note.naturalWidth) drawImg(IMG.enemy_note,0,28,58,false); else drawImg(IMG.it_chore,0,22,44,false); c.restore(); }
+    else if(e.k==='vihta') drawImg(IMG.it_vihta,X,e.y+18+Math.sin(t0*3+e.x)*4,36);
     else if(e.k==='ladle') drawImg(IMG.it_ladle,X,e.y+22+Math.sin(t0*3)*4,46);
     else if((e.k==='inez'||e.k==='gay')&&e.state){ const pre=e.k==='gay'?'gay_':'inez_';
-      const ok=e.state==='hit'?drawAnim(pre+'hit',X,e.y+2,0,e.kx<0,1-e.st/.4):e.state==='dizzy'?drawAnim(pre+'dizzy',X,e.y+4,t0,e.dir>0):(c.globalAlpha=Math.max(0,Math.min(1,e.st)),drawAnim(pre+'huff',X,e.y+2,t0,e.hdir>0));
+      const ok=e.state==='hit'?drawAnim(pre+'hit',X,e.y+2,0,e.kx>0,1-e.st/.4):e.state==='dizzy'?drawAnim(pre+'dizzy',X,e.y+4,t0,e.dir<0):(c.globalAlpha=Math.max(0,Math.min(1,e.st)),drawAnim(pre+'huff',X,e.y+2,t0,e.hdir<0));
       c.globalAlpha=1; if(ok||e.k==='gay') return;
       if(e.state==='hit') drawImg(IMG.inez_hit,X,e.y+2,144,e.kx<0);
       else if(e.state==='dizzy'){ drawImg(IMG.inez_dizzy,X,e.y+4,104,e.dir>0); for(let q=0;q<4;q++){ const a=t0*5+q*Math.PI/2; c.fillStyle='#ffd34e'; star(X+Math.cos(a)*34,e.y-96+Math.sin(a)*9,7); } }
       else { c.globalAlpha=Math.max(0,Math.min(1,e.st)); drawImg(IMG.inez_huff,X,e.y+2,144,e.hdir>0); c.globalAlpha=1; } }
-    else if(e.k==='gay'){ const fl=e.dir>0; if(e.mode==='throw') drawAnim('gay_throw',X,e.y+2,0,fl,1-e.mt/.55); else if(e.mode==='selfie') drawAnim('gay_selfie',X,e.y+2,e.t,fl); else drawAnim('gay_walk',X,e.y+2,e.t,fl); }
-    else if(e.k==='inez'){ const fl=e.dir>0; if(!(e.kissT>0?drawAnim('inez_kiss',X,e.y+2,0,fl,1-e.kissT/.5):drawAnim('inez_walk',X,e.y+2,e.t,fl))){ const im=e.kissT>0?IMG.inez_kiss:(Math.floor(e.t*5)%2?IMG.inez_walk1:IMG.inez_walk2); drawImg(im,X,e.y+2,128,fl); } }
+    else if(e.k==='gay'){ const fl=e.dir<0; if(e.mode==='throw') drawAnim('gay_throw',X,e.y+2,0,fl,1-e.mt/.55); else if(e.mode==='selfie') drawAnim('gay_selfie',X,e.y+2,e.t,fl); else drawAnim('gay_walk',X,e.y+2,e.t,fl); }
+    else if(e.k==='inez'){ const fl=e.dir<0; if(!(e.kissT>0?drawAnim('inez_kiss',X,e.y+2,0,fl,1-e.kissT/.5):drawAnim('inez_walk',X,e.y+2,e.t,fl))){ const im=e.kissT>0?IMG.inez_kiss:(Math.floor(e.t*5)%2?IMG.inez_walk1:IMG.inez_walk2); drawImg(im,X,e.y+2,128,fl); } }
     else if(e.k==='spring') drawSpring(X,e.y,e.sq||0);
     else if(e.k==='icicle') drawIcicle(X,e.y,e.st==='shake'?Math.sin(t0*60)*3:0); });
   kisses.forEach(k=>drawImg(IMG.it_kiss,k.x-cam,k.y+14,30));
@@ -487,7 +548,7 @@ function draw(){ c.clearRect(0,0,VW,VH); drawBg(); drawWinds(); drawVents(); dra
   // Maryańska
   if(L.mar){ const mx=L.mar-cam; if(mx>-150&&mx<VW+150){ const my=(groundY(L.mar)||VH)+2, fl=P.x<L.mar;
     if(!drawAnim(L.marT>0?'mar_talk':'mar_cheer',mx,my,t0,fl)) drawImg(IMG.mar_idle,mx,my,128,fl);
-    if(L.marT>0) bubble(mx,my-150,MAR_TXT[lvl]); } }
+    if(L.marT>0){ if(L.marPh===1) bubble(P.x-cam,P.y-12,KZM_TXT[lvl],'Kaczor','#2e6da4'); else bubble(mx,my-150,MAR_TXT[lvl]); } } }
   // Kaka
   const kx=kaka.x-cam; if(kx>-200){ if(kaka.wait>0||!drawAnim('kaka_run',kx,kaka.y+2,kaka.anim,false)) drawImg(kaka.wait>0?IMG.kaka_point:(Math.floor(kaka.anim*7)%2?IMG.kaka_run1:IMG.kaka_run2),kx,kaka.y+2,128,false); }
   // Kaczor

@@ -5,8 +5,9 @@ A 2D side-scrolling platformer starring Kaczor, deployed as its own Netlify proj
 ## Play
 - ◀ ▶ / A D — run · Space / ▲ / W — jump (hold in the air to open the paraglider) · X / J — punch · C / K — snowball
 - Kaka chases from the left with her chore list (meter at the top); if she catches up, the level restarts. She waits while Kaczor rides a lift.
-- Inez clones patrol and blow kisses; Gayzilla wants a selfie and, when refused, angrily throws his phone (punch or snowball it away). A punch, a snowball or a jump on the head sends either of them spinning away. The same enemy is never on screen twice.
-- Maryańska, Kaczor's hippie mentor, stands by the middle checkpoint of every level (by the sauna in the last one): she gives a pep talk and keeps Kaka chatting for 3 seconds.
+- Enemies: Inez clones blow kisses; Gayzilla wants a selfie and, when refused, angrily throws his phone (punch or snowball it away). A punch, a snowball or a jump on the head sends either of them spinning away. Kaka's robot vacuums charge along the ground and flying chore lists swoop in waves (stomp, punch or snowball them). The same Inez or Gayzilla is never on screen twice. Ice spikes hurt.
+- Maryańska, Kaczor's hippie mentor, stands by the middle checkpoint of every level (by the sauna in the last one): Kaczor greets her, she answers with a pep talk and keeps Kaka chatting for a few seconds.
+- Opening the paraglider catches an updraft once per jump.
 - Between levels Jugo narrates the story (voiced story card before every level and at the finale), followed by Kaczor's own line.
 - Collect birch whisks (25 = +1 heart) and sauna ladles (+1 heart); birch posts with a towel are checkpoints.
 - At each sauna Kaczor changes into a towel and walks in, then a full-screen sauna card for that world appears (`art/sauna_1-9.webp`); the last one is the gay sauna finale.
@@ -16,10 +17,12 @@ A 2D side-scrolling platformer starring Kaczor, deployed as its own Netlify proj
 Ten generated levels (seeded chunks, about 860–1000 tiles each) with checkpoints every ~85 tiles:
 1. Osiedle · 2. Las brzozowy · 3. Zamarznięte jezioro (slippery) · 4. Jarmark świąteczny · 5. Stok narciarski (slippery) · 6. Lodowa jaskinia (dark) · 7. Bałtyk zimą · 8. Tatry i paralotnia · 9. Gorące źródła · 10. Wioska saun
 
+Every world mixes climbs over floating platforms, cliffs with spikes below, pillar jumps, crumbling bridges over pits, moving platforms over pits, two-route sections and enemy ledges; gaps, spikes and enemies grow with each world. `reach.js`-style checks replay the game physics over every generated level to make sure each one can be finished.
+
 Mechanics: moving lifts and gondolas, crumbling ice, springs, falling icicles, wind gusts, steam vents that lift the paraglider, water.
 
 ## Art and code
 - Animations: every character and action is a Ludo.ai sprite animation (`art/anim/*.webp` strips plus `anim.json`), baked to the same standing height so Kaczor, Kaka, Inez, Gayzilla and Maryańska match in size. Still Gemini frames (`art/kz_*`, `kaka_*`, `inez_*`, `gay_*`, `mar_idle`) are the fallback while strips load.
 - Backgrounds `art/bg*.webp` are cut to tile seamlessly (minimum-error seam + two-band blend), so they repeat forever with parallax.
-- Platforms are not images: they are drawn in code with a texture per world, snow caps, icicles and lights.
-- Voices from ElevenLabs (`audio/`). Each level has its own Lyria soundtrack (`audio/music_1-10.mp3`; `music.mp3` plays on the title screen). Action sound effects are ElevenLabs samples in `audio/sfx/` (jump, punch, throw, splat, pickups, hurt, enemy knocked away, phone, spring, checkpoint, paraglider, splash, level complete) played through Web Audio.
+- Environment art by Gemini (`art/env/`): per-world floating platforms (3-slice), crumbling blocks, moving platforms (gondola, sleigh, rafts…), seamless ground textures, checkpoint posts, springs, ice spikes, icicles and steam vents; `env.json` stores where each walkable top sits.
+- Voices from ElevenLabs (`audio/`). Each level has its own Lyria soundtrack (`audio/music_1-10.mp3`; `music.mp3` plays on the title screen). Kaczor grunts on jumps, punches and throws, and his hit line depends on who hit him. Dialogue is loudness-matched and the music ducks under it. Action sound effects are ElevenLabs samples in `audio/sfx/` (jump, punch, throw, splat, pickups, hurt, enemy knocked away, phone, spring, checkpoint, paraglider, splash, level complete) played through Web Audio.
