@@ -49,6 +49,11 @@ button{font:inherit;cursor:pointer}
 #touch button{position:absolute;bottom:3%;width:9cqw;height:9cqw;border-radius:50%;border:.3cqw solid rgba(255,255,255,.7);background:rgba(20,20,40,.35);color:#fff;font-size:3.6cqw;pointer-events:auto;touch-action:none;display:grid;place-items:center}
 #touch button.on{background:rgba(255,255,255,.35)}
 #bL{left:3%}#bR{left:14%}#bT{right:15%}#bS{right:25.5%;bottom:14%!important}#bJ{right:3%;width:11cqw!important;height:11cqw!important}
+#keysBtn{position:absolute;right:9.4%;top:1.5%;z-index:6;border:0;background:rgba(255,250,240,.85);border-radius:50%;width:3.4cqw;height:3.4cqw;font-size:1.5cqw}
+#keys{position:absolute;left:1.2%;bottom:2%;z-index:4;background:rgba(14,20,38,.72);color:#fff;border-radius:1cqw;padding:.7cqw 1cqw;font-size:max(11px,1.05cqw);pointer-events:none;transition:opacity .6s}#keys.fade{opacity:0}#keys>b{display:block;font-size:1.1em;margin-bottom:.3cqw;color:#ffd34e}
+.kk div{display:flex;gap:.6cqw;align-items:center;margin:.15cqw 0}.kk kbd{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-bottom-width:2px;border-radius:.35cqw;padding:0 .45cqw;font-family:inherit;font-weight:700;white-space:nowrap}
+.pkeys{margin:.4cqw auto 1cqw;font-size:max(12px,1.2cqw);display:inline-block;text-align:left}.pkeys>b{display:block;text-align:center;margin-bottom:.3cqw}.pkeys .kk{display:grid;grid-template-columns:1fr 1fr;gap:0 1.6cqw}.pkeys kbd{background:#fff;border:1px solid #c9b79a;border-bottom-width:2px;color:var(--ink)}
+body.touch .kk.kb,body:not(.touch) .kk.tc{display:none}
 #pauseBtn{position:absolute;right:5.2%;top:1.5%;z-index:6;border:0;background:rgba(255,250,240,.85);border-radius:50%;width:3.4cqw;height:3.4cqw;font-size:1.5cqw}
 .diffs{display:flex;gap:.6cqw;justify-content:center;margin:.8cqw 0 .2cqw;flex-wrap:wrap}.diffs button{border:.2cqw solid transparent;border-radius:99px;background:rgba(255,248,234,.9);color:var(--ink);font-weight:700;font-size:max(12px,1.25cqw);padding:.25em .9em}.diffs button.on{border-color:var(--red);background:#fff}.diffs small{display:block;font-weight:500;font-size:.75em;opacity:.75}
 .sets{display:flex;flex-direction:column;gap:.5cqw;margin:.6cqw auto 1cqw;width:70%}.sets label{display:flex;justify-content:space-between;align-items:center;gap:1cqw;font-weight:700;font-size:max(13px,1.4cqw)}.sets input{width:60%;accent-color:var(--red)}
@@ -66,7 +71,8 @@ button{font:inherit;cursor:pointer}
 <div id="stage">
   <canvas id="cv" width="1280" height="720" aria-label="Gra: Kaczor ucieka do sauny"></canvas>
   <div id="touch" class="hidden"><button id="bL" aria-label="W lewo">◀</button><button id="bR" aria-label="W prawo">▶</button><button id="bT" aria-label="Uderzenie">👊</button><button id="bS" aria-label="Rzuć śnieżką">❄</button><button id="bJ" aria-label="Skok">⤒</button></div>
-  <button id="mute" title="Dźwięk">🔊</button><button id="pauseBtn" class="hidden" title="Pauza (Esc)">⏸</button>
+  <button id="mute" title="Dźwięk">🔊</button><button id="pauseBtn" class="hidden" title="Pauza (Esc)">⏸</button><button id="keysBtn" class="hidden" title="Sterowanie (H)">⌨</button>
+  <div id="keys" class="hidden"><b>Sterowanie</b><div class="kk kb"><div><kbd>◀ ▶ / A D</kbd><span>bieg</span></div><div><kbd>Spacja / ▲ / W</kbd><span>skok</span></div><div><kbd>przytrzymaj skok w powietrzu</kbd><span>paralotnia 🪂</span></div><div><kbd>X / J</kbd><span>cios 👊</span></div><div><kbd>C / K</kbd><span>śnieżka ❄</span></div><div><kbd>Esc / P</kbd><span>pauza</span></div><div><kbd>H</kbd><span>ta legenda</span></div></div><div class="kk tc"><div><kbd>◀ ▶</kbd><span>bieg</span></div><div><kbd>⤒</kbd><span>skok (przytrzymaj: paralotnia 🪂)</span></div><div><kbd>👊</kbd><span>cios</span></div><div><kbd>❄</kbd><span>śnieżka</span></div><div><kbd>⏸</kbd><span>pauza</span></div></div></div>
 
   <div id="title" class="ov">
         <div class="logo"><small>Wielka ucieczka</small><b>Kaczor do sauny!</b></div>
@@ -83,6 +89,7 @@ button{font:inherit;cursor:pointer}
   <div id="pause" class="ov dim hidden"><div class="card"><h2>Pauza</h2>
     <div class="sets"><label>🎵 Muzyka <input type="range" id="vMus" min="0" max="100"></label><label>💥 Efekty <input type="range" id="vSfx" min="0" max="100"></label><label>🗣 Dialogi <input type="range" id="vVoc" min="0" max="100"></label></div>
     <div class="diffs" id="pDiff"></div>
+    <div class="pkeys"><b>Sterowanie</b><div class="kk kb"><div><kbd>◀ ▶ / A D</kbd><span>bieg</span></div><div><kbd>Spacja / ▲ / W</kbd><span>skok</span></div><div><kbd>przytrzymaj skok w powietrzu</kbd><span>paralotnia 🪂</span></div><div><kbd>X / J</kbd><span>cios 👊</span></div><div><kbd>C / K</kbd><span>śnieżka ❄</span></div><div><kbd>Esc / P</kbd><span>pauza</span></div><div><kbd>H</kbd><span>ta legenda</span></div></div><div class="kk tc"><div><kbd>◀ ▶</kbd><span>bieg</span></div><div><kbd>⤒</kbd><span>skok (przytrzymaj: paralotnia 🪂)</span></div><div><kbd>👊</kbd><span>cios</span></div><div><kbd>❄</kbd><span>śnieżka</span></div><div><kbd>⏸</kbd><span>pauza</span></div></div></div>
     <div class="tBtns"><button class="btn" id="pGo">Wznów</button><button class="btn alt" id="pCp">Od punktu kontrolnego</button><button class="btn alt" id="pRe">Restart poziomu</button><button class="btn alt" id="pMenu">Menu</button></div></div></div>
   <div id="over" class="ov dim hidden"><div class="card"><div class="face" style="background-image:url(art/kaka_face.webp)"></div><h2>Złapany!</h2><p id="oTxt"></p><button class="btn" id="oGo">Jeszcze raz</button></div></div>
   <div id="sauna" class="ov hidden"><div class="card"><h2 id="sName"></h2><p id="sTxt"></p><div class="tBtns"><button class="btn" id="sGo">Dalej ➜</button></div></div></div>
@@ -756,7 +763,7 @@ const JUGO=['Był sobie Kaczor. Kochał saunę, morsowanie i paralotnie. A Kaka 
 const JUGO_END='I tak Kaczor dotarł do swojej sauny. Kaka? Została z listą zadań. A Kaczor? Kaczor wreszcie odpoczął. Koniec.';
 function showIntro(i){ if(i<9) img('sauna_'+(i+1)); state='intro'; loadLevel(i,i>0); const D=LEVELS[i]; $('#iFace').style.backgroundImage='url(art/jugo_face.webp)'; $('#iName').textContent=`Poziom ${i+1}: ${D.name}`; $('#iNarr').textContent=JUGO[i]; $('#iTxt').textContent=`Kaczor: „${D.txt}”`; $('#intro').classList.remove('hidden'); play('jugo_'+(i+1)); }
 function setMusic(src){ if(!bgm.src.endsWith(src)){ bgm.src=src; bgm.loop=true; } if(!muted) bgm.play().catch(()=>{}); }
-$('#iGo').onclick=()=>{ $('#intro').classList.add('hidden'); $('#pauseBtn').classList.remove('hidden'); state='play'; t0=0; initAudio(); setMusic('audio/music_'+(lvl+1)+'.mp3'); setAmb(AMB[lvl]); play(LEVELS[lvl].line); };
+$('#iGo').onclick=()=>{ $('#intro').classList.add('hidden'); $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); showKeys(lvl===0?18:9); state='play'; t0=0; initAudio(); setMusic('audio/music_'+(lvl+1)+'.mp3'); setAmb(AMB[lvl]); play(LEVELS[lvl].line); };
 function finishLevel(){ if(state!=='play') return; state='outro'; sfx('win'); P.towel=true; P.vx=0; P.inv=0; puff(P.x,P.y+40,'#ffffff',22); toast('Ręcznik na biodra — czas na saunę! 🧖','#d6ffd9'); }
 function outro(dt){ t0+=dt; P.anim+=dt; stepSteam(dt); const door=L.goal+140; toasts.forEach(t=>t.t-=dt); toasts=toasts.filter(t=>t.t>0); parts.forEach(p=>{ p.t-=dt; p.vy+=500*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; }); parts=parts.filter(p=>p.t>0);
   if(P.joy<=0&&Math.abs(P.x-door)>6){ P.face=Math.sign(door-P.x); P.vx=P.face*140; P.x+=P.vx*dt; if(Math.abs(P.x-door)<=6) P.x=door; }
@@ -764,7 +771,7 @@ function outro(dt){ t0+=dt; P.anim+=dt; stepSteam(dt); const door=L.goal+140; to
   else { P.joy-=dt; if(Math.random()<.3) puff(door+(Math.random()-.5)*90,P.y+30,'rgba(255,255,255,.7)',2); if(P.joy<=0){ P.joy=-1; state='done'; nextAfterSauna(); } }
   cam+=((P.x-VW*.5)-cam)*Math.min(1,dt*3); cam=Math.max(0,Math.min(L.W*T-VW,cam)); }
 const SAUNA_TXT=['Pierwsza para! Lista zadań została za drzwiami.','Brzozowa witka, brzozowa sauna. Las pachnie wolnością.','Najpierw sauna, potem przerębel. Tak się żyje!','Sauna w beczce na jarmarku. Grzaniec poczeka.','Po stoku tylko jedno: gorąca ława i święty spokój.','Ciepło w samym środku lodowej jaskini. Kaka tu nie wejdzie.','Sauna na molo, morze za plecami. Morsy machają!','Paralotnia złożona, kamienie gorące, Tatry za oknem.','Gorące źródła to jednak nie sauna. Ta jest prawdziwa.'];
-function showSauna(i){ state='sauna'; stopAmb(); ambName=null; $('#sauna').style.backgroundImage=`url(art/sauna_${i+1}.webp)`; $('#sName').textContent=`Poziom ${i+1} ukończony! 🧖`; $('#sTxt').innerHTML=`<b style="font-size:1.5em;color:#d9a400">${starLine(levelStars())}</b><br>Kaczor: „${SAUNA_TXT[i]}”`; $('#sauna').classList.remove('hidden'); }
+function showSauna(i){ $('#keys').classList.add('hidden'); state='sauna'; stopAmb(); ambName=null; $('#sauna').style.backgroundImage=`url(art/sauna_${i+1}.webp)`; $('#sName').textContent=`Poziom ${i+1} ukończony! 🧖`; $('#sTxt').innerHTML=`<b style="font-size:1.5em;color:#d9a400">${starLine(levelStars())}</b><br>Kaczor: „${SAUNA_TXT[i]}”`; $('#sauna').classList.remove('hidden'); }
 $('#sGo').onclick=()=>{ $('#sauna').classList.add('hidden'); showIntro(lvl+1); };
 function levelStars(){ const st=1+(L.vTot&&lvlV>=L.vTot*.7?1:0)+(L.gold?1:0); if(st>(STARS[lvl]||0)){ STARS[lvl]=st; try{ localStorage.setItem('kz-stars',JSON.stringify(STARS)); }catch(e){} } return st; }
 function starLine(st){ return `${'★'.repeat(st)}${'☆'.repeat(3-st)}  ·  witki ${lvlV}/${L.vTot||0}${L.gold?' · złota chochla ✨':''}`; }
@@ -787,13 +794,18 @@ renderLevels(); renderDiff('tDiff'); renderDiff('pDiff');
 // ---------- pause menu: Esc / P, the ⏸ button, or the tab losing focus ----------
 function pauseGame(){ if(state!=='play') return; state='pause'; if(cur) cur.pause(); if(AC) AC.suspend(); for(const k in K) K[k]=false; ['vMus','vSfx','vVoc'].forEach((id,i)=>$('#'+id).value=VOL[['mus','sfx','voc'][i]]); $('#pause').classList.remove('hidden'); }
 function resumeGame(){ if(state!=='pause') return; $('#pause').classList.add('hidden'); state='play'; if(AC) AC.resume(); last=performance.now(); if(cur&&!muted) cur.play().catch(()=>{}); }
+let keysT=null; function showKeys(sec){ const k=$('#keys'); k.classList.remove('hidden','fade'); clearTimeout(keysT); if(sec) keysT=setTimeout(()=>k.classList.add('fade'),sec*1000); }
+function toggleKeys(){ const k=$('#keys'); if(k.classList.contains('hidden')||k.classList.contains('fade')) showKeys(0); else k.classList.add('fade'); }
+$('#keysBtn').onclick=e=>{ e.stopPropagation(); toggleKeys(); };
+addEventListener('keydown',e=>{ if(e.code==='KeyH'&&state==='play'){ e.preventDefault(); toggleKeys(); } });
+if(TOUCH) document.body.classList.add('touch');
 $('#pauseBtn').onclick=e=>{ e.stopPropagation(); state==='pause'?resumeGame():pauseGame(); };
 addEventListener('keydown',e=>{ if(e.code==='Escape'||e.code==='KeyP'){ e.preventDefault(); state==='pause'?resumeGame():pauseGame(); } });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) pauseGame(); });
 $('#pGo').onclick=resumeGame;
 $('#pCp').onclick=()=>{ $('#pause').classList.add('hidden'); if(AC) AC.resume(); if(cur){ cur.onended=null; cur.pause(); cur=null; bgm.volume=mv(); } spawn(); state='play'; last=performance.now(); };
 $('#pRe').onclick=()=>{ $('#pause').classList.add('hidden'); if(AC) AC.resume(); if(cur){ cur.onended=null; cur.pause(); cur=null; bgm.volume=mv(); } loadLevel(lvl); state='play'; t0=0; last=performance.now(); };
-$('#pMenu').onclick=()=>{ $('#pause').classList.add('hidden'); if(cur){ cur.onended=null; cur.pause(); cur=null; } state='title'; if(AC) AC.resume(); stopAmb(); ambName=null; $('#pauseBtn').classList.add('hidden'); setMusic('audio/music.mp3'); bgm.volume=mv(); renderLevels(); $('#title').classList.remove('hidden'); };
+$('#pMenu').onclick=()=>{ $('#pause').classList.add('hidden'); if(cur){ cur.onended=null; cur.pause(); cur=null; } state='title'; if(AC) AC.resume(); stopAmb(); ambName=null; $('#pauseBtn').classList.add('hidden'); $('#keysBtn').classList.add('hidden'); $('#keys').classList.add('hidden'); setMusic('audio/music.mp3'); bgm.volume=mv(); renderLevels(); $('#title').classList.remove('hidden'); };
 [['vMus','mus'],['vSfx','sfx'],['vVoc','voc']].forEach(([id,k])=>$('#'+id).oninput=e=>{ VOL[k]=+e.target.value; bgm.volume=cur?mv()*.25:mv(); if(cur) cur.volume=vocV(); try{ localStorage.setItem('kz-vol',JSON.stringify(VOL)); }catch(e){} if(k==='sfx'){ pickChime(); if(ambGain) ambGain.gain.value=ambVol(); } });
 // ---------- loading bar: Play unlocks once the art is in ----------
 (function(){ const t1=performance.now(); $('#play').disabled=true; const tick=()=>{ const imgs=[...Object.values(IMG),...Object.values(ENV),...Object.values(ANIM).map(a=>a.img).filter(Boolean)], n=imgs.length, ok=imgs.filter(i=>i.complete).length, f=n?ok/n:0, animIn=Object.keys(ANIM).length>0;

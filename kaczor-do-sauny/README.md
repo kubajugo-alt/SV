@@ -4,6 +4,7 @@ A 2D side-scrolling platformer starring Kaczor, deployed as its own Netlify proj
 
 ## Play
 - Difficulty on the title screen and in the pause menu: Spacer (slower Kaka, 5 hearts), Pościg (classic), Morsowanie (fast Kaka, 2 hearts).
+- Controls legend: bottom-left panel at the start of each level (H or ⌨ toggles it) and a "Sterowanie" section in the pause menu; touch devices see their on-screen buttons instead.
 - Esc / P or ⏸ pauses (also when the tab loses focus): resume, back to checkpoint, restart level, menu, and volume sliders for music, effects and dialogue.
 - Stars per level: finish, ≥70% of the whisks, and the golden ladle hidden on a high ledge. World 1 starts gently with on-screen hints; the last world ends with a duel against Kaka at the sauna door (she throws chore lists, sends robot vacuums and charges with her mop), followed by the credits.
 - ◀ ▶ / A D — run · Space / ▲ / W — jump (hold in the air to open the paraglider) · X / J — punch · C / K — snowball
