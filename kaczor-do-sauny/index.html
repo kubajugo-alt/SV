@@ -282,7 +282,7 @@ function update(dt){
   // move Y
   const prevBottom=P.y+P.h; P.y+=P.vy*dt; P.on=false;
   P.ride=null;
-  if(P.vy>=0){ const ty=bt(); for(let tx=l();tx<=r();tx++){ const t=tile(tx,ty); if(t==='#'||((t==='='||(t==='c'&&crumbOk(tx,ty)))&&prevBottom<=ty*T+2)){ P.y=ty*T-P.h; P.vy=0; P.on=true;
+  if(P.vy>=0){ const ty=Math.floor((P.y+P.h)/T); for(let tx=l();tx<=r();tx++){ const t=tile(tx,ty); if(t==='#'||((t==='='||(t==='c'&&crumbOk(tx,ty)))&&prevBottom<=ty*T+2)){ P.y=ty*T-P.h; P.vy=0; P.on=true;
       if(t==='c'){ for(let q=l();q<=r();q++) if(tile(q,ty)==='c'){ const key=ty*L.W+q; if(!L.crum[key]) L.crum[key]={t:.5,gone:0}; } }
       break; } }
     if(!P.on) for(const m of L.movs){ if(P.x+P.w/2>m.x&&P.x-P.w/2<m.x+m.w&&prevBottom<=m.y+6+Math.max(0,m.dy)&&P.y+P.h>=m.y){ P.y=m.y-P.h; P.vy=0; P.on=true; P.ride=m; break; } } }
@@ -304,6 +304,7 @@ function update(dt){
   // Maryańska: a pep talk, and she keeps Kaka busy chatting for a moment
   if(L.mar&&!L.marDone&&P.x>L.mar-300){ L.marDone=true; L.marPh=1; L.marT=6; const n=lvl+1; play('kzm_'+n,()=>{ if(lvl+1!==n) return; L.marPh=2; L.marT=7.5; play('mar_'+n); }); kaka.wait=Math.max(kaka.wait,4); toast('Maryańska zagaduje Kakę ☮','#ffe6a8'); }
   L.marT-=dt; if(L.marPh===1&&L.marT<=0&&!cur){ L.marPh=2; L.marT=6; }
+  if(L.marPh&&L.marT>-1) kaka.wait=Math.max(kaka.wait,.6);
   // entities
   // ice spikes hurt and bounce you up
   L.spikes.forEach(([a,b,y])=>{ if(P.x+14>a&&P.x-14<b&&P.y+P.h>y-30&&P.y+P.h<=y+6&&P.inv<=0){ hurt('Au! Lodowe kolce! 🧊'); P.vy=-720; } });
@@ -434,11 +435,11 @@ function texture(style){ const ti=envImg('tex_'+style); if(ti){ if(!TEX['g_'+sty
     for(let i=0;i<500;i++){ g.fillStyle=`rgba(${r()<.5?'20,20,30':'230,230,240'},${.06+r()*.1})`; g.fillRect(r()*S,r()*S,2,2); } }
   return TEX[style]=c.createPattern(o,'repeat'); }
 const hash=n=>{ n=(n^61)^(n>>>16); n=n+(n<<3); n^=n>>>4; n=Math.imul(n,0x27d4eb2d); return ((n^(n>>>15))>>>0)/4294967295; };
-function snowCap(x0,x1,y,snow){ // bumpy snow along the top of a surface run, with rounded ends and little drips
+function snowCap(x0,x1,y,snow){ // bumpy snow along the top of a surface run, with rounded ends and little drips (shapes fixed in world space)
   c.fillStyle=snow; c.beginPath(); c.moveTo(x0-6,y+6);
-  for(let x=x0-6;x<=x1+6;x+=12) c.lineTo(x,y-7-Math.sin(x*.07)*3-hash(Math.floor(x))*3);
+  for(let wx=Math.floor((x0+cam-6)/12)*12;wx<=x1+cam+6;wx+=12){ const x=Math.max(x0-6,Math.min(x1+6,wx-cam)); c.lineTo(x,y-7-Math.sin(wx*.07)*3-hash(wx)*3); }
   c.quadraticCurveTo(x1+12,y+2,x1+4,y+12);
-  for(let x=x1;x>=x0;x-=8){ const d=hash(Math.floor(x*3.1))>.82?10+hash(Math.floor(x))*12:0; c.lineTo(x,y+12+d); c.lineTo(x-4,y+12); }
+  for(let wx=Math.floor((x1+cam)/8)*8;wx>=x0+cam;wx-=8){ const x=wx-cam, d=hash(wx*3+1)>.86?8+hash(wx)*9:0; c.lineTo(x,y+12+d); c.lineTo(x-4,y+12); }
   c.quadraticCurveTo(x0-12,y+10,x0-6,y+6); c.closePath(); c.fill();
   c.fillStyle='rgba(150,190,230,.35)'; c.fillRect(x0,y+9,x1-x0,3);
   c.fillStyle='rgba(255,255,255,.9)'; for(let x=x0+6;x<x1;x+=23) if(hash(Math.floor(x*7))>.6){ c.beginPath(); c.arc(x,y-6,1.6,0,Math.PI*2); c.fill(); } }
