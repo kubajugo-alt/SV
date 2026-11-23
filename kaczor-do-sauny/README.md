@@ -25,7 +25,7 @@ Ten generated levels (seeded chunks, about 860–1000 tiles each) with checkpoin
 
 Every world mixes climbs over floating platforms, cliffs with spikes below, pillar jumps, crumbling bridges over pits, moving platforms over pits, two-route sections and enemy ledges; gaps, spikes and enemies grow with each world. `reach.js`-style checks replay the game physics over every generated level to make sure each one can be finished.
 
-Mechanics: moving lifts and gondolas, crumbling ice, springs, falling icicles, wind gusts, steam vents that lift the paraglider, water.
+Mechanics: moving lifts and gondolas, crumbling ice, springs, falling icicles, wind gusts, steam vents that lift the paraglider, water. The camera scrolls horizontally and also follows Kaczor upward when a spring, updraft or jump takes him near the top of the screen.
 
 ## Art and code
 - Performance: the background is pre-scaled once to screen pixels, the static ground (texture, shading, snow caps) is rendered into cached 16-tile chunks, 120 Hz screens are capped to 60 fps, and if frames stay slow the render resolution steps down automatically (2x → 1.75x → … → 1x).

@@ -112,7 +112,7 @@ body.touch .kk.kb,body:not(.touch) .kk.tc{display:none}
   if(coarse.matches) document.getElementById('touch').classList.remove('hidden'); })();
 
 const $=s=>document.querySelector(s);
-const cv=$('#cv'); let c=cv.getContext('2d'); const VW=1280, VH=720, T=48, ROWS=15; let RES=1, RESCAP=2;
+const cv=$('#cv'); let c=cv.getContext('2d'); const VW=1280, VH=720, T=48, ROWS=15; let RES=1, RESCAP=2, camY=0;
 function fitCanvas(){ const w=cv.getBoundingClientRect().width||VW, r=Math.max(1,Math.min(RESCAP,Math.round(w*(devicePixelRatio||1)/VW*4)/4)); if(r!==RES||cv.width!==Math.round(VW*r)){ RES=r; cv.width=Math.round(VW*r); cv.height=Math.round(VH*r); } }
 addEventListener('resize',fitCanvas); setTimeout(fitCanvas,0);
 const img=n=>{ const i=new Image(); i.src='art/'+n+'.webp'; return i; };
@@ -307,7 +307,7 @@ function groundY(x){ const tx=Math.floor(x/T); if(tx<0||tx>=L.W) return null; fo
 function loadLevel(i,keep){
   lvl=i; const D=LEVELS[i]; L=D.make(); L.D=D; L.crum={}; L.movs.forEach(m=>{ m.ph=-Math.PI/2; m.x=m.x0; m.y=m.y0; }); ents=L.ent.map(e=>({...e,alive:true,vx:-60,t:Math.random()*3,cool:1+Math.random()})); phones=[]; flyers=[]; snowballs=[]; steam=[]; rings=[]; waves=[]; rain=[]; shake=0; flash=0; kisses=[]; parts=[]; toasts=[];
   if(!keep){ hearts=DF().hearts; } cp=0; lvlHits=0; lvlV=0; hint=null; L.vTot=L.ent.filter(e=>e.k==='vihta').length; spawn(); }
-function spawn(){ const sx=cp||2*T; const gy=groundY(sx+T)||9*T; P={x:sx+T*.5,y:gy-96,vx:0,vy:0,w:40,h:96,on:false,face:1,coyote:0,buf:0,inv:1.2,glide:false,punchT:0,anim:0,towel:false,joy:0};
+function spawn(){ camY=0; const sx=cp||2*T; const gy=groundY(sx+T)||9*T; P={x:sx+T*.5,y:gy-96,vx:0,vy:0,w:40,h:96,on:false,face:1,coyote:0,buf:0,inv:1.2,glide:false,punchT:0,anim:0,towel:false,joy:0};
   kaka={x:P.x-760,y:groundY(P.x)||9*T,anim:0,wait:DF().wait}; cam=Math.max(0,P.x-VW*.35); camLook=0; }
 
 // ---------- input ----------
@@ -590,6 +590,7 @@ function update(dt){
   if(gap<36&&state==='play'){ caught(); return; }
   // goal
   if(P.x>L.goal+40&&P.x<L.goal+240&&!(L.boss&&L.boss.alive)) finishLevel();
+  { const ty=Math.max(0,Math.min(320,130-P.y)); camY+=(ty-camY)*Math.min(1,dt*(ty>camY?9:4)); if(camY<.3) camY=0; }
   camLook+=(P.vx*.4-camLook)*Math.min(1,dt*1.6); cam+=((P.x-VW*.38+camLook)-cam)*Math.min(1,dt*4); cam=Math.max(0,Math.min(L.W*T-VW,cam));
   K.JHit=K.XHit=K.SHit=false;
 }
@@ -782,7 +783,7 @@ function drawVents(){ L.vents.forEach(vx=>{ const X=vx-cam; if(X<-120||X>VW+120)
   // warm glow and heat haze where the steam comes out
   const gl=c.createRadialGradient(X,VH-10,0,X,VH-10,150); gl.addColorStop(0,'rgba(255,214,170,.38)'); gl.addColorStop(1,'rgba(255,214,170,0)'); c.fillStyle=gl; c.fillRect(X-150,VH-160,300,170);
   const vi=envImg('vent'); if(vi) c.drawImage(vi,X-70,VH-70,140,140*vi.naturalHeight/vi.naturalWidth); }); }
-function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.random()-.5)*14*shake/.45,(Math.random()-.5)*10*shake/.45); c.imageSmoothingEnabled=true; c.imageSmoothingQuality='medium'; c.clearRect(0,0,VW,VH); drawBg(); drawWinds(); drawVents(); drawTiles(); drawSpikes(); drawMovs(); drawSteam();
+function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.random()-.5)*14*shake/.45,(Math.random()-.5)*10*shake/.45); c.imageSmoothingEnabled=true; c.imageSmoothingQuality='medium'; c.clearRect(0,0,VW,VH); drawBg(); c.save(); c.translate(0,Math.round(camY*RES)/RES); drawWinds(); drawVents(); drawTiles(); drawSpikes(); drawMovs(); drawSteam();
   // checkpoints (birch post with a towel) and the sauna
   L.cps.forEach(x=>{ const X=x-cam, gy=groundY(x+4)||VH; if(X<-60||X>VW+60) return; const cpi=envImg(cp>=x?'cp_on':'cp_off'); if(cpi){ const h=124, w=h*cpi.naturalWidth/cpi.naturalHeight; c.drawImage(cpi,X-w*.3,gy-h+4,w,h); return; } c.fillStyle='#f3efe6'; c.fillRect(X-4,gy-90,8,90); c.fillStyle='#333'; for(let i=0;i<5;i++) c.fillRect(X-4,gy-80+i*16,8,3); c.fillStyle=cp>=x?'#ff6f61':'#ddd'; c.beginPath(); c.roundRect(X+4,gy-88,34,24,4); c.fill(); });
   const sx=L.goal-cam; if(sx>-500&&sx<VW+200){ drawImg(IMG.sauna,sx+140,(groundY(L.goal+140)||VH)+8,300,false); }
@@ -835,6 +836,7 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
     else { const RUN=[IMG.kz_run1,IMG.kz_run2,IMG.kz_run3,IMG.kz_run4];
       const im=P.snowA>.22?IMG.kz_wind:P.snowA>0?IMG.kz_throw:P.punchT>0?IMG.kz_punch:!P.on?(P.vy<0?IMG.kz_jump:IMG.kz_fall):Math.abs(P.vx)>30?RUN[Math.floor(P.anim*11)%4]:IMG.kz_idle; drawImg(im,X,Y,128*CHAR,P.face<0); } c.restore(); }
   parts.forEach(p=>{ c.globalAlpha=Math.max(0,Math.min(1,p.t/.7)); c.fillStyle=p.col; c.beginPath(); c.arc(p.x-cam,p.y,p.r,0,Math.PI*2); c.fill(); c.globalAlpha*=.35; c.beginPath(); c.arc(p.x-cam,p.y,p.r*1.8,0,Math.PI*2); c.fill(); }); c.globalAlpha=1;
+  c.restore();
   // falling snow
   c.fillStyle='rgba(255,255,255,.8)'; for(let i=0;i<60;i++){ const x=((i*197+t0*(20+i%5*8))%VW+VW)%VW, y=((i*131+t0*(40+i%7*9))%VH); c.beginPath(); c.arc(x,y,1.2+i%3,0,Math.PI*2); c.fill(); }
   if(L.D.dark){ const X=P.x-cam, Y=P.y+40, g=c.createRadialGradient(X,Y,140,X,Y,520); g.addColorStop(0,'rgba(2,8,24,0)'); g.addColorStop(1,'rgba(2,8,24,.86)'); c.fillStyle=g; c.fillRect(0,0,VW,VH); }
@@ -848,11 +850,13 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
     c.globalAlpha=.55; c.drawImage(FLAKE,fx-rr*2,fy-rr*2,rr*4,rr*4); } c.globalAlpha=1;
   if(flash>0){ flash=Math.max(0,flash-1/60); c.fillStyle=`rgba(255,255,255,${Math.min(1,flash*2)})`; c.fillRect(0,0,VW,VH); }
   // boss attacks: shockwaves along the ground and chore lists raining down
+  c.save(); c.translate(0,Math.round(camY*RES)/RES);
   waves.forEach(w=>{ const X=w.x-cam; c.save(); c.translate(X,w.y); c.scale(Math.sign(w.vx),1); const g2=c.createLinearGradient(-30,0,20,0); g2.addColorStop(0,'rgba(200,235,255,0)'); g2.addColorStop(1,'rgba(235,250,255,.95)'); c.fillStyle=g2; c.beginPath(); c.moveTo(-40,2); c.quadraticCurveTo(0,-46,22,2); c.closePath(); c.fill(); c.strokeStyle='rgba(120,190,230,.9)'; c.lineWidth=3; c.beginPath(); c.moveTo(-10,-30); c.quadraticCurveTo(8,-38,20,0); c.stroke(); c.restore(); if(Math.random()<.5) parts.push({x:w.x,y:w.y-8,vx:-Math.sign(w.vx)*60,vy:-120,t:.4,col:'#e8f7ff',r:3}); });
   rain.forEach(q=>{ if(q.img==='kiss'){ drawImg(IMG.it_kiss,q.x-cam,q.y+16,34); return; } c.save(); c.translate(q.x-cam,q.y); c.rotate(Math.sin(t0*5+q.ph)*.4); if(IMG.enemy_note.complete&&IMG.enemy_note.naturalWidth) drawImg(IMG.enemy_note,0,30,60,false); c.restore(); });
+  c.restore();
   // boss health
   if(L.boss&&L.boss.alive&&L.boss.act&&L.boss.state!=='gone'){ c.textAlign='center'; c.font='700 22px "Baloo 2",sans-serif'; c.fillStyle='#ffd1dc'; c.lineWidth=5; c.strokeStyle='rgba(0,0,0,.6)'; const BO=L.boss, mx=BO.maxhp||8, nm=BO.who&&BO.who!=='kaka'?MB[BO.who].name:'Kaka'; c.strokeText(nm,VW/2-190,128); c.fillText(nm,VW/2-190,128); c.fillStyle='rgba(0,0,0,.45)'; c.beginPath(); c.roundRect(VW/2-130,112,300,20,10); c.fill(); const sw=294/mx; for(let k=0;k<mx;k++){ c.fillStyle=k<BO.hp?(BO.hp>mx*.6?'#ff6f61':BO.hp>mx*.3?'#ff9f43':'#ff3b3b'):'rgba(255,255,255,.12)'; c.beginPath(); c.roundRect(VW/2-127+k*sw,115,sw-4,14,6); c.fill(); } if(BO.mode==='tired'){ const tt=BO.who&&BO.who!=='kaka'?MB[BO.who].tired:'Teraz! Kaka jest zmęczona'; c.fillStyle='#fff6b0'; c.font='700 18px "Baloo 2",sans-serif'; c.strokeText(tt,VW/2,158); c.fillText(tt,VW/2,158); } c.textAlign='left'; }
-  if(kzSay&&state==='play'){ kzSay.ttl-=1/60; if(kzSay.ttl<=0) kzSay=null; else bubble(P.x-cam,P.y-52,kzSay.t,'Kaczor','#2e6da4',Math.min(1,kzSay.ttl*2)); }
+  if(kzSay&&state==='play'){ kzSay.ttl-=1/60; if(kzSay.ttl<=0) kzSay=null; else bubble(P.x-cam,P.y-52+camY,kzSay.t,'Kaczor','#2e6da4',Math.min(1,kzSay.ttl*2)); }
   // tutorial hint banner
   if(hint&&state==='play'){ c.save(); c.globalAlpha=Math.min(1,hint.ttl*2); c.font='700 24px "Baloo 2",sans-serif'; c.textAlign='center'; const w=c.measureText(hint.t).width+44; c.fillStyle='rgba(20,28,48,.72)'; c.beginPath(); c.roundRect(VW/2-w/2,VH-86,w,46,23); c.fill(); c.fillStyle='#fff'; c.fillText(hint.t,VW/2,VH-55); c.restore(); }
   // Kaka meter
