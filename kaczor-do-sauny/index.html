@@ -287,6 +287,7 @@ LEVELS.forEach((D,i)=>D.make=()=>genLevel(D,i));
 
 // ---------- state ----------
 const TOUCH=matchMedia('(pointer:coarse)').matches;
+let camLook=0;
 let hint=null, lvlHits=0, lvlV=0;
 let lvl=0, L=null, P=null, kaka=null, ents=[], flyers=[], snowballs=[], kisses=[], parts=[], toasts=[], cam=0, hearts=3, vihta=0, cp=0, state='title', t0=0, kakaCool=0, inezCool=0, hitCool=0;
 let best=+(localStorage.getItem('kz-level')||0); let STARS={}; try{ STARS=JSON.parse(localStorage.getItem('kz-stars')||'{}'); }catch(e){}
@@ -305,7 +306,7 @@ function loadLevel(i,keep){
   lvl=i; const D=LEVELS[i]; L=D.make(); L.D=D; L.crum={}; L.movs.forEach(m=>{ m.ph=-Math.PI/2; m.x=m.x0; m.y=m.y0; }); ents=L.ent.map(e=>({...e,alive:true,vx:-60,t:Math.random()*3,cool:1+Math.random()})); phones=[]; flyers=[]; snowballs=[]; steam=[]; rings=[]; waves=[]; rain=[]; shake=0; kisses=[]; parts=[]; toasts=[];
   if(!keep){ hearts=DF().hearts; } cp=0; lvlHits=0; lvlV=0; hint=null; L.vTot=L.ent.filter(e=>e.k==='vihta').length; spawn(); }
 function spawn(){ const sx=cp||2*T; const gy=groundY(sx+T)||9*T; P={x:sx+T*.5,y:gy-96,vx:0,vy:0,w:40,h:96,on:false,face:1,coyote:0,buf:0,inv:1.2,glide:false,punchT:0,anim:0,towel:false,joy:0};
-  kaka={x:P.x-760,y:groundY(P.x)||9*T,anim:0,wait:DF().wait}; cam=Math.max(0,P.x-VW*.35); }
+  kaka={x:P.x-760,y:groundY(P.x)||9*T,anim:0,wait:DF().wait}; cam=Math.max(0,P.x-VW*.35); camLook=0; }
 
 // ---------- input ----------
 const K={}; const press=(k,v)=>{ if(v&&!K[k]) K[k+'Hit']=true; K[k]=v; };
@@ -320,7 +321,7 @@ addEventListener('keyup',e=>{ const k=map[e.code]; if(k) press(k,false); });
 const toast=(txt,col='#fff')=>toasts.push({txt,col,t:2.2});
 function splash(x,y){ rings.push({x,t:1}); for(let i=0;i<26;i++) parts.push({x:x+(Math.random()-.5)*30,y,vx:(Math.random()-.5)*300,vy:-180-Math.random()*380,t:.7+Math.random()*.3,col:i%3?'#d8f3ff':'#ffffff',r:2+Math.random()*4}); for(let i=0;i<5;i++) emitSteam(x,y,{up:20,r:10,grow:30,life:1.2,a:.35,spread:40}); }
 function puff(x,y,col,n=10){ for(let i=0;i<n;i++) parts.push({x,y,vx:(Math.random()-.5)*240,vy:-Math.random()*240,t:.7,col,r:4+Math.random()*5}); }
-function hurt(why,src){ if(P.inv>0) return; hearts--; lvlHits++; P.inv=1.6; P.vy=-480; P.vx=-P.face*220; sfx('hurt',.4); if(hitCool<=0&&!cur){ if(REM[src]){ remark(src,'hit',1); } else play('kz_hit_any'); hitCool=7; } else grunt('hurt'); toast(why,'#ffd1dc');
+function hurt(why,src){ if(P.inv>0) return; hearts--; lvlHits++; P.inv=1.6; P.vy=Math.min(P.vy,-340); P.vx=-P.face*140; sfx('hurt',.4); if(hitCool<=0&&!cur){ if(REM[src]){ remark(src,'hit',1); } else play('kz_hit_any'); hitCool=7; } else grunt('hurt'); toast(why,'#ffd1dc');
   if(hearts<=0) gameOver('Inez cię poderwała, a Kaka tylko na to czekała. Lista zadań czeka!'); }
 function fallOff(why){ hearts--; sfx(why.startsWith('Plusk')?'splash':'hurt'); toast(why,'#cdeaff'); if(hearts<=0){ gameOver('Za dużo morsowania na jeden dzień. Kaka cię przechwyciła.'); return; } spawn(); P.inv=1.5; }
 function gameOver(txt){ state='over'; $('#oTxt').textContent=txt; $('#over').classList.remove('hidden'); }
@@ -530,7 +531,7 @@ function update(dt){
   if(gap<36&&state==='play'){ caught(); return; }
   // goal
   if(P.x>L.goal+40&&P.x<L.goal+240&&!(L.boss&&L.boss.alive)) finishLevel();
-  cam+=((P.x-VW*.38+P.vx*.4)-cam)*Math.min(1,dt*4); cam=Math.max(0,Math.min(L.W*T-VW,cam));
+  camLook+=(P.vx*.4-camLook)*Math.min(1,dt*1.6); cam+=((P.x-VW*.38+camLook)-cam)*Math.min(1,dt*4); cam=Math.max(0,Math.min(L.W*T-VW,cam));
   K.JHit=K.XHit=K.SHit=false;
 }
 
@@ -751,7 +752,7 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
   // Kaka
   const kx=kaka.x-cam; if(kx>-200&&!L.kakaGone){ if(kaka.wait>0||!drawAnim('kaka_run',kx,kaka.y+2,kaka.anim,false)) drawImg(kaka.wait>0?IMG.kaka_point:(Math.floor(kaka.anim*7)%2?IMG.kaka_run1:IMG.kaka_run2),kx,kaka.y+2,128*CHAR,false); }
   // Kaczor
-  if(!(P.inv>0&&Math.floor(P.inv*12)%2)){ const X=P.x-cam, Y=P.y+P.h+2;
+  { const pulse=P.inv>0?.55+.45*Math.cos(P.inv*14):1; c.save(); c.globalAlpha=pulse; const X=P.x-cam, Y=P.y+P.h+2;
     const fl=P.face<0;
     const an=P.glide?drawAnim('kz_glide',X,Y+20,t0,fl):P.towel?drawAnim(P.joy>0?'kzt_joy':'kzt_walk',X,Y,Math.abs(P.vx)>20||P.joy>0?t0:0,fl)
       :P.snowA>0?drawAnim('kz_throw',X,Y,0,fl,1-P.snowA/.36):P.punchT>0?drawAnim('kz_punch',X,Y,0,fl,1-P.punchT/.28)
@@ -760,7 +761,7 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
     else if(P.glide) drawImg(IMG.kz_glide,X,Y+22,240,P.face<0);
     else if(P.towel){ const im=P.joy>0?IMG.kz_tjoy:Math.abs(P.vx)>20?(Math.floor(P.anim*6)%2?IMG.kz_twalk1:IMG.kz_twalk2):IMG.kz_towel; drawImg(im,X,Y,128*CHAR,P.face<0); }
     else { const RUN=[IMG.kz_run1,IMG.kz_run2,IMG.kz_run3,IMG.kz_run4];
-      const im=P.snowA>.22?IMG.kz_wind:P.snowA>0?IMG.kz_throw:P.punchT>0?IMG.kz_punch:!P.on?(P.vy<0?IMG.kz_jump:IMG.kz_fall):Math.abs(P.vx)>30?RUN[Math.floor(P.anim*11)%4]:IMG.kz_idle; drawImg(im,X,Y,128*CHAR,P.face<0); } }
+      const im=P.snowA>.22?IMG.kz_wind:P.snowA>0?IMG.kz_throw:P.punchT>0?IMG.kz_punch:!P.on?(P.vy<0?IMG.kz_jump:IMG.kz_fall):Math.abs(P.vx)>30?RUN[Math.floor(P.anim*11)%4]:IMG.kz_idle; drawImg(im,X,Y,128*CHAR,P.face<0); } c.restore(); }
   parts.forEach(p=>{ c.globalAlpha=Math.max(0,Math.min(1,p.t/.7)); c.fillStyle=p.col; c.beginPath(); c.arc(p.x-cam,p.y,p.r,0,Math.PI*2); c.fill(); c.globalAlpha*=.35; c.beginPath(); c.arc(p.x-cam,p.y,p.r*1.8,0,Math.PI*2); c.fill(); }); c.globalAlpha=1;
   // falling snow
   c.fillStyle='rgba(255,255,255,.8)'; for(let i=0;i<60;i++){ const x=((i*197+t0*(20+i%5*8))%VW+VW)%VW, y=((i*131+t0*(40+i%7*9))%VH); c.beginPath(); c.arc(x,y,1.2+i%3,0,Math.PI*2); c.fill(); }
