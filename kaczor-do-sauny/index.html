@@ -369,7 +369,8 @@ function update(dt){
   // jump: coyote time + buffer + variable height; hold in the air while falling = paraglider
   P.coyote=P.on?.1:P.coyote-dt; if(K.JHit){ P.buf=.13; } else P.buf-=dt;
   if(P.buf>0&&P.coyote>0){ P.vy=-830; P.on=false; P.coyote=0; P.buf=0; grunt('jump',.75); P.boosted=false; }
-  if(!K.J&&P.vy<-300) P.vy=-300;
+  if(P.vy>=0) P.sprung=false;
+  if(!K.J&&P.vy<-300&&!P.sprung) P.vy=-300;
   P.vy+=2200*dt;
   const wasGlide=P.glide; P.glide=!P.on&&K.J&&P.vy>0; if(P.glide&&!wasGlide&&!P.glideSnd){ sfx('glide',.45); P.glideSnd=true; } if(P.glide&&!P.boosted){ P.boosted=true; P.vy=-450; P.glide=false; puff(P.x,P.y-20,'rgba(255,255,255,.8)',6); } if(P.on){ P.glideSnd=false; P.boosted=false; }
   if(P.glide) P.vy=Math.min(P.vy,120);
@@ -438,7 +439,7 @@ function update(dt){
     if(e.k==='vihta'||e.k==='ladle'){ if(Math.abs(e.x-P.x)<34&&e.y>P.y-10&&e.y<P.y+P.h+10){ e.alive=false;
       if(e.k==='vihta'){ vihta++; lvlV++; pickChime(); puff(e.x,e.y,'#7fbf5a',5); if(vihta%25===0&&hearts<5){ hearts++; sfx('ladle'); toast('25 witek: +1 ❤','#ffd1dc'); } }
       else { if(hearts<5) hearts++; sfx('ladle'); toast('Chochla gorącej pary: +1 ❤','#ffd1dc'); } } return; }
-    if(e.k==='spring'){ e.sq=Math.max(0,(e.sq||0)-dt); if(P.on&&Math.abs(P.x-e.x)<34&&Math.abs(P.y+P.h-e.y)<6){ P.vy=-1300; P.on=false; P.coyote=0; e.sq=.25; sfx('spring'); puff(e.x,e.y,'#fff',6); } return; }
+    if(e.k==='spring'){ e.sq=Math.max(0,(e.sq||0)-dt); if(P.on&&Math.abs(P.x-e.x)<34&&Math.abs(P.y+P.h-e.y)<6){ P.vy=-1180; P.sprung=true; P.on=false; P.coyote=0; e.sq=.25; sfx('spring'); puff(e.x,e.y,'#fff',6); } return; }
     if(e.k==='icicle'){ if(!e.st){ if(e.x-P.x<170&&e.x-P.x>-30) e.st='shake', e.tt=.4; }
       else if(e.st==='shake'){ e.tt-=dt; if(e.tt<=0){ e.st='fall'; e.vy=0; } }
       else { e.vy+=1800*dt; e.y+=e.vy*dt; const gy=groundY(e.x)??VH+200;
