@@ -91,7 +91,7 @@ body.touch .kk.kb,body:not(.touch) .kk.tc{display:none}
     <div class="diffs" id="pDiff"></div>
     <div class="pkeys"><b>Sterowanie</b><div class="kk kb"><div><kbd>◀ ▶ / A D</kbd><span>bieg</span></div><div><kbd>Spacja / ▲ / W</kbd><span>skok</span></div><div><kbd>przytrzymaj skok w powietrzu</kbd><span>paralotnia 🪂</span></div><div><kbd>X / J</kbd><span>cios 👊</span></div><div><kbd>C / K</kbd><span>śnieżka ❄</span></div><div><kbd>Esc / P</kbd><span>pauza</span></div><div><kbd>H</kbd><span>ta legenda</span></div></div><div class="kk tc"><div><kbd>◀ ▶</kbd><span>bieg</span></div><div><kbd>⤒</kbd><span>skok (przytrzymaj: paralotnia 🪂)</span></div><div><kbd>👊</kbd><span>cios</span></div><div><kbd>❄</kbd><span>śnieżka</span></div><div><kbd>⏸</kbd><span>pauza</span></div></div></div>
     <div class="tBtns"><button class="btn" id="pGo">Wznów</button><button class="btn alt" id="pCp">Od punktu kontrolnego</button><button class="btn alt" id="pRe">Restart poziomu</button><button class="btn alt" id="pMenu">Menu</button></div></div></div>
-  <div id="over" class="ov dim hidden"><div class="card"><div class="face" style="background-image:url(art/kaka_face.webp)"></div><h2>Złapany!</h2><p id="oTxt"></p><button class="btn" id="oGo">Jeszcze raz</button></div></div>
+  <div id="over" class="ov dim hidden"><div class="card"><div class="face" style="background-image:url(art/kaka_face.webp)"></div><h2>Złapany!</h2><p id="oTxt"></p><p id="oCp" class="kq"></p><div class="tBtns"><button class="btn" id="oGo">Od punktu kontrolnego ↺</button> <button class="btn alt" id="oRe">Od początku poziomu</button></div></div></div>
   <div id="sauna" class="ov hidden"><div class="card"><h2 id="sName"></h2><p id="sTxt"></p><div class="tBtns"><button class="btn" id="sGo">Dalej ➜</button></div></div></div>
   <div id="credits" class="ov hidden"><div class="roll" id="roll">
     <h1>Kaczor do sauny!</h1><p class="sub">Obsada</p>
@@ -324,8 +324,9 @@ function puff(x,y,col,n=10){ for(let i=0;i<n;i++) parts.push({x,y,vx:(Math.rando
 function hurt(why,src){ if(P.inv>0) return; hearts--; lvlHits++; P.inv=1.6; P.vy=Math.min(P.vy,-340); P.vx=-P.face*140; sfx('hurt',.4); if(hitCool<=0&&!cur){ if(REM[src]){ remark(src,'hit',1); } else play('kz_hit_any'); hitCool=7; } else grunt('hurt'); toast(why,'#ffd1dc');
   if(hearts<=0) gameOver('Inez cię poderwała, a Kaka tylko na to czekała. Lista zadań czeka!'); }
 function fallOff(why){ hearts--; sfx(why.startsWith('Plusk')?'splash':'hurt'); toast(why,'#cdeaff'); if(hearts<=0){ gameOver('Za dużo morsowania na jeden dzień. Kaka cię przechwyciła.'); return; } spawn(); P.inv=1.5; }
-function gameOver(txt){ state='over'; $('#oTxt').textContent=txt; $('#over').classList.remove('hidden'); }
-function caught(){ state='over'; play('kaka_caught'); $('#oTxt').textContent='„Mam cię! Najpierw odkurzanie, potem sauna.” — Kaka'; $('#over').classList.remove('hidden'); }
+function overInfo(){ $('#oCp').textContent=cp?'Wracasz do ostatniego punktu kontrolnego z pełnymi sercami. Witki zostają.':'Wracasz na start poziomu z pełnymi sercami. Witki zostają.'; $('#oGo').textContent=cp?'Od punktu kontrolnego ↺':'Jeszcze raz ↺'; $('#oRe').classList.toggle('hidden',!cp); hideGameButtons(); }
+function gameOver(txt){ state='over'; $('#oTxt').textContent=txt; overInfo(); $('#over').classList.remove('hidden'); }
+function caught(){ state='over'; play('kaka_caught'); $('#oTxt').textContent='„Mam cię! Najpierw odkurzanie, potem sauna.” — Kaka'; overInfo(); $('#over').classList.remove('hidden'); }
 
 // Inez gets knocked back, sits dazed with stars, then storms off offended
 let inezHitCool=0, inezLine=0, gayLine=0, gayCool=0, gayAngryCool=0, phones=[];
@@ -339,7 +340,7 @@ const KB_PLAN=[['throw','sweep','throw','summon'],['slam','throw','sweep','summo
 function bossUpdate(e,dt,punching,hx0,hx1,hy0,hy1){ L.boss=e; const gy0=surfAt(e.x,e.gy??e.y)??VH; e.gy=gy0; if(e.mode!=='slam') e.y=gy0; e.t=(e.t||0)+dt; e.inv=Math.max(0,(e.inv||0)-dt); e.mt=(e.mt||0)-dt;
   const gy=gy0, ph=e.hp>5?0:e.hp>2?1:2, spd=[1,1.15,1.35][ph];
   if(e.state==='gone'){ e.st-=dt; if(e.st<=0) e.alive=false; return; }
-  if(!e.act){ if(P.x>e.x-720){ e.act=true; e.intro=5; e.dir=-1; e.mode='idle'; e.mt=0; e.plan=0; L.kakaGone=true; toast('Kaka czeka przy saunie! 📋','#ffd1dc'); play('kz_boss',()=>play('kaka_boss_intro')); } else return; }
+  if(!e.act){ if(P.x>e.x-720){ e.act=true; e.intro=5; e.dir=-1; e.mode='idle'; e.mt=0; e.plan=0; L.kakaGone=true; cp=Math.max(cp,e.a-T*9); saveGame(); toast('Kaka czeka przy saunie! 📋','#ffd1dc'); play('kz_boss',()=>play('kaka_boss_intro')); } else return; }
   if(e.intro>0){ e.intro-=dt; e.dir=Math.sign(P.x-e.x)||-1; return; }
   const face=()=>{ e.dir=Math.sign(P.x-e.x)||-1; };
   const next=()=>{ const plan=KB_PLAN[ph]; e.mode=plan[(e.plan++)%plan.length]; e.ma=0; e.fired=false;
@@ -441,7 +442,7 @@ function update(dt){
   snowballs.forEach(b=>{ b.vy+=900*dt; b.x+=b.vx*dt; b.y+=b.vy*dt; b.t-=dt; if(solid(Math.floor(b.x/T),Math.floor(b.y/T))){ b.t=0; puff(b.x,b.y,'#fff',6); sfx('splat',.35); } });
   const punching=P.punchT>.08, hx0=P.face>0?P.x+5:P.x-100, hx1=P.face>0?P.x+100:P.x-5, hy0=P.y+8, hy1=P.y+78;
   // checkpoints
-  L.cps.forEach(x=>{ if(P.x>x&&cp<x){ cp=x; toast('Punkt kontrolny — ręcznik zostawiony ✓','#d6ffd9'); sfx('cp'); } });
+  L.cps.forEach(x=>{ if(P.x>x&&cp<x){ cp=x; toast('Punkt kontrolny — zapisano ✓','#d6ffd9'); sfx('cp'); saveGame(); } });
   // Maryańska: a pep talk, and she keeps Kaka busy chatting for a moment
   if(L.mar&&!L.marDone&&P.x>L.mar-300&&!(L.boss&&L.boss.alive)){ L.marDone=true; L.marPh=1; L.marT=6; const n=lvl+1; play('kzm_'+n,()=>{ if(lvl+1!==n) return; L.marPh=2; L.marT=7.5; play('mar_'+n); }); kaka.wait=Math.max(kaka.wait,4); toast('Maryańska zagaduje Kakę ☮','#ffe6a8'); }
   L.marT-=dt; if(L.marPh===1&&L.marT<=0&&!cur){ L.marPh=2; L.marT=6; }
@@ -798,7 +799,7 @@ function allImgs(){ return [...Object.values(IMG),...Object.values(ENV),...Objec
 function warmImages(){ c.save(); c.setTransform(1,0,0,1,0,0); c.globalAlpha=.01; for(const im of allImgs()) if(im.complete&&im.naturalWidth){ try{ c.drawImage(im,0,0,4,4,0,0,1,1); }catch(e){} } c.restore(); }
 function showIntro(i){ setTimeout(warmImages,50); preloadVoices(['kz_hit_any','kz_vac_see1','kz_note_see1','kz_inez_see1','kz_gay_see1','mar_'+(i+1),'kzm_'+(i+1)].concat(i===9?['kz_boss','kaka_boss_intro','kaka_boss_hit1','kaka_boss_hit2','kaka_boss_vac','kaka_boss_end']:[])); if(i<9) img('sauna_'+(i+1)); state='intro'; loadLevel(i,i>0); const D=LEVELS[i]; $('#iFace').style.backgroundImage='url(art/jugo_face.webp)'; $('#iName').textContent=`Poziom ${i+1}: ${D.name}`; $('#iNarr').textContent=JUGO[i]; $('#iTxt').textContent=`Kaczor: „${D.txt}”`; $('#intro').classList.remove('hidden'); play('jugo_'+(i+1)); }
 function setMusic(src){ if(!bgm.src.endsWith(src)){ bgm.src=src; bgm.loop=true; } if(!muted) bgm.play().catch(()=>{}); }
-$('#iGo').onclick=()=>{ if(QBOSS&&lvl===LEVELS.length-1){ const bo=L.ent.find(e=>e.k==='boss'); if(bo){ cp=QEND?L.mar-T*9:bo.x-T*15; spawn(); if(QEND){ ents.forEach(e=>{ if(e.k==='boss'){ e.alive=false; } }); L.kakaGone=true; } } } $('#intro').classList.add('hidden'); $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); showKeys(lvl===0?18:9); state='play'; t0=0; initAudio(); setMusic('audio/music_'+(lvl+1)+'.mp3'); setAmb(AMB[lvl]); play(LEVELS[lvl].line); };
+$('#iGo').onclick=()=>{ if(resume&&resume.lvl===lvl&&resume.cp){ cp=resume.cp; lvlV=resume.lvlV||0; spawn(); toast('Wczytano zapis — ostatni punkt kontrolny ✓','#d6ffd9'); } resume=null; if(QBOSS&&lvl===LEVELS.length-1){ const bo=L.ent.find(e=>e.k==='boss'); if(bo){ cp=QEND?L.mar-T*9:bo.x-T*15; spawn(); if(QEND){ ents.forEach(e=>{ if(e.k==='boss'){ e.alive=false; } }); L.kakaGone=true; } } } $('#intro').classList.add('hidden'); $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); showKeys(lvl===0?18:9); state='play'; t0=0; initAudio(); setMusic('audio/music_'+(lvl+1)+'.mp3'); setAmb(AMB[lvl]); play(LEVELS[lvl].line); };
 function finishLevel(){ if(state!=='play') return; state='outro'; $('#keys').classList.add('hidden'); sfx('win'); P.towel=true; P.vx=0; P.inv=0; puff(P.x,P.y+40,'#ffffff',22); toast('Ręcznik na biodra — czas na saunę! 🧖','#d6ffd9'); }
 function outro(dt){ t0+=dt; P.anim+=dt; stepSteam(dt); const door=L.goal+140; toasts.forEach(t=>t.t-=dt); toasts=toasts.filter(t=>t.t>0); parts.forEach(p=>{ p.t-=dt; p.vy+=500*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; }); parts=parts.filter(p=>p.t>0);
   if(P.joy<=0&&Math.abs(P.x-door)>6){ P.face=Math.sign(door-P.x); P.vx=P.face*140; P.x+=P.vx*dt; if(Math.abs(P.x-door)<=6) P.x=door; }
@@ -811,21 +812,31 @@ function showSauna(i){ hideGameButtons(); state='sauna'; stopAmb(); ambName=null
 $('#sGo').onclick=()=>{ $('#sauna').classList.add('hidden'); showIntro(lvl+1); };
 function levelStars(){ const st=1+(L.vTot&&lvlV>=L.vTot*.7?1:0)+(L.gold?1:0); if(st>(STARS[lvl]||0)){ STARS[lvl]=st; try{ localStorage.setItem('kz-stars',JSON.stringify(STARS)); }catch(e){} } return st; }
 function starLine(st){ return `${'★'.repeat(st)}${'☆'.repeat(3-st)}  ·  witki ${lvlV}/${L.vTot||0}${L.gold?' · złota chochla ✨':''}`; }
-function nextAfterSauna(){ hideGameButtons(); const st=levelStars();
+function saveGame(){ try{ localStorage.setItem('kz-save',JSON.stringify({lvl,cp,vihta,lvlV})); }catch(e){} }
+function loadSave(){ try{ return JSON.parse(localStorage.getItem('kz-save')||'null'); }catch(e){ return null; } }
+function nextAfterSauna(){ hideGameButtons(); try{ localStorage.removeItem('kz-save'); }catch(e){} const st=levelStars();
   if(lvl+1>best){ best=lvl+1; try{ localStorage.setItem('kz-level',best); }catch(e){} }
   if(lvl<LEVELS.length-1) showSauna(lvl);
   else { $('#end').classList.remove('hidden'); $('#eTxt').innerHTML=`<b style="font-size:1.4em;color:#d9a400">${starLine(st)}</b><br>Dotarłeś do gejowskiej sauny! Wszystkie zebrane witki: ${vihta}. Para, chłopaki i święty spokój — tu żadna lista zadań cię nie znajdzie. ${JUGO_END}`; play('kz_win'); setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play('kaka_end'); },6500); setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play('jugo_end',()=>setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) showCredits(); },1500)); },12500); } }
-$('#oGo').onclick=()=>{ $('#over').classList.add('hidden'); const keepV=vihta; loadLevel(lvl,false); vihta=keepV; state='play'; t0=0; };
+// retry from the last checkpoint: the level stays as it is, Kaczor gets full hearts; in the duel Kaka starts over at full strength
+function retryFromCheckpoint(){ $('#over').classList.add('hidden'); if(cur){ cur.onended=null; cur.pause(); cur=null; bgm.volume=mv(); }
+  hearts=DF().hearts; phones=[]; kisses=[]; snowballs=[]; waves=[]; rain=[];
+  const bo=ents.find(e=>e.k==='boss'&&e.alive); if(bo&&bo.act&&bo.state!=='gone'){ bo.hp=8; bo.mode='idle'; bo.mt=1.5; bo.intro=1.2; bo.plan=0; bo.x=Math.max(bo.a,Math.min(bo.b,bo.x)); ents.forEach(v=>{ if(v.boss&&v!==bo) v.alive=false; }); }
+  spawn(); if(L.kakaGone){ kaka.x=P.x-5000; kaka.wait=99; } $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); state='play'; last=performance.now(); }
+$('#oGo').onclick=retryFromCheckpoint;
+$('#oRe').onclick=()=>{ $('#over').classList.add('hidden'); const keepV=vihta; loadLevel(lvl,false); vihta=keepV; saveGame(); $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); state='play'; t0=0; };
 function showCredits(){ $('#end').classList.add('hidden'); const r=$('#roll'); r.style.animation='none'; void r.offsetWidth; r.style.animation=''; $('#credits').classList.remove('hidden'); setMusic('audio/music_10.mp3'); }
 $('#eCred').onclick=showCredits; $('#cAgain').onclick=()=>{ $('#credits').classList.add('hidden'); vihta=0; showIntro(0); };
 $('#eAgain').onclick=()=>{ $('#end').classList.add('hidden'); vihta=0; showIntro(0); };
 function start(i){ $('#title').classList.add('hidden'); if(!muted) bgm.play().catch(()=>{}); vihta=0; showIntro(i);
   if(matchMedia('(pointer:coarse)').matches){ const d=document.documentElement,rq=d.requestFullscreen||d.webkitRequestFullscreen; try{ const p=rq&&rq.call(d); p&&p.then&&p.then(()=>screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})).catch(()=>{}); }catch(e){} } }
 const qs=new URLSearchParams(location.search), qlv=+qs.get('level');
-if(best>0&&best<LEVELS.length){ $('#play').textContent=`Graj dalej — poziom ${best+1} ▶`; $('#fresh').classList.remove('hidden'); }
+const SAVE=loadSave(); let resume=null;
+if(SAVE&&SAVE.cp&&!qlv&&!qs.has('boss')&&!qs.has('ending')){ $('#play').textContent=`Graj dalej — poziom ${SAVE.lvl+1}, punkt kontrolny ▶`; $('#fresh').classList.remove('hidden'); }
+else if(best>0&&best<LEVELS.length){ $('#play').textContent=`Graj dalej — poziom ${best+1} ▶`; $('#fresh').classList.remove('hidden'); }
 const QBOSS=qs.has('boss')||qs.has('ending'), QEND=qs.has('ending'); // ?ending: Kaka already beaten, straight to the finale // ?boss: jump straight to the final duel with Kaka
-$('#play').onclick=()=>start(QBOSS?LEVELS.length-1:qlv?Math.min(qlv,LEVELS.length)-1:(best<LEVELS.length?best:0));
-$('#fresh').onclick=()=>start(0);
+$('#play').onclick=()=>{ if(SAVE&&SAVE.cp&&!qlv&&!QBOSS){ resume=SAVE; start(SAVE.lvl); vihta=SAVE.vihta||0; return; } start(QBOSS?LEVELS.length-1:qlv?Math.min(qlv,LEVELS.length)-1:(best<LEVELS.length?best:0)); };
+$('#fresh').onclick=()=>{ try{ localStorage.removeItem('kz-save'); }catch(e){} resume=null; start(0); };
 function renderLevels(){ $('#lvls').innerHTML=''; LEVELS.forEach((D,i)=>{ const bt=document.createElement('button'); const st=STARS[i]||0; bt.textContent=`${i+1}. ${D.name}${st?' '+'★'.repeat(st):''}`; bt.disabled=i>Math.min(best,LEVELS.length-1); bt.onclick=()=>start(i); $('#lvls').append(bt); }); }
 renderLevels(); renderDiff('tDiff'); renderDiff('pDiff');
 // ---------- pause menu: Esc / P, the ⏸ button, or the tab losing focus ----------
