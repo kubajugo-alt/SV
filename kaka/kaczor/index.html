@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kaczor ucieka do sauny</title>
+<meta name="description" content="Platformówka: Kaczor ucieka przed Kaką i jej listą zadań, unika zalotnych Inez i pędzi do sauny — biegiem, skokiem i na paralotni.">
+<meta property="og:title" content="Kaczor ucieka do sauny">
+<meta property="og:description" content="Platformówka: Kaczor, Kaka, zalotne Inezy, morsowanie, paralotnia i sauna na końcu drogi.">
+<meta property="og:image" content="https://swieta-kaki.netlify.app/kaczor/art/title.webp">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Lobster&subset=latin-ext&display=swap" rel="stylesheet">
+<style>
+:root{--vw:1vw;--vh:1vh;--red:#c0392b;--ink:#2b1d14;--cream:#fff8ea;--green:#2f6b45}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0d1426;color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none}
+#rot{position:fixed;left:0;top:0;width:calc(100*var(--vw));height:calc(100*var(--vh));overflow:hidden;display:flex;align-items:center;justify-content:center}
+body.turned #rot{transform-origin:0 0;transform:translateX(var(--tx)) rotate(90deg)}
+#stage{position:relative;width:min(calc(100*var(--vw)),calc(177.78*var(--vh)));aspect-ratio:16/9;container-type:inline-size;background:#000;overflow:hidden}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+button{font:inherit;cursor:pointer}
+.hidden{display:none!important}
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:5}
+#title{background:#0d1426 url(art/title.webp) center/cover;justify-content:space-between;padding:2.5cqw 2cqw 3cqw}
+#title::before{content:'';position:absolute;inset:0;background:linear-gradient(rgba(6,10,28,.6),rgba(6,10,28,0) 35%,rgba(6,10,28,0) 60%,rgba(6,10,28,.75));pointer-events:none}
+#title>*{position:relative}
+.logo{font-family:Lobster,cursive;line-height:.9;color:#fff6dc;text-shadow:0 .05em 0 #8e211b,0 .09em 0 #5e140f,0 0 .4em rgba(0,0,0,.5)}
+.logo small{display:block;font-size:2.6cqw;color:#ffe9a8;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+.logo b{font-weight:400;font-size:7.5cqw}
+.tBtns{display:flex;gap:1.2cqw;justify-content:center;flex-wrap:wrap}
+.btn{background:var(--red);color:#fff;border:0;border-radius:999px;padding:.5em 1.4em;font-weight:700;font-size:max(15px,1.8cqw);box-shadow:0 .3cqw 0 #8e211b}
+.btn.alt{background:var(--green);box-shadow:0 .3cqw 0 #1d4a2e}
+.btn:active{transform:translateY(2px)}
+.help{color:#fff;font-size:max(12px,1.35cqw);text-shadow:0 1px 4px #000;margin:.8cqw 0 0;line-height:1.4}
+.card{background:rgba(255,248,234,.96);border-radius:1.6cqw;padding:2cqw 2.6cqw;max-width:62cqw;box-shadow:0 1cqw 3cqw rgba(0,0,0,.45)}
+.card h2{font-family:Lobster,cursive;font-weight:400;color:var(--red);font-size:4cqw;margin:0 0 .4cqw}
+.card p{margin:.4cqw 0 1.2cqw;font-size:max(14px,1.7cqw);line-height:1.35}
+.card .face{width:9cqw;height:9cqw;border-radius:50%;margin:0 auto .8cqw;background:#f1dfc0 center/cover;border:.35cqw solid var(--red)}
+.dim{background:rgba(6,10,28,.55)}
+#end{background:#0d1426 url(art/sauna_end.webp) center/cover}
+#end .card{margin-top:auto;margin-bottom:3cqw;background:rgba(255,248,234,.92)}
+#touch{position:absolute;inset:0;z-index:4;pointer-events:none}
+#touch button{position:absolute;bottom:3%;width:9cqw;height:9cqw;border-radius:50%;border:.3cqw solid rgba(255,255,255,.7);background:rgba(20,20,40,.35);color:#fff;font-size:3.6cqw;pointer-events:auto;touch-action:none;display:grid;place-items:center}
+#touch button.on{background:rgba(255,255,255,.35)}
+#bL{left:3%}#bR{left:14%}#bT{right:15%}#bJ{right:3%;width:11cqw!important;height:11cqw!important}
+#mute{position:absolute;right:1%;top:1.5%;z-index:6;border:0;background:rgba(255,250,240,.85);border-radius:50%;width:3.4cqw;height:3.4cqw;font-size:1.6cqw}
+#back{position:absolute;left:1%;top:1.5%;z-index:6;color:#fff;font-size:max(11px,1.2cqw);text-decoration:none;background:rgba(6,10,28,.5);padding:.2em .8em;border-radius:99px}
+</style>
+</head>
+<body>
+<div id="rot">
+<div id="stage">
+  <canvas id="cv" width="1280" height="720" aria-label="Gra: Kaczor ucieka do sauny"></canvas>
+  <div id="touch" class="hidden"><button id="bL" aria-label="W lewo">◀</button><button id="bR" aria-label="W prawo">▶</button><button id="bT" aria-label="Rzuć śnieżką">❄</button><button id="bJ" aria-label="Skok">⤒</button></div>
+  <button id="mute" title="Dźwięk">🔊</button>
+
+  <div id="title" class="ov">
+    <a id="back" href="../">← Świąteczne przygotowania Kaki</a>
+    <div class="logo"><small>Wielka ucieczka</small><b>Kaczor do sauny!</b></div>
+    <div>
+      <div class="tBtns"><button class="btn" id="play">Graj ▶</button><button class="btn alt hidden" id="fresh">Od początku</button></div>
+      <p class="help">◀ ▶ / A D — bieg · Spacja / ▲ — skok (przytrzymaj w powietrzu: <b>paralotnia</b>) · X / J — śnieżka<br>Uciekaj przed Kaką i jej listą zadań, unikaj całusów Inez, zbieraj witki do sauny 🌿</p>
+    </div>
+  </div>
+
+  <div id="intro" class="ov dim hidden"><div class="card"><div class="face" id="iFace"></div><h2 id="iName"></h2><p id="iTxt"></p><button class="btn" id="iGo">Start!</button></div></div>
+  <div id="over" class="ov dim hidden"><div class="card"><div class="face" style="background-image:url(art/kaka_face.webp)"></div><h2>Złapany!</h2><p id="oTxt"></p><button class="btn" id="oGo">Jeszcze raz</button></div></div>
+  <div id="end" class="ov hidden"><div class="card"><h2>Sauna! 🧖‍♂️🏳️‍🌈</h2><p id="eTxt"></p><div class="tBtns"><button class="btn" id="eAgain">Zagraj od nowa</button><a class="btn alt" href="../" style="text-decoration:none">Świąteczne przygotowania Kaki</a></div></div></div>
+</div>
+</div>
+<script>
+// ---------- phone held upright: turn the whole game sideways (same trick as the main game) ----------
+(function(){ const root=document.documentElement, coarse=matchMedia('(pointer:coarse)');
+  function orient(){ const w=innerWidth,h=innerHeight,on=coarse.matches&&h>w; document.body.classList.toggle('turned',on);
+    root.style.setProperty('--vw',(on?h:w)/100+'px'); root.style.setProperty('--vh',(on?w:h)/100+'px'); root.style.setProperty('--tx',w+'px'); }
+  addEventListener('resize',orient); addEventListener('orientationchange',()=>setTimeout(orient,250)); orient();
+  if(coarse.matches) document.getElementById('touch').classList.remove('hidden'); })();
+
+const $=s=>document.querySelector(s);
+const cv=$('#cv'), c=cv.getContext('2d'), VW=1280, VH=720, T=48, ROWS=15;
+const img=n=>{ const i=new Image(); i.src='art/'+n+'.webp'; return i; };
+const IMG={}; ['kz_idle','kz_run1','kz_run2','kz_jump','kz_throw','kz_glide','kaka_run1','kaka_run2','kaka_point','inez_walk1','inez_walk2','inez_kiss','it_vihta','it_ladle','it_snow','it_chore','it_kiss','sauna','bg1','bg2','bg3'].forEach(n=>IMG[n]=img(n));
+
+// ---------- audio ----------
+let muted=false, cur=null; const bgm=new Audio('../audio/music2.mp3'); bgm.loop=true; bgm.volume=.28;
+function play(key){ if(muted) return; if(cur) cur.pause(); const a=new Audio('audio/'+key+'.mp3'); cur=a; bgm.volume=.1; a.onended=()=>{ bgm.volume=.28; }; a.play().catch(()=>{}); }
+let AC=null; function sfx(type){ if(muted) return; try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); const t=AC.currentTime, o=AC.createOscillator(), g=AC.createGain(); o.connect(g).connect(AC.destination);
+  const S={jump:[['triangle',420,720,.12,.12]],pick:[['sine',880,1320,.09,.12]],hit:[['sawtooth',300,110,.25,.14]],throw:[['square',600,300,.08,.06]],pop:[['triangle',700,200,.18,.12]],life:[['sine',660,1320,.3,.14]]}[type][0];
+  o.type=S[0]; o.frequency.setValueAtTime(S[1],t); o.frequency.exponentialRampToValueAtTime(S[2],t+S[3]); g.gain.setValueAtTime(S[4],t); g.gain.exponentialRampToValueAtTime(.001,t+S[3]+.05); o.start(t); o.stop(t+S[3]+.06); }catch(e){} }
+$('#mute').onclick=e=>{ e.stopPropagation(); muted=!muted; $('#mute').textContent=muted?'🔇':'🔊'; if(muted){ bgm.pause(); if(cur) cur.pause(); } else bgm.play().catch(()=>{}); };
+
+// ---------- levels (tile grid built from small helpers; 15 rows of 48px) ----------
+// # ground  = one-way platform  w water (lake hole)  — entities: vihta, ladle, inez, vent, checkpoint, goal
+function build(W,fn){ const g=Array.from({length:ROWS},()=>Array(W).fill(' ')), L={W,g,ent:[],vents:[],cps:[],goal:0};
+  const api={ ground:(a,b,top)=>{ for(let x=a;x<=b;x++) for(let y=top;y<ROWS;y++) g[y][x]='#'; },
+    plat:(x,y,n)=>{ for(let i=0;i<n;i++) g[y][x+i]='='; },
+    water:(a,b)=>{ for(let x=a;x<=b;x++) g[12][x]='w'; },
+    v:(x,y,n=1,dx=1,dy=0)=>{ for(let i=0;i<n;i++) L.ent.push({k:'vihta',x:(x+i*dx)*T+T/2,y:(y+i*dy)*T+T/2}); },
+    arc:(x,y,n)=>{ for(let i=0;i<n;i++){ const t=i/(n-1||1); L.ent.push({k:'vihta',x:(x+i)*T+T/2,y:(y-Math.sin(t*Math.PI)*2.2)*T+T/2}); } },
+    ladle:(x,y)=>L.ent.push({k:'ladle',x:x*T+T/2,y:y*T+T/2}),
+    inez:(x,a,b)=>L.ent.push({k:'inez',x:x*T,a:a*T,b:b*T}),
+    vent:x=>L.vents.push(x*T+T/2),
+    cp:x=>L.cps.push(x*T),
+    goal:x=>{ L.goal=x*T; } };
+  fn(api); return L; }
+const LEVELS=[
+ {name:'Osiedle',bg:'bg1',ground:['#7a5236','#5b3a25'],snow:'#fdfdff',plat:'#8a5a3a',kaka:205,line:'kz_start',
+  txt:'Kaka ma dla mnie listę zadań. Długą. Czas uciekać… do sauny!',
+  make:()=>build(172,b=>{ b.ground(0,22,12); b.ground(26,40,12); b.plat(31,9,4); b.ground(41,50,10); b.ground(51,59,12); b.ground(66,85,12);
+    b.plat(70,9,3); b.plat(76,6,3); b.ground(86,95,11); b.ground(100,120,12); b.plat(105,9,5); b.ground(121,130,9); b.ground(135,171,12);
+    b.v(6,10,4); b.arc(22,10,5); b.v(31,8,4); b.v(42,8,3); b.arc(59,9,8); b.v(70,8,3); b.v(76,5,3); b.ladle(78,4); b.arc(95,9,6); b.v(105,8,5); b.v(122,7,4); b.arc(130,7,6); b.v(140,10,6);
+    b.inez(35,27,40); b.inez(55,51,59); b.inez(80,66,85); b.inez(112,100,120); b.inez(145,135,156);
+    b.cp(66); b.cp(121); b.goal(162); })},
+ {name:'Zamarznięte jezioro',bg:'bg2',ground:['#cfe7f3','#9cc6dc'],snow:'#ffffff',plat:'#e6f6ff',ice:true,kaka:215,line:'kz_lake',
+  txt:'Przerębel! Morsowanie? Zawsze. Ale nie teraz — Kaka depcze mi po piętach!',
+  make:()=>build(182,b=>{ b.ground(0,18,12); b.water(19,21); b.ground(22,34,12); b.water(35,38); b.plat(36,11,2); b.ground(39,55,12); b.water(56,61); b.plat(58,11,2);
+    b.ground(62,70,10); b.ground(71,80,12); b.water(81,88); b.plat(82,11,2); b.plat(86,10,2); b.ground(89,105,12); b.plat(95,9,6); b.water(106,110); b.plat(107,11,2);
+    b.ground(111,130,12); b.water(131,139); b.plat(133,11,2); b.plat(137,10,2); b.ground(140,181,12);
+    b.arc(18,10,5); b.v(28,10,4); b.arc(35,10,5); b.v(44,10,5); b.arc(55,9,8); b.v(64,8,4); b.arc(80,8,10); b.v(95,8,6); b.ladle(98,7); b.arc(105,9,7); b.v(118,10,5); b.arc(130,8,11); b.v(150,10,6);
+    b.inez(10,3,18); b.inez(28,22,34); b.inez(47,39,55); b.inez(66,62,70); b.inez(98,89,105); b.inez(118,111,130); b.inez(124,111,130); b.inez(152,140,165);
+    b.cp(62); b.cp(111); b.cp(140); b.goal(172); })},
+ {name:'Góry i paralotnia',bg:'bg3',ground:['#8d8a93','#5e5b66'],snow:'#ffffff',plat:'#9a9aa6',kaka:200,line:'kz_fly',
+  txt:'Paralotnia, wiatr, góry… i sauna na horyzoncie! (Przytrzymaj skok w powietrzu, para z gorących źródeł niesie w górę.)',
+  make:()=>build(202,b=>{ b.ground(0,15,11); b.vent(21); b.ground(28,38,9); b.plat(43,7,3); b.plat(50,8,3); b.ground(56,66,10); b.vent(71); b.vent(78);
+    b.ground(83,95,8); b.ground(96,104,11); b.vent(110); b.plat(113,6,3); b.vent(118); b.ground(123,140,10); b.vent(146); b.vent(154); b.ground(161,201,9);
+    b.v(4,9,4); b.v(18,6,6); b.v(30,7,4); b.v(43,6,3); b.v(50,7,3); b.v(58,8,4); b.v(68,4,12); b.v(85,6,5); b.ladle(92,5); b.v(106,5,4); b.v(113,5,3); b.v(116,3,5); b.v(126,8,5); b.v(143,4,15); b.v(170,7,6);
+    b.inez(8,2,15); b.inez(33,28,38); b.inez(61,56,66); b.inez(89,83,95); b.inez(100,96,104); b.inez(131,123,140); b.inez(172,161,185);
+    b.cp(56); b.cp(123); b.cp(161); b.goal(190); })}
+];
+
+// ---------- state ----------
+let lvl=0, L=null, P=null, kaka=null, ents=[], snowballs=[], kisses=[], parts=[], toasts=[], cam=0, hearts=3, vihta=0, cp=0, state='title', t0=0, kakaCool=0, inezCool=0, hitCool=0;
+let best=+(localStorage.getItem('kz-level')||0);
+const solid=(tx,ty)=>{ if(ty<0) return false; if(ty>=ROWS||tx<0||tx>=L.W) return false; return L.g[ty][tx]==='#'; };
+const tile=(tx,ty)=>(ty<0||ty>=ROWS||tx<0||tx>=L.W)?' ':L.g[ty][tx];
+function groundY(x){ const tx=Math.floor(x/T); if(tx<0||tx>=L.W) return null; for(let y=0;y<ROWS;y++){ const t=L.g[y][tx]; if(t==='#'||t==='=') return y*T; } return null; }
+
+function loadLevel(i,keep){
+  lvl=i; const D=LEVELS[i]; L=D.make(); L.D=D; ents=L.ent.map(e=>({...e,alive:true,vx:-60,t:Math.random()*3,cool:1+Math.random()})); snowballs=[]; kisses=[]; parts=[]; toasts=[];
+  if(!keep){ hearts=3; } cp=0; spawn(); }
+function spawn(){ const sx=cp||2*T; const gy=groundY(sx+T)||9*T; P={x:sx+T*.5,y:gy-96,vx:0,vy:0,w:40,h:96,on:false,face:1,coyote:0,buf:0,inv:1.2,glide:false,throwT:0,anim:0};
+  kaka={x:P.x-760,y:groundY(P.x)||9*T,anim:0,wait:2.2}; cam=Math.max(0,P.x-VW*.35); }
+
+// ---------- input ----------
+const K={}; const press=(k,v)=>{ if(v&&!K[k]) K[k+'Hit']=true; K[k]=v; };
+const map={ArrowLeft:'L',KeyA:'L',ArrowRight:'R',KeyD:'R',Space:'J',ArrowUp:'J',KeyW:'J',KeyX:'X',KeyJ:'X',KeyK:'X'};
+addEventListener('keydown',e=>{ const k=map[e.code]; if(k){ e.preventDefault(); press(k,true); } if((e.code==='Enter'||e.code==='Space')&&state!=='play'){ const b=[...document.querySelectorAll('.ov:not(.hidden) .btn')][0]; if(b&&!e.repeat){ e.preventDefault(); b.click(); } } });
+addEventListener('keyup',e=>{ const k=map[e.code]; if(k) press(k,false); });
+[['bL','L'],['bR','R'],['bJ','J'],['bT','X']].forEach(([id,k])=>{ const b=$('#'+id);
+  b.addEventListener('pointerdown',e=>{ e.preventDefault(); b.setPointerCapture(e.pointerId); press(k,true); b.classList.add('on'); });
+  const up=()=>{ press(k,false); b.classList.remove('on'); }; b.addEventListener('pointerup',up); b.addEventListener('pointercancel',up); b.addEventListener('lostpointercapture',up); });
+
+// ---------- helpers ----------
+const toast=(txt,col='#fff')=>toasts.push({txt,col,t:2.2});
+function puff(x,y,col,n=10){ for(let i=0;i<n;i++) parts.push({x,y,vx:(Math.random()-.5)*240,vy:-Math.random()*240,t:.7,col,r:4+Math.random()*5}); }
+function hurt(why){ if(P.inv>0) return; hearts--; P.inv=1.6; P.vy=-480; P.vx=-P.face*220; sfx('hit'); if(hitCool<=0){ play('kz_hit'); hitCool=7; } toast(why,'#ffd1dc');
+  if(hearts<=0) gameOver('Inez cię poderwała, a Kaka tylko na to czekała. Lista zadań czeka!'); }
+function fallOff(why){ hearts--; sfx('hit'); toast(why,'#cdeaff'); if(hearts<=0){ gameOver('Za dużo morsowania na jeden dzień. Kaka cię przechwyciła.'); return; } spawn(); P.inv=1.5; }
+function gameOver(txt){ state='over'; $('#oTxt').textContent=txt; $('#over').classList.remove('hidden'); }
+function caught(){ state='over'; play('kaka_caught'); $('#oTxt').textContent='„Mam cię! Najpierw odkurzanie, potem sauna.” — Kaka'; $('#over').classList.remove('hidden'); }
+
+// ---------- update ----------
+function update(dt){
+  t0+=dt; hitCool-=dt; kakaCool-=dt; inezCool-=dt; P.inv-=dt; P.throwT-=dt; P.anim+=dt;
+  const D=L.D, acc=P.on?2600:1700, max=330;
+  const dir=(K.R?1:0)-(K.L?1:0);
+  if(dir){ P.vx+=dir*acc*dt; P.face=dir; } else { const f=(P.on?2400:500)*dt; P.vx=Math.abs(P.vx)<=f?0:P.vx-Math.sign(P.vx)*f; }
+  P.vx=Math.max(-max,Math.min(max,P.vx));
+  // jump: coyote time + buffer + variable height; hold in the air while falling = paraglider
+  P.coyote=P.on?.1:P.coyote-dt; if(K.JHit){ P.buf=.13; } else P.buf-=dt;
+  if(P.buf>0&&P.coyote>0){ P.vy=-830; P.on=false; P.coyote=0; P.buf=0; sfx('jump'); }
+  if(!K.J&&P.vy<-300) P.vy=-300;
+  P.vy+=2200*dt;
+  P.glide=!P.on&&K.J&&P.vy>0;
+  if(P.glide) P.vy=Math.min(P.vy,95);
+  // steam vents (hot springs) lift you up when gliding through them
+  L.vents.forEach(vx=>{ if(Math.abs(P.x-vx)<T*1.3&&P.y>VH-T*11){ if(P.glide||P.vy>-200) P.vy-=3400*dt; P.vy=Math.max(P.vy,-460); } });
+  P.vy=Math.min(P.vy,900);
+  // move X with tile collisions
+  P.x+=P.vx*dt;
+  const l=()=>Math.floor((P.x-P.w/2)/T), r=()=>Math.floor((P.x+P.w/2-1)/T), tp=()=>Math.floor(P.y/T), bt=()=>Math.floor((P.y+P.h-1)/T);
+  for(let ty=tp();ty<=bt();ty++){ if(P.vx>0&&solid(r(),ty)){ P.x=r()*T-P.w/2; P.vx=0; } if(P.vx<0&&solid(l(),ty)){ P.x=(l()+1)*T+P.w/2; P.vx=0; } }
+  if(P.x<P.w/2){ P.x=P.w/2; P.vx=0; }
+  // move Y
+  const prevBottom=P.y+P.h; P.y+=P.vy*dt; P.on=false;
+  if(P.vy>=0){ const ty=bt(); for(let tx=l();tx<=r();tx++){ const t=tile(tx,ty); if(t==='#'||(t==='='&&prevBottom<=ty*T+2)){ P.y=ty*T-P.h; P.vy=0; P.on=true; break; } } }
+  else { const ty=tp(); for(let tx=l();tx<=r();tx++) if(solid(tx,ty)){ P.y=(ty+1)*T; P.vy=0; break; } }
+  // lake holes and the abyss
+  const fx=Math.floor(P.x/T); if(tile(fx,12)==='w'&&P.y+P.h>12*T+26){ puff(P.x,12*T,'#bfe6ff',18); fallOff('Plusk! Morsowanie… ale nie teraz!'); return; }
+  if(P.y>VH+120){ fallOff(D.ice?'Plusk!':'Ups! Za krótki lot.'); return; }
+  // throw a snowball
+  if(K.XHit&&P.throwT<-.15){ P.throwT=.22; snowballs.push({x:P.x+P.face*30,y:P.y+30,vx:P.face*620+P.vx*.3,vy:-260,t:1.4}); sfx('throw'); }
+  snowballs.forEach(s=>{ s.vy+=900*dt; s.x+=s.vx*dt; s.y+=s.vy*dt; s.t-=dt; const tx=Math.floor(s.x/T),ty=Math.floor(s.y/T); if(solid(tx,ty)){ s.t=0; puff(s.x,s.y,'#fff',6); } });
+  // checkpoints
+  L.cps.forEach(x=>{ if(P.x>x&&cp<x){ cp=x; toast('Punkt kontrolny — ręcznik zostawiony ✓','#d6ffd9'); sfx('life'); } });
+  // entities
+  ents.forEach(e=>{ if(!e.alive) return;
+    if(e.k==='vihta'||e.k==='ladle'){ if(Math.abs(e.x-P.x)<34&&e.y>P.y-10&&e.y<P.y+P.h+10){ e.alive=false;
+      if(e.k==='vihta'){ vihta++; sfx('pick'); puff(e.x,e.y,'#7fbf5a',5); if(vihta%25===0&&hearts<5){ hearts++; sfx('life'); toast('25 witek: +1 ❤','#ffd1dc'); } }
+      else { if(hearts<5) hearts++; sfx('life'); toast('Chochla gorącej pary: +1 ❤','#ffd1dc'); } } return; }
+    if(e.k==='inez'){ e.t+=dt; const near=Math.abs(P.x-e.x)<420&&Math.abs((P.y+P.h)-(groundY(e.x)||0))<200;
+      if(near){ e.dir=Math.sign(P.x-e.x)||-1; e.cool-=dt; e.kissT=Math.max(0,(e.kissT||0)-dt);
+        if(e.cool<=0){ e.cool=2.3; e.kissT=.5; kisses.push({x:e.x+e.dir*30,y:(groundY(e.x)||0)-120,vx:e.dir*230,t:3,ph:Math.random()*6}); if(inezCool<=0){ play('inez_kiss'); inezCool=14; } } }
+      else { e.x+=e.vx*dt; if(e.x<e.a){ e.x=e.a; e.vx=60; } if(e.x>e.b){ e.x=e.b; e.vx=-60; } e.dir=Math.sign(e.vx); }
+      const ey=groundY(e.x)||VH; e.y=ey;
+      // snowball hit
+      snowballs.forEach(s=>{ if(s.t>0&&Math.abs(s.x-e.x)<34&&s.y>ey-140&&s.y<ey){ s.t=0; e.alive=false; puff(e.x,ey-70,'#ff8fb3',16); sfx('pop'); toast('Inez obrażona! 💅','#ffd1dc'); } });
+      if(!e.alive) return;
+      // stomp on head or bump into her
+      const ox=Math.abs(P.x-e.x)<40, top=ey-138;
+      if(ox&&P.vy>0&&P.y+P.h>top&&P.y+P.h<top+34){ e.alive=false; P.vy=-560; puff(e.x,top,'#ff8fb3',16); sfx('pop'); toast('Nie dziś, Inez! 👋','#ffd1dc'); }
+      else if(ox&&P.y+P.h>top+30&&P.y<ey) hurt('Inez chciała cię poderwać! 💋'); } });
+  kisses.forEach(k=>{ k.t-=dt; k.x+=k.vx*dt; k.y+=Math.sin(t0*5+k.ph)*40*dt; if(Math.abs(k.x-P.x)<30&&k.y>P.y&&k.y<P.y+P.h){ k.t=0; hurt('Całus od Inez! 💋'); }
+    snowballs.forEach(s=>{ if(s.t>0&&Math.hypot(s.x-k.x,s.y-k.y)<30){ s.t=0; k.t=0; puff(k.x,k.y,'#ff8fb3',6); } }); });
+  snowballs=snowballs.filter(s=>s.t>0); kisses=kisses.filter(k=>k.t>0);
+  parts.forEach(p=>{ p.t-=dt; p.vy+=500*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; }); parts=parts.filter(p=>p.t>0);
+  toasts.forEach(t=>t.t-=dt); toasts=toasts.filter(t=>t.t>0);
+  // Kaka chases with her chore list: steady pace, so dawdling gets you caught
+  kaka.wait-=dt; if(kaka.wait<=0){ kaka.x+=D.kaka*dt; kaka.anim+=dt; } kaka.x=Math.max(kaka.x,P.x-1100);
+  const gy=groundY(kaka.x); kaka.y+=((gy==null?kaka.y:gy)-kaka.y)*Math.min(1,dt*10);
+  const gap=P.x-kaka.x; if(gap<300&&kakaCool<=0){ play('kaka_chase'); kakaCool=16; }
+  if(gap<36&&state==='play'){ caught(); return; }
+  // goal
+  if(P.x>L.goal+40&&P.x<L.goal+240) finishLevel();
+  cam+=((P.x-VW*.38+P.vx*.4)-cam)*Math.min(1,dt*4); cam=Math.max(0,Math.min(L.W*T-VW,cam));
+  K.JHit=K.XHit=false;
+}
+
+// ---------- drawing ----------
+function drawImg(im,x,y,h,flip){ if(!im.complete||!im.naturalWidth) return; const w=h*im.naturalWidth/im.naturalHeight; c.save(); c.translate(x,y); if(flip) c.scale(-1,1); c.drawImage(im,-w/2,-h,w,h); c.restore(); }
+function drawBg(){ const im=IMG[L.D.bg]; if(!im.complete||!im.naturalWidth){ c.fillStyle='#6a86b8'; c.fillRect(0,0,VW,VH); return; }
+  // every other copy is mirrored so the panorama joins without a seam
+  const h=VH, w=h*im.naturalWidth/im.naturalHeight, px=cam*.25, n0=Math.floor(px/w);
+  for(let n=n0;n*w-px<VW;n++){ const x=n*w-px; if(n%2){ c.save(); c.translate(x+w,0); c.scale(-1,1); c.drawImage(im,0,0,w,h); c.restore(); } else c.drawImage(im,x,0,w,h); } }
+function drawTiles(){ const D=L.D, x0=Math.max(0,Math.floor(cam/T)-1), x1=Math.min(L.W-1,Math.ceil((cam+VW)/T)+1);
+  for(let tx=x0;tx<=x1;tx++) for(let ty=0;ty<ROWS;ty++){ const t=L.g[ty][tx], X=tx*T-cam, Y=ty*T;
+    if(t==='#'){ const g=c.createLinearGradient(0,Y,0,Y+T); g.addColorStop(0,D.ground[0]); g.addColorStop(1,D.ground[1]); c.fillStyle=g; c.fillRect(X,Y,T+1,T+1);
+      if(!solid(tx,ty-1)){ c.fillStyle=D.snow; c.beginPath(); c.roundRect(X-2,Y-8,T+4,20,9); c.fill(); c.beginPath(); c.arc(X+12,Y+10,7,0,Math.PI*2); c.arc(X+34,Y+11,6,0,Math.PI*2); c.fill(); } }
+    else if(t==='='){ c.fillStyle=D.plat; c.beginPath(); c.roundRect(X,Y+4,T+1,18,5); c.fill(); c.fillStyle='rgba(0,0,0,.15)'; c.fillRect(X,Y+16,T,6); c.fillStyle=D.snow; c.beginPath(); c.roundRect(X-1,Y-2,T+2,10,5); c.fill(); }
+    else if(t==='w'){ c.fillStyle='#1d5a78'; c.fillRect(X,Y+10,T+1,VH-Y); c.fillStyle='rgba(180,230,255,.6)'; for(let i=0;i<2;i++){ c.beginPath(); c.ellipse(X+T/2+Math.sin(t0*2+tx+i)*10,Y+14+i*8,16,3,0,0,Math.PI*2); c.fill(); }
+      if((tx+Math.floor(t0*2))%3===0){ c.fillStyle='rgba(255,255,255,.25)'; c.beginPath(); c.arc(X+T/2,Y-((t0*30+tx*17)%60),10,0,Math.PI*2); c.fill(); } } } }
+function drawVents(){ L.vents.forEach(vx=>{ const X=vx-cam; if(X<-80||X>VW+80) return; const g=c.createLinearGradient(0,VH,0,VH-T*11); g.addColorStop(0,'rgba(255,220,180,.45)'); g.addColorStop(1,'rgba(255,255,255,0)'); c.fillStyle=g; c.fillRect(X-T*1.3,VH-T*11,T*2.6,T*11);
+  for(let i=0;i<7;i++){ const p=(t0*.6+i/7)%1; c.fillStyle=`rgba(255,255,255,${.5*(1-p)})`; c.beginPath(); c.arc(X+Math.sin(p*9+i)*18,VH-p*T*11,14+p*20,0,Math.PI*2); c.fill(); } }); }
+function draw(){ c.clearRect(0,0,VW,VH); drawBg(); drawVents(); drawTiles();
+  // checkpoints (birch post with a towel) and the sauna
+  L.cps.forEach(x=>{ const X=x-cam, gy=groundY(x+4)||VH; if(X<-60||X>VW+60) return; c.fillStyle='#f3efe6'; c.fillRect(X-4,gy-90,8,90); c.fillStyle='#333'; for(let i=0;i<5;i++) c.fillRect(X-4,gy-80+i*16,8,3); c.fillStyle=cp>=x?'#ff6f61':'#ddd'; c.beginPath(); c.roundRect(X+4,gy-88,34,24,4); c.fill(); });
+  const sx=L.goal-cam; if(sx>-500&&sx<VW+200) drawImg(IMG.sauna,sx+140,(groundY(L.goal+140)||VH)+8,300,false);
+  ents.forEach(e=>{ if(!e.alive) return; const X=e.x-cam; if(X<-120||X>VW+120) return;
+    if(e.k==='vihta') drawImg(IMG.it_vihta,X,e.y+18+Math.sin(t0*3+e.x)*4,36);
+    else if(e.k==='ladle') drawImg(IMG.it_ladle,X,e.y+22+Math.sin(t0*3)*4,46);
+    else if(e.k==='inez'){ const im=e.kissT>0?IMG.inez_kiss:(Math.floor(e.t*5)%2?IMG.inez_walk1:IMG.inez_walk2); drawImg(im,X,e.y+2,144,e.dir>0); } });
+  kisses.forEach(k=>drawImg(IMG.it_kiss,k.x-cam,k.y+14,30));
+  snowballs.forEach(s=>drawImg(IMG.it_snow,s.x-cam,s.y+12,24));
+  // Kaka
+  const kx=kaka.x-cam; if(kx>-200){ drawImg(kaka.wait>0?IMG.kaka_point:(Math.floor(kaka.anim*7)%2?IMG.kaka_run1:IMG.kaka_run2),kx,kaka.y+2,134,false); }
+  // Kaczor
+  if(!(P.inv>0&&Math.floor(P.inv*12)%2)){ const X=P.x-cam, Y=P.y+P.h+2;
+    if(P.glide) drawImg(IMG.kz_glide,X,Y+22,240,P.face<0);
+    else { const im=P.throwT>0?IMG.kz_throw:!P.on?IMG.kz_jump:Math.abs(P.vx)>30?(Math.floor(P.anim*8)%2?IMG.kz_run1:IMG.kz_run2):IMG.kz_idle; drawImg(im,X,Y,128,P.face<0); } }
+  parts.forEach(p=>{ c.globalAlpha=Math.max(0,p.t/.7); c.fillStyle=p.col; c.beginPath(); c.arc(p.x-cam,p.y,p.r,0,Math.PI*2); c.fill(); }); c.globalAlpha=1;
+  // falling snow
+  c.fillStyle='rgba(255,255,255,.8)'; for(let i=0;i<60;i++){ const x=((i*197+t0*(20+i%5*8))%VW+VW)%VW, y=((i*131+t0*(40+i%7*9))%VH); c.beginPath(); c.arc(x,y,1.2+i%3,0,Math.PI*2); c.fill(); }
+  // HUD
+  c.font='700 30px "Baloo 2",sans-serif'; c.textBaseline='middle';
+  for(let i=0;i<Math.max(3,hearts);i++){ c.globalAlpha=i<hearts?1:.25; c.fillText('❤️',24+i*38,40); } c.globalAlpha=1;
+  drawImg(IMG.it_vihta,40,108,40); c.fillStyle='#fff'; c.strokeStyle='rgba(0,0,0,.6)'; c.lineWidth=5; c.strokeText('× '+vihta,64,92); c.fillText('× '+vihta,64,92);
+  c.textAlign='center'; c.font='700 26px "Baloo 2",sans-serif'; const nm=`Poziom ${lvl+1}: ${L.D.name}`; c.strokeText(nm,VW/2,34); c.fillText(nm,VW/2,34);
+  // Kaka meter
+  const gap=Math.max(0,Math.min(1,(P.x-kaka.x)/900)); c.fillStyle='rgba(0,0,0,.35)'; c.beginPath(); c.roundRect(VW/2-160,58,320,16,8); c.fill();
+  c.fillStyle=gap<.3?'#ff5a4e':gap<.6?'#ffc94e':'#7ed957'; c.beginPath(); c.roundRect(VW/2-160,58,320*gap,16,8); c.fill();
+  c.font='600 17px "Baloo 2",sans-serif'; c.fillStyle='#fff'; const kt=gap<.3?'Kaka tuż za tobą!':'Kaka z listą zadań'; c.strokeText(kt,VW/2,90); c.fillText(kt,VW/2,90);
+  toasts.forEach((t,i)=>{ c.globalAlpha=Math.min(1,t.t*2); c.font='700 30px "Baloo 2",sans-serif'; c.fillStyle=t.col; c.lineWidth=6; c.strokeText(t.txt,VW/2,170+i*42); c.fillText(t.txt,VW/2,170+i*42); }); c.globalAlpha=1; c.textAlign='left';
+  if(lvl===0&&t0<9&&state==='play'){ c.textAlign='center'; c.font='600 22px "Baloo 2",sans-serif'; c.fillStyle='#fff'; c.lineWidth=5; const h='Przytrzymaj skok w powietrzu, żeby rozwinąć paralotnię 🪂'; c.strokeText(h,VW/2,VH-40); c.fillText(h,VW/2,VH-40); c.textAlign='left'; }
+}
+
+// ---------- flow ----------
+function showIntro(i){ state='intro'; loadLevel(i,i>0); const D=LEVELS[i]; $('#iFace').style.backgroundImage='url(art/kaczor_face.webp)'; $('#iName').textContent=`Poziom ${i+1}: ${D.name}`; $('#iTxt').textContent=D.txt; $('#intro').classList.remove('hidden'); }
+$('#iGo').onclick=()=>{ $('#intro').classList.add('hidden'); state='play'; t0=0; play(LEVELS[lvl].line); };
+function finishLevel(){ if(state!=='play') return; state='done'; sfx('life');
+  if(lvl+1>best){ best=lvl+1; try{ localStorage.setItem('kz-level',best); }catch(e){} }
+  if(lvl<LEVELS.length-1){ toast('Sauna? Nie, to tylko przystanek. Dalej!','#d6ffd9'); setTimeout(()=>showIntro(lvl+1),1400); }
+  else { setTimeout(()=>{ $('#end').classList.remove('hidden'); $('#eTxt').textContent=`Dotarłeś do gejowskiej sauny! Zebrane witki: ${vihta}. Para, chłopaki i święty spokój — tu żadna lista zadań cię nie znajdzie.`; play('kz_win'); setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play('kaka_end'); },6500); },900); } }
+$('#oGo').onclick=()=>{ $('#over').classList.add('hidden'); const keepV=vihta; loadLevel(lvl,false); vihta=keepV; state='play'; t0=0; };
+$('#eAgain').onclick=()=>{ $('#end').classList.add('hidden'); vihta=0; showIntro(0); };
+function start(i){ $('#title').classList.add('hidden'); if(!muted) bgm.play().catch(()=>{}); vihta=0; showIntro(i);
+  if(matchMedia('(pointer:coarse)').matches){ const d=document.documentElement,rq=d.requestFullscreen||d.webkitRequestFullscreen; try{ const p=rq&&rq.call(d); p&&p.then&&p.then(()=>screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})).catch(()=>{}); }catch(e){} } }
+const qs=new URLSearchParams(location.search), qlv=+qs.get('level');
+if(best>0&&best<LEVELS.length){ $('#play').textContent=`Graj dalej — poziom ${best+1} ▶`; $('#fresh').classList.remove('hidden'); }
+$('#play').onclick=()=>start(qlv?Math.min(qlv,LEVELS.length)-1:(best<LEVELS.length?best:0));
+$('#fresh').onclick=()=>start(0);
+loadLevel(0); // draws behind the title
+let last=performance.now();
+function loop(now){ const dt=Math.min(.033,(now-last)/1000); last=now; if(state==='play') update(dt); else t0+=dt; if(L) draw(); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+window.__L=(x,y)=>L?tile(x,y):' '; window.__kz={get P(){return P}, get kaka(){return kaka}, get state(){return state}, get lvl(){return lvl}, K, finishLevel:()=>finishLevel()};
+</script>
+</body>
+</html>

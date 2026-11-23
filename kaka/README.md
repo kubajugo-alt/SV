@@ -23,3 +23,14 @@ A loading screen preloads the art; on phones held upright the whole game is turn
 - `art/` — painted art generated with Gemini 3 Pro Image (first character sketches came from Canva and were used as references): the room background, sprites that change as tasks are finished (bare/decorated tree, empty/set table, lights, cookies), Kaka, Kaczor, 12 dish cards (`art/dish/`), 6 falling ingredients (`art/ing/`) and the Wigilia ending. Sprites were cut out of white backgrounds and saved as WebP.
 - `audio/music.mp3` + `audio/music2.mp3` — two alternating original instrumental tracks (the first a gentle 'Cicha noc' arrangement, the second an upbeat original), generated with Google Lyria 3.5; music starts on the loading screen's 'Wejdź' tap. Originally: (a gentle "Cicha noc" / Silent Night arrangement: piano, bells, strings) generated with Google Lyria 3.5. It loops quietly and dips while someone is talking.
 - `audio/` — voice lines generated with ElevenLabs (`eleven_v4`): Kaka is the "KateCosm" voice, Kaczor is "Maks". Line texts live in `LINES` in `index.html`.
+
+## Kaczor do sauny! (`kaczor/`)
+
+A second, separate game at `/kaczor/`: a 2D side-scrolling platformer starring Kaczor. Three levels — the snowy suburb (Osiedle), a frozen lake with ice holes (Zamarznięte jezioro) and the mountains (Góry i paralotnia) — end at a sauna; the last one is the gay sauna finale.
+
+- Run, jump (coyote time, jump buffer, variable height), and hold jump in the air to open the paraglider; steam from hot springs lifts you in level 3.
+- Kaka chases from the left with her chore list at a steady pace (meter at the top); if she catches up, the level restarts.
+- Inez clones patrol, blow kisses (projectiles) and cost a heart on contact; stop them with a snowball (X/J) or by jumping on them.
+- Collect birch whisks (25 = +1 heart) and sauna ladles (+1 heart); birch posts with towels are checkpoints.
+- Touch controls on phones (the game turns sideways when the phone is upright); progress is saved in `localStorage` (`kz-level`); `?level=N` jumps to a level.
+- Art: Gemini sprite sheets cut into frames (`kaczor/art`), voices from ElevenLabs (`kaczor/audio`), music shared with the main game.
