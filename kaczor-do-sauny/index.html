@@ -342,7 +342,7 @@ function bossUpdate(e,dt,punching,hx0,hx1,hy0,hy1){ L.boss=e; const gy0=surfAt(e
   if(e.state==='gone'){ e.st-=dt; if(e.st<=0) e.alive=false; return; }
   if(!e.act){ if(P.x>e.x-720){ e.act=true; e.intro=5; e.dir=-1; e.mode='idle'; e.mt=0; e.plan=0; L.kakaGone=true; cp=Math.max(cp,e.a-T*9); saveGame(); toast('Kaka czeka przy saunie! 📋','#ffd1dc'); play('kz_boss',()=>play('kaka_boss_intro')); } else return; }
   if(e.intro>0){ e.intro-=dt; e.dir=Math.sign(P.x-e.x)||-1; return; }
-  e.helpT=(e.helpT??9)-dt; if(e.helpT<=0){ e.helpT=hearts<=1?8:15; const from=L.mar||e.b+T*3; const dx=P.x-from; ents.push({k:'ladle',x:from,y:gy0-200,vx:dx/1.45,vy:-620,fall:true,alive:true}); toast('Maryańska rzuca ci chochlę pary! ❤','#ffe6a8'); sfx('throw',.4); }
+  e.helpT=(e.helpT??15)-dt; if(e.helpT<=0){ e.helpT=30; const from=L.mar||e.b+T*3; const dx=P.x-from; ents.push({k:'ladle',x:from,y:gy0-200,vx:dx/1.45,vy:-620,fall:true,alive:true}); toast('Maryańska rzuca ci chochlę pary! ❤','#ffe6a8'); sfx('throw',.4); }
   const face=()=>{ e.dir=Math.sign(P.x-e.x)||-1; };
   const next=()=>{ const plan=KB_PLAN[ph]; e.mode=plan[(e.plan++)%plan.length]; e.ma=0; e.fired=false;
     if(e.mode==='throw'){ e.mt=.9; face(); } else if(e.mode==='sweep'){ e.mt=1.05/spd; face(); sfx('punch',.5); }
@@ -370,8 +370,7 @@ function bossUpdate(e,dt,punching,hx0,hx1,hy0,hy1){ L.boss=e; const gy0=surfAt(e
   const punchHit=punching&&e.x>hx0-40&&e.x<hx1+40&&top<hy1&&e.y>hy0;
   if(e.inv<=0&&(stomp||open&&(sb||punchHit))){ if(sb) sb.t=0; if(stomp) P.vy=-700; e.hp--; e.inv=.9; e.mode='hurt'; e.mt=.55; e.kx=(Math.sign(e.x-P.x)||1)*260; shake=.2; puff(e.x,e.y-130,'#ffe08a',18); sfx('defeat');
     if(e.hp<=0){ e.state='gone'; e.st=4; e.mode='defeat'; e.ma=0; waves=[]; rain=[]; ents.forEach(v=>{ if(v.boss&&v.alive&&v!==e){ v.alive=false; puff(v.x,(v.y||gy)-30,'#fffbe8',8); } }); if(cur){ cur.onended=null; cur.pause(); cur=null; } play('kaka_boss_end'); toast('Kaka odpuszcza! Droga do sauny wolna 🧖','#d6ffd9'); }
-    else { if(hearts<=1||Math.random()<.55) ents.push({k:'ladle',x:e.x,y:e.y-170,vx:-(Math.sign(e.x-P.x)||1)*(140+Math.random()*120),vy:-520,fall:true,alive:true});
-      if(!cur) play(e.hp%2?'kaka_boss_hit1':'kaka_boss_hit2'); if(e.hp===5||e.hp===2) toast(e.hp===5?'Kaka się wścieka! 😤':'Ostatnie siły Kaki! 🔥','#ffd1dc'); } return; }
+    else { if(!cur) play(e.hp%2?'kaka_boss_hit1':'kaka_boss_hit2'); if(e.hp===5||e.hp===2) toast(e.hp===5?'Kaka się wścieka! 😤':'Ostatnie siły Kaki! 🔥','#ffd1dc'); } return; }
   if(sb&&!open){ sb.t=0; puff(sb.x,sb.y,'#ffffff',6); sfx('phone',.35); if(!e.toldGuard){ e.toldGuard=1; toast('Kaka zasłania się podkładką! Uderz, gdy się zmęczy 💨','#ffe6a8'); } }
   if(punchHit&&!open&&e.inv<=0&&!e.pushT){ e.pushT=.6; P.vx=-Math.sign(e.x-P.x)*420; P.vy=-260; sfx('punch',.4); }
   e.pushT=Math.max(0,(e.pushT||0)-dt);
