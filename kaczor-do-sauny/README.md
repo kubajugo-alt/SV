@@ -28,6 +28,7 @@ Every world mixes climbs over floating platforms, cliffs with spikes below, pill
 Mechanics: moving lifts and gondolas, crumbling ice, springs, falling icicles, wind gusts, steam vents that lift the paraglider, water.
 
 ## Art and code
+- Performance: the background is pre-scaled once to screen pixels, the static ground (texture, shading, snow caps) is rendered into cached 16-tile chunks, 120 Hz screens are capped to 60 fps, and if frames stay slow the render resolution steps down automatically (2x → 1.75x → … → 1x).
 - The game renders at the screen's real resolution (up to 2x) and the animation strips are baked at 336px standing height, so sprites stay sharp on high-density screens.
 - Animations: every character and action is a Ludo.ai sprite animation (`art/anim/*.webp` strips plus `anim.json`), baked to the same standing height so Kaczor, Kaka, Inez, Gayzilla and Maryańska match in size. Still Gemini frames (`art/kz_*`, `kaka_*`, `inez_*`, `gay_*`, `mar_idle`) are the fallback while strips load.
 - Backgrounds `art/bg*.webp` are cut to tile seamlessly (minimum-error seam + two-band blend), so they repeat forever with parallax.
