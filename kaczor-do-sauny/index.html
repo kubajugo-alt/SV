@@ -58,6 +58,7 @@ body.touch .kk.kb,body:not(.touch) .kk.tc{display:none}
 .diffs{display:flex;gap:.6cqw;justify-content:center;margin:.8cqw 0 .2cqw;flex-wrap:wrap}.diffs button{border:.2cqw solid transparent;border-radius:99px;background:rgba(255,248,234,.9);color:var(--ink);font-weight:700;font-size:max(12px,1.25cqw);padding:.25em .9em}.diffs button.on{border-color:var(--red);background:#fff}.diffs small{display:block;font-weight:500;font-size:.75em;opacity:.75}
 .sets{display:flex;flex-direction:column;gap:.5cqw;margin:.6cqw auto 1cqw;width:70%}.sets label{display:flex;justify-content:space-between;align-items:center;gap:1cqw;font-weight:700;font-size:max(13px,1.4cqw)}.sets input{width:60%;accent-color:var(--red)}
 #credits{background:radial-gradient(circle at 50% 30%,#3a2a4a,#0d1020);overflow:hidden;color:#fff8ea}#credits .roll{position:absolute;top:100%;width:80%;animation:roll 34s linear forwards}@keyframes roll{to{transform:translateY(calc(-100% - 100cqh*1.05))}}
+#credits .cBar{position:absolute;bottom:2cqw;left:0;right:0;z-index:2}
 #credits h1{font-family:Lobster,cursive;font-weight:400;font-size:6cqw;margin:0 0 2cqw;color:#ffd34e}#credits .sub{font-family:Lobster,cursive;font-size:3cqw;color:#ff9e8a;margin:3cqw 0 1cqw}#credits p{font-size:max(14px,1.8cqw);line-height:1.5}#credits .fin{font-size:max(16px,2.4cqw);margin:5cqw 0 3cqw}
 #credits .cast{display:grid;grid-template-columns:repeat(3,1fr);gap:2cqw}#credits .cast div{display:flex;flex-direction:column;align-items:center}#credits .cast i{width:11cqw;height:11cqw;border-radius:50%;background:#f1dfc0 center 20%/cover;border:.4cqw solid #ffd34e}#credits .cast i.tall{background-size:120%;background-position:center 8%}#credits .cast b{font-size:max(15px,2.2cqw);margin-top:.6cqw}#credits .cast span{opacity:.8;font-size:max(12px,1.4cqw)}
 #nameRow{display:flex;gap:1cqw;justify-content:center;align-items:center;margin-top:1.2cqw;flex-wrap:wrap}
@@ -106,7 +107,7 @@ body.touch .kk.kb,body:not(.touch) .kk.tc{display:none}
     <p class="sub">Gościnnie</p><p>Robot-odkurzacz Kaki · latające listy zadań · morsy z Bałtyku</p>
     <p class="sub">Za kulisami</p><p>Grafika: Gemini · Animacje: Ludo.ai · Głosy i efekty: ElevenLabs · Muzyka: Lyria · Kod: Claude</p>
     <p class="fin">Żadna lista zadań nie przetrwała tej sauny. 🧖‍♂️🏳️‍🌈<br>Dziękujemy za grę!</p>
-    <button class="btn" id="cAgain">Zagraj od nowa</button></div></div>
+    </div><div class="cBar tBtns"><button class="btn" id="cMenu">Menu</button><button class="btn alt" id="cAgain">Zagraj od nowa</button></div></div>
   <div id="end" class="ov hidden"><div class="card"><h2>Sauna! 🧖‍♂️🏳️‍🌈</h2><p id="eTxt"></p><div class="tBtns"><button class="btn alt" id="eCred">Napisy końcowe ✨</button> <button class="btn" id="eAgain">Zagraj od nowa</button></div></div></div>
 </div>
 </div>
@@ -959,7 +960,8 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) pauseGame
 $('#pGo').onclick=resumeGame;
 $('#pCp').onclick=()=>{ $('#pause').classList.add('hidden'); if(AC) AC.resume(); if(cur){ cur.onended=null; cur.pause(); cur=null; bgm.volume=mv(); } spawn(); state='play'; last=performance.now(); };
 $('#pRe').onclick=()=>{ $('#pause').classList.add('hidden'); if(AC) AC.resume(); if(cur){ cur.onended=null; cur.pause(); cur=null; bgm.volume=mv(); } loadLevel(lvl); state='play'; t0=0; last=performance.now(); };
-$('#pMenu').onclick=()=>{ $('#pause').classList.add('hidden'); if(cur){ cur.onended=null; cur.pause(); cur=null; } state='title'; if(AC) AC.resume(); stopAmb(); ambName=null; $('#pauseBtn').classList.add('hidden'); $('#keysBtn').classList.add('hidden'); $('#keys').classList.add('hidden'); setMusic('audio/music.mp3'); bgm.volume=mv(); renderLevels(); $('#title').classList.remove('hidden'); };
+function goMenu(){ $('#pause').classList.add('hidden'); $('#credits').classList.add('hidden'); $('#end').classList.add('hidden'); if(cur){ cur.onended=null; cur.pause(); cur=null; } state='title'; if(AC) AC.resume(); stopAmb(); ambName=null; $('#pauseBtn').classList.add('hidden'); $('#keysBtn').classList.add('hidden'); $('#keys').classList.add('hidden'); setMusic('audio/music.mp3'); bgm.volume=mv(); renderLevels(); $('#title').classList.remove('hidden'); }
+$('#pMenu').onclick=goMenu; $('#cMenu').onclick=goMenu;
 [['vMus','mus'],['vSfx','sfx'],['vVoc','voc']].forEach(([id,k])=>$('#'+id).oninput=e=>{ VOL[k]=+e.target.value; bgm.volume=cur?mv()*.25:mv(); if(cur) cur.volume=vocV(); try{ localStorage.setItem('kz-vol',JSON.stringify(VOL)); }catch(e){} if(k==='sfx'){ pickChime(); if(ambGain) ambGain.gain.value=ambVol(); } });
 // ---------- loading bar: Play unlocks once the art is in ----------
 (function(){ const t1=performance.now(); $('#play').disabled=true; const tick=()=>{ const imgs=[...Object.values(IMG),...Object.values(ENV),...Object.values(ANIM).map(a=>a.img).filter(Boolean)], n=imgs.length, ok=imgs.filter(i=>i.complete).length, f=n?ok/n:0, animIn=Object.keys(ANIM).length>0;
