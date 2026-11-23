@@ -127,7 +127,7 @@ const ANIM={}; fetch('art/anim/anim.json').then(r=>r.json()).then(j=>{ for(const
 const CHAR=1.18; // on-screen size of every character
 function drawAnim(name,x,y,t,flip,prog,scale){ const a=ANIM[name]; if(!a||!a.img.complete||!a.img.naturalWidth) return false;
   const f=prog!=null?Math.max(0,Math.min(a.n-1,Math.floor(prog*a.n))):a.loop?Math.floor(t*a.fps)%a.n:Math.min(a.n-1,Math.floor(t*a.fps));
-  const sc=(scale||.5)*256/336*CHAR; c.save(); c.translate(x,y); if(flip) c.scale(-1,1); c.drawImage(a.img,f*a.w,0,a.w,a.h,-a.ax*sc,-a.h*sc,a.w*sc,a.h*sc); c.restore(); return true; }
+  const sc=(scale||.5)*256/336*CHAR; c.save(); c.translate(x,y); if(flip) c.scale(-1,1); c.drawImage(a.img,f*a.w,0,a.w,a.h,-a.ax*sc,-(a.fy||a.h)*sc,a.w*sc,a.h*sc); c.restore(); return true; }
 // ---------- audio ----------
 let muted=false, cur=null; let VOL={mus:70,sfx:70,voc:100}; try{ Object.assign(VOL,JSON.parse(localStorage.getItem('kz-vol')||'{}')); }catch(e){}
 const mv=()=>.43*VOL.mus/100, sfxMul=()=>VOL.sfx/70, vocV=()=>Math.min(1,VOL.voc/100);
@@ -217,7 +217,7 @@ function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=
   const pool=[]; Object.entries(D.mix).forEach(([k,n])=>{ for(let q=0;q<n;q++) pool.push(k); });
   let sinceCp=0, sinceLadle=0, prev='';
   const hints=[], seenK={}; L.hints=hints;
-  while(x<W-46){ let k=pool[Math.floor(r()*pool.length)]; if(k===prev) k=pool[Math.floor(r()*pool.length)]; if(k===prev) k='bump';
+  while(x<W-(i===9?64:46)){ let k=pool[Math.floor(r()*pool.length)]; if(k===prev) k=pool[Math.floor(r()*pool.length)]; if(k===prev) k='bump';
     if(i===0&&x<130) k=['flat','gap','bump','spikes','gap','flat','bump'][Math.floor(r()*7)]; prev=k;
     if(i===0&&!seenK[k]){ seenK[k]=1; const H={gap:'Skacz nad przepaścią! Przytrzymaj skok — paralotnia złapie podmuch 🪂',spikes:'Lodowe kolce! Przeskocz je 🧊',climb:'Wspinaczka: skacz po platformach w górę ⬆',crumbleBridge:'Kruchy most — nie zatrzymuj się! 💨',twoRoutes:'Górą trudniej, ale tam czekają nagrody ✨'}[k]; if(H) hints.push({x:x*T-T*3,t:H}); }
     const x0=x; [x,h]=CH[k](b,x,h,r,d);
@@ -226,7 +226,7 @@ function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=
     sinceCp+=x-x0; sinceLadle+=x-x0;
     if(sinceCp>85){ b.ground(x,x+6,h); b.cp(x+2); x+=7; sinceCp=0; }
     if(sinceLadle>170){ b.ladle(x-3,h-3); sinceLadle=0; } }
-  if(i===9){ b.ground(x,x+5,h); x+=6; }
+  if(i===9){ b.ground(x,x+5,h); x+=6; b.ground(W-60,W-1,12); }
   if(h<12){ b.ground(x,x+3,h); x+=4; }
   b.ground(x,W-1,12); b.v(x+2,10,8); L.goal=(W-20)*T; L.W=W;
   // more Inez and Gayzilla: walk the level and drop one on any free stretch of flat ground about every screen, alternating
@@ -250,7 +250,7 @@ function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=
   for(let fx=70;fx<W-40;fx+=Math.round(58-d*26+r()*14)) L.ent.push({k:'note',x:fx*T,y:(2+Math.floor(r()*4))*T,a:0,b:0});
   // nothing hostile right next to a checkpoint
   L.ent=L.ent.filter(e=>!['inez','gay','vac','note'].includes(e.k)||!L.cps.some(c=>Math.abs(c-e.x)<T*4));
-  if(i===9) L.ent=L.ent.filter(e=>!['inez','gay','vac','note'].includes(e.k)||e.x<(W-48)*T);
+  if(i===9){ L.ent=L.ent.filter(e=>!['inez','gay','vac','note'].includes(e.k)||e.x<(W-66)*T); L.spikes=L.spikes.filter(([a])=>a<(W-66)*T); } // a clean, flat arena for the duel with Kaka
   if(i===0){ const f=k=>L.ent.find(e=>e.k===k); hints.push({x:T*2,t:TOUCH?'◀ ▶ bieg · ⤒ skok — uciekaj przed Kaką!':'◀ ▶ bieg · Spacja skok — uciekaj przed Kaką!'});
     [['inez',TOUCH?'Inez! 👊 cios, ❄ śnieżka albo skok na głowę':'Inez! X — cios, C — śnieżka albo skok na głowę'],['gay','Gayzilla rzuca telefonem — strąć go ciosem 📱'],['vac','Robot-odkurzacz Kaki! Wskocz mu na głowę 🧹'],['note','Latające listy zadań — strąć je śnieżką ❄']].forEach(([k,t])=>{ const e=f(k); if(e) hints.push({x:e.x-T*9,t}); });
     if(L.cps[0]) hints.push({x:L.cps[0]-T*4,t:'Słupek z ręcznikiem to punkt kontrolny ✓'}); hints.sort((a,b)=>a.x-b.x); }
