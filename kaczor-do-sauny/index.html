@@ -39,6 +39,9 @@ button{font:inherit;cursor:pointer}
 .card p{margin:.4cqw 0 1.2cqw;font-size:max(14px,1.7cqw);line-height:1.35}
 .card .face{width:9cqw;height:9cqw;border-radius:50%;margin:0 auto .8cqw;background:#f1dfc0 center/cover;border:.35cqw solid var(--red)}
 .dim{background:rgba(6,10,28,.55)}
+.card .who{font-size:max(11px,1.2cqw);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#a0522d;margin-bottom:.2cqw}
+.card p.narr{font-style:italic;color:#3b2a1e}
+.card p.kq{font-size:max(12px,1.4cqw);color:#555;margin-top:-.4cqw}
 #end{background:#0d1426 url(art/sauna_end.webp) center/cover}
 #end .card{margin-top:auto;margin-bottom:3cqw;background:rgba(255,248,234,.92)}
 #touch{position:absolute;inset:0;z-index:4;pointer-events:none}
@@ -65,7 +68,7 @@ button{font:inherit;cursor:pointer}
     </div>
   </div>
 
-  <div id="intro" class="ov dim hidden"><div class="card"><div class="face" id="iFace"></div><h2 id="iName"></h2><p id="iTxt"></p><button class="btn" id="iGo">Start!</button></div></div>
+  <div id="intro" class="ov dim hidden"><div class="card"><div class="face" id="iFace"></div><div class="who">Opowiada Jugo</div><h2 id="iName"></h2><p class="narr" id="iNarr"></p><p class="kq" id="iTxt"></p><button class="btn" id="iGo">Start!</button></div></div>
   <div id="over" class="ov dim hidden"><div class="card"><div class="face" style="background-image:url(art/kaka_face.webp)"></div><h2>Złapany!</h2><p id="oTxt"></p><button class="btn" id="oGo">Jeszcze raz</button></div></div>
   <div id="end" class="ov hidden"><div class="card"><h2>Sauna! 🧖‍♂️🏳️‍🌈</h2><p id="eTxt"></p><div class="tBtns"><button class="btn" id="eAgain">Zagraj od nowa</button></div></div></div>
 </div>
@@ -509,7 +512,10 @@ function draw(){ c.clearRect(0,0,VW,VH); drawBg(); drawWinds(); drawVents(); dra
 }
 
 // ---------- flow ----------
-function showIntro(i){ state='intro'; loadLevel(i,i>0); const D=LEVELS[i]; $('#iFace').style.backgroundImage='url(art/kaczor_face.webp)'; $('#iName').textContent=`Poziom ${i+1}: ${D.name}`; $('#iTxt').textContent=D.txt; $('#intro').classList.remove('hidden'); }
+// between-level story cards, narrated by Jugo (audio/jugo_1..10, jugo_end)
+const JUGO=['Był sobie Kaczor. Kochał saunę, morsowanie i paralotnie. A Kaka kochała listy zadań. Pewnego ranka Kaczor zobaczył listę… i zaczął biec.','Osiedle zostało w tyle, ale Kaka nie odpuszcza. Kaczor wbiegł do brzozowego lasu, bo gdzie brzozy, tam witki, a gdzie witki, tam sauna.','Po lesie przyszła kolej na zamarznięte jezioro. Kaczor kocha przeręble, ale tym razem nie było czasu na kąpiel. Lista Kaki rosła z każdą minutą.','Jarmark świąteczny pachniał grzańcem. Kaka krzyczała coś o choince do ubrania. Kaczor udał, że nie słyszy, i wskoczył na dach straganu.','Stok narciarski. Gondole, wyciągi i Gayzilla z telefonem. Kaczor wiedział jedno: żadnych selfie, dopóki nie dotrze do sauny.','Lodowa jaskinia była ciemna i zimna. Kaczor myślał, że tu Kaka go nie znajdzie. Mylił się. Kaka znajdzie każdego.','Bałtyk zimą! Morsy machały do Kaczora z wody. On też chciał wskoczyć, ale za plecami słyszał już: „Kaczor, a odkurzanie?”','W Tatrach wiało jak trzeba. Kaczor rozłożył paralotnię i poczuł, że jest wolny. Przynajmniej do następnego punktu kontrolnego.','Gorące źródła. Para, ciepło, prawie jak sauna. Ale „prawie” robi wielką różnicę, a Kaka była coraz bliżej.','I wreszcie: wioska saun pod zorzą polarną. Inez wszędzie, Kaka tuż za nim. Ostatnia prosta, Kaczorze. Biegnij!'];
+const JUGO_END='I tak Kaczor dotarł do swojej sauny. Kaka? Została z listą zadań. A Kaczor? Kaczor wreszcie odpoczął. Koniec.';
+function showIntro(i){ state='intro'; loadLevel(i,i>0); const D=LEVELS[i]; $('#iFace').style.backgroundImage='url(art/jugo_face.webp)'; $('#iName').textContent=`Poziom ${i+1}: ${D.name}`; $('#iNarr').textContent=JUGO[i]; $('#iTxt').textContent=`Kaczor: „${D.txt}”`; $('#intro').classList.remove('hidden'); play('jugo_'+(i+1)); }
 $('#iGo').onclick=()=>{ $('#intro').classList.add('hidden'); state='play'; t0=0; play(LEVELS[lvl].line); };
 function finishLevel(){ if(state!=='play') return; state='outro'; sfx('life'); P.towel=true; P.vx=0; P.inv=0; puff(P.x,P.y+40,'#ffffff',22); toast('Ręcznik na biodra — czas na saunę! 🧖','#d6ffd9'); }
 function outro(dt){ t0+=dt; P.anim+=dt; const door=L.goal+140; toasts.forEach(t=>t.t-=dt); toasts=toasts.filter(t=>t.t>0); parts.forEach(p=>{ p.t-=dt; p.vy+=500*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; }); parts=parts.filter(p=>p.t>0);
@@ -520,7 +526,7 @@ function outro(dt){ t0+=dt; P.anim+=dt; const door=L.goal+140; toasts.forEach(t=
 function nextAfterSauna(){
   if(lvl+1>best){ best=lvl+1; try{ localStorage.setItem('kz-level',best); }catch(e){} }
   if(lvl<LEVELS.length-1) showIntro(lvl+1);
-  else { $('#end').classList.remove('hidden'); $('#eTxt').textContent=`Dotarłeś do gejowskiej sauny! Zebrane witki: ${vihta}. Para, chłopaki i święty spokój — tu żadna lista zadań cię nie znajdzie.`; play('kz_win'); setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play('kaka_end'); },6500); } }
+  else { $('#end').classList.remove('hidden'); $('#eTxt').textContent=`Dotarłeś do gejowskiej sauny! Zebrane witki: ${vihta}. Para, chłopaki i święty spokój — tu żadna lista zadań cię nie znajdzie. ${JUGO_END}`; play('kz_win'); setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play('kaka_end'); },6500); setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play('jugo_end'); },12500); } }
 $('#oGo').onclick=()=>{ $('#over').classList.add('hidden'); const keepV=vihta; loadLevel(lvl,false); vihta=keepV; state='play'; t0=0; };
 $('#eAgain').onclick=()=>{ $('#end').classList.add('hidden'); vihta=0; showIntro(0); };
 function start(i){ $('#title').classList.add('hidden'); if(!muted) bgm.play().catch(()=>{}); vihta=0; showIntro(i);

@@ -7,6 +7,7 @@ A 2D side-scrolling platformer starring Kaczor, deployed as its own Netlify proj
 - Kaka chases from the left with her chore list (meter at the top); if she catches up, the level restarts. She waits while Kaczor rides a lift.
 - Inez clones patrol and blow kisses; Gayzilla wants a selfie and, when refused, angrily throws his phone (punch or snowball it away). A punch, a snowball or a jump on the head sends either of them spinning away. The same enemy is never on screen twice.
 - Maryańska, Kaczor's hippie mentor, stands by the middle checkpoint of every level (by the sauna in the last one): she gives a pep talk and keeps Kaka chatting for 3 seconds.
+- Between levels Jugo narrates the story (voiced story card before every level and at the finale), followed by Kaczor's own line.
 - Collect birch whisks (25 = +1 heart) and sauna ladles (+1 heart); birch posts with a towel are checkpoints.
 - At each sauna Kaczor changes into a towel and walks in; the last one is the gay sauna finale.
 - Phones get touch buttons and the game turns sideways when held upright. The title screen has a level picker for unlocked levels; `?level=N` jumps to a level. Progress is saved in `localStorage` (`kz-level`).
