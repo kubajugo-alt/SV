@@ -219,7 +219,8 @@ function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=
   const pool=[]; Object.entries(D.mix).forEach(([k,n])=>{ for(let q=0;q<n;q++) pool.push(k); });
   let sinceCp=0, sinceLadle=0, prev='';
   const hints=[], seenK={}; L.hints=hints;
-  while(x<W-(i===9?64:46)){ let k=pool[Math.floor(r()*pool.length)]; if(k===prev) k=pool[Math.floor(r()*pool.length)]; if(k===prev) k='bump';
+  const ARENA=[2,5,9].includes(i);
+  while(x<W-(ARENA?64:46)){ let k=pool[Math.floor(r()*pool.length)]; if(k===prev) k=pool[Math.floor(r()*pool.length)]; if(k===prev) k='bump';
     if(i===0&&x<130) k=['flat','gap','bump','spikes','gap','flat','bump'][Math.floor(r()*7)]; prev=k;
     if(i===0&&!seenK[k]){ seenK[k]=1; const H={gap:'Skacz nad przepaścią! Przytrzymaj skok — paralotnia złapie podmuch 🪂',spikes:'Lodowe kolce! Przeskocz je 🧊',climb:'Wspinaczka: skacz po platformach w górę ⬆',crumbleBridge:'Kruchy most — nie zatrzymuj się! 💨',twoRoutes:'Górą trudniej, ale tam czekają nagrody ✨'}[k]; if(H) hints.push({x:x*T-T*3,t:H}); }
     const x0=x; [x,h]=CH[k](b,x,h,r,d);
@@ -228,7 +229,7 @@ function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=
     sinceCp+=x-x0; sinceLadle+=x-x0;
     if(sinceCp>85){ b.ground(x,x+6,h); b.cp(x+2); x+=7; sinceCp=0; }
     if(sinceLadle>170){ b.ladle(x-3,h-3); sinceLadle=0; } }
-  if(i===9){ b.ground(x,x+5,h); x+=6; b.ground(W-60,W-1,12); }
+  if(ARENA){ b.ground(x,x+5,h); x+=6; b.ground(W-60,W-1,12); }
   if(h<12){ b.ground(x,x+3,h); x+=4; }
   b.ground(x,W-1,12); b.v(x+2,10,8); L.goal=(W-20)*T; L.W=W;
   // more Inez and Gayzilla: walk the level and drop one on any free stretch of flat ground about every screen, alternating
@@ -247,12 +248,13 @@ function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=
   { const cand=[]; for(let tx=Math.floor(W*.3);tx<W*.85;tx++) for(let ty=2;ty<=8;ty++) if(L.g[ty][tx]==='='&&L.g[ty-1][tx]===' '&&L.g[ty-2][tx]===' ') cand.push([tx,ty]);
     const [gx,gy]=cand.length?cand[Math.floor(r()*cand.length)]:[Math.floor(W*.6),4]; L.ent.push({k:'gold',x:gx*T+T/2,y:(gy-1)*T}); }
   // final world: Gayzilla guards the sauna
-  if(i===9) L.ent.push({k:'boss',x:(W-27)*T,a:(W-40)*T,b:(W-24)*T,hp:8});
+  if(i===9) L.ent.push({k:'boss',who:'kaka',x:(W-27)*T,a:(W-40)*T,b:(W-24)*T,hp:8,maxhp:8});
+  if(i===2||i===5){ const who=i===2?'inez':'gay'; L.ent.push({k:'boss',who,x:(W-27)*T,a:(W-40)*T,b:(W-24)*T,hp:MB[who].hp,maxhp:MB[who].hp}); }
   // flying chore lists, more of them in later worlds
   for(let fx=70;fx<W-40;fx+=Math.round(58-d*26+r()*14)) L.ent.push({k:'note',x:fx*T,y:(2+Math.floor(r()*4))*T,a:0,b:0});
   // nothing hostile right next to a checkpoint
   L.ent=L.ent.filter(e=>!['inez','gay','vac','note'].includes(e.k)||!L.cps.some(c=>Math.abs(c-e.x)<T*4));
-  if(i===9){ L.ent=L.ent.filter(e=>!['inez','gay','vac','note'].includes(e.k)||e.x<(W-66)*T); L.spikes=L.spikes.filter(([a])=>a<(W-66)*T); } // a clean, flat arena for the duel with Kaka
+  if(ARENA){ L.ent=L.ent.filter(e=>!['inez','gay','vac','note'].includes(e.k)||e.x<(W-66)*T); L.spikes=L.spikes.filter(([a])=>a<(W-66)*T); } // a clean, flat arena for the duel with Kaka
   if(i===0){ const f=k=>L.ent.find(e=>e.k===k); hints.push({x:T*2,t:TOUCH?'◀ ▶ bieg · ⤒ skok — uciekaj przed Kaką!':'◀ ▶ bieg · Spacja skok — uciekaj przed Kaką!'});
     [['inez',TOUCH?'Inez! 👊 cios, ❄ śnieżka albo skok na głowę':'Inez! X — cios, C — śnieżka albo skok na głowę'],['gay','Gayzilla rzuca telefonem — strąć go ciosem 📱'],['vac','Robot-odkurzacz Kaki! Wskocz mu na głowę 🧹'],['note','Latające listy zadań — strąć je śnieżką ❄']].forEach(([k,t])=>{ const e=f(k); if(e) hints.push({x:e.x-T*9,t}); });
     if(L.cps[0]) hints.push({x:L.cps[0]-T*4,t:'Słupek z ręcznikiem to punkt kontrolny ✓'}); hints.sort((a,b)=>a.x-b.x); }
@@ -303,7 +305,7 @@ function surfAt(x,yref){ if(yref==null) return groundY(x); const tx=Math.floor(x
 function groundY(x){ const tx=Math.floor(x/T); if(tx<0||tx>=L.W) return null; for(let y=0;y<ROWS;y++){ const t=L.g[y][tx]; if(t==='#'||t==='='||(t==='c'&&crumbOk(tx,y))) return y*T; } return null; }
 
 function loadLevel(i,keep){
-  lvl=i; const D=LEVELS[i]; L=D.make(); L.D=D; L.crum={}; L.movs.forEach(m=>{ m.ph=-Math.PI/2; m.x=m.x0; m.y=m.y0; }); ents=L.ent.map(e=>({...e,alive:true,vx:-60,t:Math.random()*3,cool:1+Math.random()})); phones=[]; flyers=[]; snowballs=[]; steam=[]; rings=[]; waves=[]; rain=[]; shake=0; kisses=[]; parts=[]; toasts=[];
+  lvl=i; const D=LEVELS[i]; L=D.make(); L.D=D; L.crum={}; L.movs.forEach(m=>{ m.ph=-Math.PI/2; m.x=m.x0; m.y=m.y0; }); ents=L.ent.map(e=>({...e,alive:true,vx:-60,t:Math.random()*3,cool:1+Math.random()})); phones=[]; flyers=[]; snowballs=[]; steam=[]; rings=[]; waves=[]; rain=[]; shake=0; flash=0; kisses=[]; parts=[]; toasts=[];
   if(!keep){ hearts=DF().hearts; } cp=0; lvlHits=0; lvlV=0; hint=null; L.vTot=L.ent.filter(e=>e.k==='vihta').length; spawn(); }
 function spawn(){ const sx=cp||2*T; const gy=groundY(sx+T)||9*T; P={x:sx+T*.5,y:gy-96,vx:0,vy:0,w:40,h:96,on:false,face:1,coyote:0,buf:0,inv:1.2,glide:false,punchT:0,anim:0,towel:false,joy:0};
   kaka={x:P.x-760,y:groundY(P.x)||9*T,anim:0,wait:DF().wait}; cam=Math.max(0,P.x-VW*.35); camLook=0; }
@@ -337,7 +339,52 @@ function patrol(e,dt){ const nx=e.x+e.vx*dt, cy=e.y??groundY(e.x), ny=surfAt(nx+
 // robot vacuums, and in the last phase a rain of chore lists from the sky.
 let waves=[], rain=[], shake=0;
 const KB_PLAN=[['throw','sweep','throw','summon'],['slam','throw','sweep','summon','slam'],['slam','sweep','rain','slam','throw','rain']];
-function bossUpdate(e,dt,punching,hx0,hx1,hy0,hy1){ L.boss=e; const gy0=surfAt(e.x,e.gy??e.y)??VH; e.gy=gy0; if(e.mode!=='slam') e.y=gy0; e.t=(e.t||0)+dt; e.inv=Math.max(0,(e.inv||0)-dt); e.mt=(e.mt||0)-dt;
+// mini-bosses: Inez at the end of world 3, Gayzilla at the end of world 6. Same rules as Kaka: they can only be hurt while out of breath
+// after an attack, or by a jump on the head; snowballs are dodged (Inez) or blocked with the phone (Gayzilla) otherwise.
+const MB={
+  inez:{name:'Inez',hp:5,plan:[['kiss','dash','kiss','rain'],['kiss','dash','rain','dash','kiss']],intro:['kz_inez_see1','inez_kiss'],hit:['inez_hit1','inez_hit2','inez_hit3','inez_hit4','inez_hit5'],end:'inez_hit6',win:'kz_inez_win1',
+    an:{idle:['inez_walk',.6],dash:['inez_walk',2.2],kiss:['inez_kiss'],rain:['inez_kiss'],tired:['inez_dizzy',1],hurt:['inez_hit'],gone:['inez_huff',1]},guard:'Inez zręcznie robi unik! Uderz, gdy się zmęczy 💫',tired:'Teraz! Inez się słania'},
+  gay:{name:'Gayzilla',hp:6,plan:[['throw','selfie','dash','throw'],['selfie','throw','dash','selfie','throw']],intro:['kz_gay_see1','gay_selfie'],hit:['gay_hit1','gay_hit2','gay_hit3'],end:'gay_angry',win:'kz_gay_win1',
+    an:{idle:['gay_walk',.6],dash:['gay_walk',2.2],throw:['gay_throw'],selfie:['gay_selfie',1],tired:['gay_dizzy',1],hurt:['gay_hit'],gone:['gay_huff',1]},guard:'Gayzilla zasłania się telefonem! Uderz, gdy się zmęczy 📱',tired:'Teraz! Gayzilla jest oszołomiony'}};
+let flash=0;
+function miniBoss(e,dt,punching,hx0,hx1,hy0,hy1){ const C=MB[e.who]; L.boss=e; const gy=surfAt(e.x,e.y)??VH; e.y=gy; e.t=(e.t||0)+dt; e.inv=Math.max(0,(e.inv||0)-dt); e.mt=(e.mt||0)-dt;
+  const ph=e.hp>Math.ceil(e.maxhp/2)?0:1, spd=ph?1.2:1;
+  if(e.state==='gone'){ e.st-=dt; e.x+=130*dt; if(e.st<=0) e.alive=false; return; }
+  if(!e.act){ if(P.x>e.x-720){ e.act=true; e.intro=3.2; e.mode='idle'; e.mt=0; e.plan=0; cp=Math.max(cp,e.a-T*9); saveGame(); toast(C.name+' zagradza drogę do sauny!','#ffd1dc'); play(C.intro[0],()=>play(C.intro[1])); } else return; }
+  kaka.wait=Math.max(kaka.wait,.5);
+  const face=()=>{ e.dir=Math.sign(P.x-e.x)||-1; };
+  if(e.intro>0){ e.intro-=dt; face(); return; }
+  const next=()=>{ const pl=C.plan[ph]; e.mode=pl[(e.plan++)%pl.length]; e.fired=false; face(); e.mt={kiss:.9,rain:1.2,dash:.95/spd,throw:.8,selfie:1.3}[e.mode]; };
+  const tired=t=>{ e.mode='tired'; e.mt=t; };
+  if(e.mode==='idle'){ face(); e.x+=e.dir*60*dt; e.x=Math.max(e.a,Math.min(e.b,e.x)); if(e.mt<=0) next(); }
+  else if(e.mode==='kiss'){ if(!e.fired&&e.mt<.45){ e.fired=true; for(let k=0;k<3+ph*2;k++) kisses.push({x:e.x+e.dir*30,y:gy-110-k*38,vx:e.dir*(200+k*25)*spd,t:4,ph:k*1.3}); if(!cur) play('inez_kiss'); } if(e.mt<=0){ e.mode='idle'; e.mt=ph?.6:.9; } }
+  else if(e.mode==='rain'){ if(!e.fired&&e.mt<.8){ e.fired=true; for(let k=0;k<5+ph*2;k++) rain.push({x:P.x+(k-3)*90+(Math.random()-.5)*40,y:-40-k*60,vy:230+Math.random()*60,ph:Math.random()*6,t:4,img:'kiss',src:'inez'}); } if(e.mt<=0) tired(ph?1.2:1.5); }
+  else if(e.mode==='dash'){ e.x+=e.dir*440*spd*dt; if(e.x<e.a-140||e.x>e.b){ e.x=Math.max(e.a-140,Math.min(e.b,e.x)); e.mt=0; } if(e.mt<=0) tired(ph?1.1:1.4); }
+  else if(e.mode==='throw'){ if(!e.fired&&e.mt<.35){ e.fired=true; const dx=P.x-e.x; for(let k=-1;k<=1+ph;k++) phones.push({x:e.x+e.dir*40,y:gy-160,vx:Math.max(-640,Math.min(640,dx*1.1))+k*130,vy:-480-Math.random()*90,rot:0,t:3}); sfx('throw',.5); } if(e.mt<=0){ e.mode='idle'; e.mt=ph?.6:.9; } }
+  else if(e.mode==='selfie'){ if(!e.warned){ e.warned=1; if(!e.toldFlash){ e.toldFlash=1; toast('Selfie z fleszem! Odwróć się plecami do Gayzilli 📸','#ffe6a8'); } if(!cur) play('gay_selfie'); }
+    if(!e.fired&&e.mt<.25){ e.fired=true; flash=.5; sfx('phone',.6); const facing=P.face===(Math.sign(e.x-P.x)||1); if(facing&&Math.abs(P.x-e.x)<900) hurt('Oślepił cię flesz selfie! 📸','gay'); }
+    if(e.mt<=0){ e.warned=0; tired(ph?1.1:1.4); } }
+  else if(e.mode==='tired'){ if(e.mt<=0){ e.mode='idle'; e.mt=ph?.5:.8; } }
+  else if(e.mode==='hurt'){ e.x+=e.kx*dt; e.kx*=.9; e.x=Math.max(e.a-140,Math.min(e.b,e.x)); if(e.mt<=0){ e.mode='idle'; e.mt=.5; } }
+  if(P.x>e.x-30&&P.y+P.h>gy-180){ P.x=e.x-30; P.vx=Math.min(P.vx,0); }
+  const top=gy-185, ox=Math.abs(P.x-e.x)<50, open=e.mode==='tired';
+  const sb=snowballs.find(b=>b.t>0&&Math.abs(b.x-e.x)<46&&b.y>top&&b.y<gy);
+  const stomp=ox&&P.vy>0&&P.y+P.h>top&&P.y+P.h<top+42&&e.mode!=='dash';
+  const punchHit=punching&&e.x>hx0-40&&e.x<hx1+40&&top<hy1&&gy>hy0;
+  if(e.inv<=0&&(stomp||open&&(sb||punchHit))){ if(sb) sb.t=0; if(stomp) P.vy=-680; e.hp--; e.inv=.9; e.mode='hurt'; e.mt=.5; e.kx=(Math.sign(e.x-P.x)||1)*240; shake=.15; puff(e.x,gy-120,'#ff8fb3',16); sfx('defeat');
+    if(e.hp<=0){ e.state='gone'; e.st=3; kisses=[]; phones=[]; rain=[]; if(cur){ cur.onended=null; cur.pause(); cur=null; } play(C.end,()=>remark(e.who,'win',true)); toast(C.name+' odpuszcza! Droga do sauny wolna 🧖','#d6ffd9'); }
+    else if(!cur) play(C.hit[(e.maxhp-e.hp-1)%C.hit.length]); return; }
+  if(sb&&!open){ sb.t=0; puff(sb.x,sb.y,'#ffffff',6); sfx('phone',.3); if(!e.toldGuard){ e.toldGuard=1; toast(C.guard,'#ffe6a8'); } }
+  if(ox&&e.inv<=0&&e.mode!=='tired'&&e.mode!=='hurt'&&P.y+P.h>top+42&&P.y<gy) hurt(e.who==='inez'?'Inez chciała cię poderwać! 💋':'Gayzilla wciąga cię do selfie! 🤳',e.who); }
+function drawMiniBoss(e,X){ const C=MB[e.who], fl=e.dir<0, sc=.6, Y=e.y+2;
+  if(e.state==='gone'){ c.globalAlpha=Math.max(0,Math.min(1,e.st)); drawAnim(C.an.gone[0],X,Y,t0,false,null,sc); c.globalAlpha=1; return; }
+  if(e.mode==='hurt'&&Math.floor(e.mt*16)%2) return;
+  if(e.mode==='tired'){ c.save(); c.globalAlpha=.6+.3*Math.sin(t0*8); c.font='800 26px "Baloo 2",sans-serif'; c.textAlign='center'; c.fillText('💫',X,Y-200); c.restore(); }
+  if(e.mode==='selfie'&&!e.fired){ const k=1-Math.max(0,e.mt-.25)/1.05; c.save(); const g=c.createRadialGradient(X+e.dir*40,Y-170,0,X+e.dir*40,Y-170,30+k*60); g.addColorStop(0,`rgba(255,255,255,${.4+k*.6})`); g.addColorStop(1,'rgba(255,255,255,0)'); c.fillStyle=g; c.fillRect(X-140,Y-300,280,260); c.restore(); }
+  const a=C.an[e.mode]||C.an.idle, one=['kiss','rain','throw','hurt'].includes(e.mode);
+  const prog=one?Math.max(0,Math.min(1,1-e.mt/(e.mode==='hurt'?.5:e.mode==='rain'?1.2:e.mode==='throw'?.8:.9))):null;
+  drawAnim(a[0],X,Y,e.t*(a[1]||1),fl,prog,sc); }
+function bossUpdate(e,dt,punching,hx0,hx1,hy0,hy1){ if(e.who&&e.who!=='kaka') return miniBoss(e,dt,punching,hx0,hx1,hy0,hy1); L.boss=e; const gy0=surfAt(e.x,e.gy??e.y)??VH; e.gy=gy0; if(e.mode!=='slam') e.y=gy0; e.t=(e.t||0)+dt; e.inv=Math.max(0,(e.inv||0)-dt); e.mt=(e.mt||0)-dt;
   const gy=gy0, ph=e.hp>5?0:e.hp>2?1:2, spd=[1,1.15,1.35][ph];
   if(e.state==='gone'){ e.st-=dt; if(e.st<=0) e.alive=false; return; }
   if(!e.act){ if(P.x>e.x-720){ e.act=true; e.intro=5; e.dir=-1; e.mode='idle'; e.mt=0; e.plan=0; L.kakaGone=true; cp=Math.max(cp,e.a-T*9); saveGame(); toast('Kaka czeka przy saunie! 📋','#ffd1dc'); play('kz_boss',()=>play('kaka_boss_intro')); } else return; }
@@ -381,7 +428,7 @@ function stepBossFx(dt){ shake=Math.max(0,shake-dt);
   waves.forEach(w=>{ w.t-=dt; w.x+=w.vx*dt; const g=groundY(w.x); if(g==null||Math.abs(g-w.y)>4) w.t=0; if(w.t>0&&Math.abs(P.x-w.x)<28&&P.y+P.h>w.y-34&&P.y+P.h<=w.y+4) hurt('Fala uderzeniowa! Skacz! 🌊','kaka'); }); waves=waves.filter(w=>w.t>0);
   rain.forEach(q=>{ q.t-=dt; q.y+=q.vy*dt; q.x+=Math.sin(t0*3+q.ph)*40*dt; const g=groundY(q.x)??VH;
     if(q.y>g-8){ q.t=0; puff(q.x,g-6,'#fffbe8',5); }
-    else if(Math.abs(q.x-P.x)<32&&q.y>P.y&&q.y<P.y+P.h){ q.t=0; hurt('Lista spadła ci na głowę! 📝','note'); }
+    else if(Math.abs(q.x-P.x)<32&&q.y>P.y&&q.y<P.y+P.h){ q.t=0; hurt(q.src==='inez'?'Całus z nieba od Inez! 💋':'Lista spadła ci na głowę! 📝',q.src||'note'); }
     else if(snowballs.some(b=>b.t>0&&Math.hypot(b.x-q.x,b.y-q.y)<36)){ q.t=0; puff(q.x,q.y,'#fffbe8',8); } }); rain=rain.filter(q=>q.t>0); }
 // Kaczor comments when he spots, beats or gets hit by Kaka's helpers (not too often, never over other dialogue)
 const REM={inez:{see:['kz_inez_see1','kz_inez_see2'],win:['kz_inez_win1','kz_inez_win2'],hit:['kz_hit','kz_inez_hit2']},gay:{see:['kz_gay_see1','kz_gay_see2'],win:['kz_gay_win1','kz_gay_win2'],hit:['kz_hit_gay','kz_gay_hit2']},vac:{see:['kz_vac_see1','kz_vac_see2'],win:['kz_vac_win1','kz_vac_win2'],hit:['kz_vac_hit']},note:{see:['kz_note_see1','kz_note_see2'],win:['kz_note_win1','kz_note_win2'],hit:['kz_note_hit']}};
@@ -730,6 +777,7 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
     else if(e.k==='vihta') drawImg(IMG.it_vihta,X,e.y+18+Math.sin(t0*3+e.x)*4,36);
     else if(e.k==='ladle') drawImg(IMG.it_ladle,X,e.y+22+Math.sin(t0*3)*4,46);
     else if(e.k==='gold'){ const gl=c.createRadialGradient(X,e.y,0,X,e.y,46); gl.addColorStop(0,'rgba(255,220,90,.55)'); gl.addColorStop(1,'rgba(255,220,90,0)'); c.fillStyle=gl; c.fillRect(X-46,e.y-46,92,92); c.save(); c.filter='sepia(1) saturate(3) brightness(1.15) hue-rotate(-12deg)'; drawImg(IMG.it_ladle,X,e.y+24+Math.sin(t0*3)*5,52); c.restore(); if(Math.random()<.2) parts.push({x:e.x+(Math.random()-.5)*40,y:e.y+(Math.random()-.5)*40,vx:0,vy:-30,t:.5,col:'#fff6b0',r:2}); }
+    else if(e.k==='boss'&&e.who!=='kaka') drawMiniBoss(e,X);
     else if(e.k==='boss'){ const fl=e.dir<0, sc=.62, Y=e.y+2;
       if(e.state==='gone'){ c.globalAlpha=Math.max(0,Math.min(1,e.st/1.2)); drawAnim('kb_defeat',X,Y,0,fl,Math.min(1,(4-e.st)/2.6),sc)||drawImg(IMG.kaka_point,X,Y,166*CHAR,fl); c.globalAlpha=1; return; }
       if(e.mode==='hurt'&&Math.floor(e.mt*16)%2) return;
@@ -779,11 +827,12 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
   // near snow in front of everything: depth
   for(let i=0;i<22;i++){ const sp=1.5+hash(i*7)*.6, fx=((hash(i*13)*(VW+200)-cam*sp-t0*(18+hash(i)*20))%(VW+200)+VW+200)%(VW+200)-100, fy=(hash(i*5)*VH+t0*(55+hash(i*3)*45))%(VH+40)-20, rr=3+hash(i*11)*4;
     c.globalAlpha=.55; c.drawImage(FLAKE,fx-rr*2,fy-rr*2,rr*4,rr*4); } c.globalAlpha=1;
+  if(flash>0){ flash=Math.max(0,flash-1/60); c.fillStyle=`rgba(255,255,255,${Math.min(1,flash*2)})`; c.fillRect(0,0,VW,VH); }
   // boss attacks: shockwaves along the ground and chore lists raining down
   waves.forEach(w=>{ const X=w.x-cam; c.save(); c.translate(X,w.y); c.scale(Math.sign(w.vx),1); const g2=c.createLinearGradient(-30,0,20,0); g2.addColorStop(0,'rgba(200,235,255,0)'); g2.addColorStop(1,'rgba(235,250,255,.95)'); c.fillStyle=g2; c.beginPath(); c.moveTo(-40,2); c.quadraticCurveTo(0,-46,22,2); c.closePath(); c.fill(); c.strokeStyle='rgba(120,190,230,.9)'; c.lineWidth=3; c.beginPath(); c.moveTo(-10,-30); c.quadraticCurveTo(8,-38,20,0); c.stroke(); c.restore(); if(Math.random()<.5) parts.push({x:w.x,y:w.y-8,vx:-Math.sign(w.vx)*60,vy:-120,t:.4,col:'#e8f7ff',r:3}); });
-  rain.forEach(q=>{ c.save(); c.translate(q.x-cam,q.y); c.rotate(Math.sin(t0*5+q.ph)*.4); if(IMG.enemy_note.complete&&IMG.enemy_note.naturalWidth) drawImg(IMG.enemy_note,0,30,60,false); c.restore(); });
+  rain.forEach(q=>{ if(q.img==='kiss'){ drawImg(IMG.it_kiss,q.x-cam,q.y+16,34); return; } c.save(); c.translate(q.x-cam,q.y); c.rotate(Math.sin(t0*5+q.ph)*.4); if(IMG.enemy_note.complete&&IMG.enemy_note.naturalWidth) drawImg(IMG.enemy_note,0,30,60,false); c.restore(); });
   // boss health
-  if(L.boss&&L.boss.alive&&L.boss.act&&L.boss.state!=='gone'){ c.textAlign='center'; c.font='700 22px "Baloo 2",sans-serif'; c.fillStyle='#ffd1dc'; c.lineWidth=5; c.strokeStyle='rgba(0,0,0,.6)'; const bt='Kaka'; c.strokeText(bt,VW/2-170,128); c.fillText(bt,VW/2-170,128); c.fillStyle='rgba(0,0,0,.45)'; c.beginPath(); c.roundRect(VW/2-130,112,300,20,10); c.fill(); for(let k=0;k<8;k++){ c.fillStyle=k<L.boss.hp?(L.boss.hp>5?'#ff6f61':L.boss.hp>2?'#ff9f43':'#ff3b3b'):'rgba(255,255,255,.12)'; c.beginPath(); c.roundRect(VW/2-127+k*37,115,33,14,6); c.fill(); } if(L.boss.mode==='tired'){ c.fillStyle='#fff6b0'; c.font='700 18px "Baloo 2",sans-serif'; c.strokeText('Teraz! Kaka jest zmęczona',VW/2,158); c.fillText('Teraz! Kaka jest zmęczona',VW/2,158); } c.textAlign='left'; }
+  if(L.boss&&L.boss.alive&&L.boss.act&&L.boss.state!=='gone'){ c.textAlign='center'; c.font='700 22px "Baloo 2",sans-serif'; c.fillStyle='#ffd1dc'; c.lineWidth=5; c.strokeStyle='rgba(0,0,0,.6)'; const BO=L.boss, mx=BO.maxhp||8, nm=BO.who&&BO.who!=='kaka'?MB[BO.who].name:'Kaka'; c.strokeText(nm,VW/2-190,128); c.fillText(nm,VW/2-190,128); c.fillStyle='rgba(0,0,0,.45)'; c.beginPath(); c.roundRect(VW/2-130,112,300,20,10); c.fill(); const sw=294/mx; for(let k=0;k<mx;k++){ c.fillStyle=k<BO.hp?(BO.hp>mx*.6?'#ff6f61':BO.hp>mx*.3?'#ff9f43':'#ff3b3b'):'rgba(255,255,255,.12)'; c.beginPath(); c.roundRect(VW/2-127+k*sw,115,sw-4,14,6); c.fill(); } if(BO.mode==='tired'){ const tt=BO.who&&BO.who!=='kaka'?MB[BO.who].tired:'Teraz! Kaka jest zmęczona'; c.fillStyle='#fff6b0'; c.font='700 18px "Baloo 2",sans-serif'; c.strokeText(tt,VW/2,158); c.fillText(tt,VW/2,158); } c.textAlign='left'; }
   if(kzSay&&state==='play'){ kzSay.ttl-=1/60; if(kzSay.ttl<=0) kzSay=null; else bubble(P.x-cam,P.y-52,kzSay.t,'Kaczor','#2e6da4',Math.min(1,kzSay.ttl*2)); }
   // tutorial hint banner
   if(hint&&state==='play'){ c.save(); c.globalAlpha=Math.min(1,hint.ttl*2); c.font='700 24px "Baloo 2",sans-serif'; c.textAlign='center'; const w=c.measureText(hint.t).width+44; c.fillStyle='rgba(20,28,48,.72)'; c.beginPath(); c.roundRect(VW/2-w/2,VH-86,w,46,23); c.fill(); c.fillStyle='#fff'; c.fillText(hint.t,VW/2,VH-55); c.restore(); }
@@ -803,7 +852,7 @@ function allImgs(){ return [...Object.values(IMG),...Object.values(ENV),...Objec
 function warmImages(){ c.save(); c.setTransform(1,0,0,1,0,0); c.globalAlpha=.01; for(const im of allImgs()) if(im.complete&&im.naturalWidth){ try{ c.drawImage(im,0,0,4,4,0,0,1,1); }catch(e){} } c.restore(); }
 function showIntro(i){ setTimeout(warmImages,50); preloadVoices(['kz_hit_any','kz_vac_see1','kz_note_see1','kz_inez_see1','kz_gay_see1','mar_'+(i+1),'kzm_'+(i+1)].concat(i===9?['kz_boss','kaka_boss_intro','kaka_boss_hit1','kaka_boss_hit2','kaka_boss_vac','kaka_boss_end','mar_boss_extra']:[])); if(i<9) img('sauna_'+(i+1)); state='intro'; loadLevel(i,i>0); const D=LEVELS[i]; $('#iFace').style.backgroundImage='url(art/jugo_face.webp)'; $('#iName').textContent=`Poziom ${i+1}: ${D.name}`; $('#iNarr').textContent=JUGO[i]; $('#iTxt').textContent=`Kaczor: „${D.txt}”`; $('#intro').classList.remove('hidden'); play('jugo_'+(i+1)); }
 function setMusic(src){ if(!bgm.src.endsWith(src)){ bgm.src=src; bgm.loop=true; } if(!muted) bgm.play().catch(()=>{}); }
-$('#iGo').onclick=()=>{ if(resume&&resume.lvl===lvl&&resume.cp){ cp=resume.cp; lvlV=resume.lvlV||0; spawn(); toast('Wczytano zapis — ostatni punkt kontrolny ✓','#d6ffd9'); } resume=null; if(QBOSS&&lvl===LEVELS.length-1){ const bo=L.ent.find(e=>e.k==='boss'); if(bo){ cp=QEND?L.mar-T*9:bo.x-T*15; spawn(); if(QEND){ ents.forEach(e=>{ if(e.k==='boss'){ e.alive=false; } }); L.kakaGone=true; } } } $('#intro').classList.add('hidden'); $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); showKeys(lvl===0?18:9); state='play'; t0=0; initAudio(); setMusic('audio/music_'+(lvl+1)+'.mp3'); setAmb(AMB[lvl]); play(LEVELS[lvl].line); };
+$('#iGo').onclick=()=>{ if(resume&&resume.lvl===lvl&&resume.cp){ cp=resume.cp; lvlV=resume.lvlV||0; spawn(); toast('Wczytano zapis — ostatni punkt kontrolny ✓','#d6ffd9'); } resume=null; if(QBOSS&&lvl===(QEND?LEVELS.length-1:QBL)){ const bo=L.ent.find(e=>e.k==='boss'); if(bo){ cp=QEND?L.mar-T*9:bo.x-T*15; spawn(); if(QEND){ ents.forEach(e=>{ if(e.k==='boss'){ e.alive=false; } }); L.kakaGone=true; } } } $('#intro').classList.add('hidden'); $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); showKeys(lvl===0?18:9); state='play'; t0=0; initAudio(); setMusic('audio/music_'+(lvl+1)+'.mp3'); setAmb(AMB[lvl]); play(LEVELS[lvl].line); };
 function finishLevel(){ if(state!=='play') return; state='outro'; $('#keys').classList.add('hidden'); sfx('win'); P.towel=true; P.vx=0; P.inv=0; puff(P.x,P.y+40,'#ffffff',22); toast('Ręcznik na biodra — czas na saunę! 🧖','#d6ffd9'); }
 function outro(dt){ t0+=dt; P.anim+=dt; stepSteam(dt); const door=L.goal+140; toasts.forEach(t=>t.t-=dt); toasts=toasts.filter(t=>t.t>0); parts.forEach(p=>{ p.t-=dt; p.vy+=500*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; }); parts=parts.filter(p=>p.t>0);
   if(P.joy<=0&&Math.abs(P.x-door)>6){ P.face=Math.sign(door-P.x); P.vx=P.face*140; P.x+=P.vx*dt; if(Math.abs(P.x-door)<=6) P.x=door; }
@@ -825,7 +874,7 @@ function nextAfterSauna(){ hideGameButtons(); try{ localStorage.removeItem('kz-s
 // retry from the last checkpoint: the level stays as it is, Kaczor gets full hearts; in the duel Kaka starts over at full strength
 function retryFromCheckpoint(){ $('#over').classList.add('hidden'); if(cur){ cur.onended=null; cur.pause(); cur=null; bgm.volume=mv(); }
   hearts=DF().hearts; phones=[]; kisses=[]; snowballs=[]; waves=[]; rain=[];
-  const bo=ents.find(e=>e.k==='boss'&&e.alive); if(bo&&bo.act&&bo.state!=='gone'){ bo.hp=8; bo.extraDone=false; bo.mode='idle'; bo.mt=1.5; bo.intro=1.2; bo.plan=0; bo.x=Math.max(bo.a,Math.min(bo.b,bo.x)); ents.forEach(v=>{ if(v.boss&&v!==bo) v.alive=false; }); }
+  const bo=ents.find(e=>e.k==='boss'&&e.alive); if(bo&&bo.act&&bo.state!=='gone'){ bo.hp=bo.maxhp||8; bo.extraDone=false; bo.mode='idle'; bo.mt=1.5; bo.intro=1.2; bo.plan=0; bo.x=Math.max(bo.a,Math.min(bo.b,bo.x)); ents.forEach(v=>{ if(v.boss&&v!==bo) v.alive=false; }); }
   spawn(); if(L.kakaGone){ kaka.x=P.x-5000; kaka.wait=99; } $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); state='play'; last=performance.now(); }
 $('#oGo').onclick=retryFromCheckpoint;
 $('#oRe').onclick=()=>{ $('#over').classList.add('hidden'); const keepV=vihta; loadLevel(lvl,false); vihta=keepV; saveGame(); $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); state='play'; t0=0; };
@@ -838,8 +887,8 @@ const qs=new URLSearchParams(location.search), qlv=+qs.get('level');
 const SAVE=loadSave(); let resume=null;
 if(SAVE&&SAVE.cp&&!qlv&&!qs.has('boss')&&!qs.has('ending')){ $('#play').textContent=`Graj dalej — poziom ${SAVE.lvl+1}, punkt kontrolny ▶`; $('#fresh').classList.remove('hidden'); }
 else if(best>0&&best<LEVELS.length){ $('#play').textContent=`Graj dalej — poziom ${best+1} ▶`; $('#fresh').classList.remove('hidden'); }
-const QBOSS=qs.has('boss')||qs.has('ending'), QEND=qs.has('ending'); // ?ending: Kaka already beaten, straight to the finale // ?boss: jump straight to the final duel with Kaka
-$('#play').onclick=()=>{ if(SAVE&&SAVE.cp&&!qlv&&!QBOSS){ resume=SAVE; start(SAVE.lvl); vihta=SAVE.vihta||0; return; } start(QBOSS?LEVELS.length-1:qlv?Math.min(qlv,LEVELS.length)-1:(best<LEVELS.length?best:0)); };
+const QBOSS=qs.has('boss')||qs.has('ending'), QEND=qs.has('ending'), QBL=Math.max(1,Math.min(10,+qs.get('boss')||10))-1; // ?ending: Kaka already beaten, straight to the finale // ?boss: jump straight to the final duel with Kaka
+$('#play').onclick=()=>{ if(SAVE&&SAVE.cp&&!qlv&&!QBOSS){ resume=SAVE; start(SAVE.lvl); vihta=SAVE.vihta||0; return; } start(QBOSS?(QEND?LEVELS.length-1:QBL):qlv?Math.min(qlv,LEVELS.length)-1:(best<LEVELS.length?best:0)); };
 $('#fresh').onclick=()=>{ try{ localStorage.removeItem('kz-save'); }catch(e){} resume=null; start(0); };
 function renderLevels(){ $('#lvls').innerHTML=''; LEVELS.forEach((D,i)=>{ const bt=document.createElement('button'); const st=STARS[i]||0; bt.textContent=`${i+1}. ${D.name}${st?' '+'★'.repeat(st):''}`; bt.disabled=i>Math.min(best,LEVELS.length-1); bt.onclick=()=>start(i); $('#lvls').append(bt); }); }
 renderLevels(); renderDiff('tDiff'); renderDiff('pDiff');
