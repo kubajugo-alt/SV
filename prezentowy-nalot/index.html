@@ -241,7 +241,7 @@ function collect(it){ sfx('pick',.5); if(it.kind==='candy'){ P.triple=10; popups
   else if(it.kind==='cookie'){ P.hp=Math.min(5,P.hp+1); popups.push({x:P.x,y:P.y-90,txt:'Ciasteczko z mlekiem: +1 ❤',t:1.6,col:'#ffe27a'}); }
   else { P.shield=10; popups.push({x:P.x,y:P.y-90,txt:'Gwiazdka: tarcza!',t:1.6,col:'#fff1a8'}); } }
 function useGlow(){ say('nm_glow',null,true); sfx('glide',.6); blip(220,880,.5,.06,'sine'); shake=.25; P.glowT=1.2;
-  const nx=P.x+150, ny=P.y-40; for(let k=0;k<3;k++) waves.push({x:nx,y:ny,r:-k*90,t:0,hit:new Set(),boss:false}); burst(nx,ny,'#ffb0a0',18); }
+  const nx=P.x+160, ny=P.y-27; for(let k=0;k<3;k++) waves.push({x:nx,y:ny,r:-k*90,t:0,hit:new Set(),boss:false}); burst(nx,ny,'#ffb0a0',18); }
 
 // ---------- boss: Inez in her big pink biplane ----------
 function startBoss(){ boss={x:VW+260,y:240,hp:90,max:90,in:false,mode:'enter',mt:0,t:0,hit:0,dir:1}; bossPhase=1;
@@ -302,7 +302,7 @@ function draw(){
   shots.forEach(s=>{ c.fillStyle='#fff'; c.beginPath(); c.arc(s.x,s.y,8,0,6.29); c.fill(); c.fillStyle='rgba(200,225,255,.8)'; c.beginPath(); c.arc(s.x+2,s.y+2,4,0,6.29); c.fill(); });
   ebullets.forEach(b=>drawImg(b.img,b.x,b.y,34,Math.sin(b.rot)*.3));
   // Rudolf's nose glow and its waves of light
-  { const nx=P.x+150, ny=P.y-40, gl=.35+.15*Math.sin(t0*5)+(P.glowT||0)*.6, R=26+(P.glowT||0)*40; const g=c.createRadialGradient(nx,ny,2,nx,ny,R); g.addColorStop(0,`rgba(255,90,70,${Math.min(1,gl)})`); g.addColorStop(1,'rgba(255,90,70,0)'); c.fillStyle=g; c.fillRect(nx-R,ny-R,R*2,R*2); }
+  { const nx=P.x+160, ny=P.y-27, gl=.35+.15*Math.sin(t0*5)+(P.glowT||0)*.6, R=26+(P.glowT||0)*40; const g=c.createRadialGradient(nx,ny,2,nx,ny,R); g.addColorStop(0,`rgba(255,90,70,${Math.min(1,gl)})`); g.addColorStop(1,'rgba(255,90,70,0)'); c.fillStyle=g; c.fillRect(nx-R,ny-R,R*2,R*2); }
   waves.forEach(w=>{ if(w.r<=0) return; const a=Math.max(0,1-w.r/1700), inner=Math.max(0,w.r-70); const g=c.createRadialGradient(w.x,w.y,inner,w.x,w.y,w.r+16);
     g.addColorStop(0,'rgba(255,80,60,0)'); g.addColorStop(.55,`rgba(255,90,70,${.45*a})`); g.addColorStop(.85,`rgba(255,235,160,${.85*a})`); g.addColorStop(1,'rgba(255,235,160,0)');
     c.fillStyle=g; c.beginPath(); c.arc(w.x,w.y,w.r+16,0,6.29); c.arc(w.x,w.y,inner,0,6.29,true); c.fill(); });
@@ -329,7 +329,7 @@ function drawHud(){
 function startLevel(){ document.body.classList.add('playing'); reset(); state='play'; ['intro','over','win','pause','title'].forEach(id=>$(id).classList.add('hidden')); setMusic('music_1.mp3'); last=performance.now(); say('nk_start',()=>setTimeout(()=>say('nz_start'),200),true); }
 function gameOver(){ state='over'; $('over').classList.remove('hidden'); if(voice){ voice.pause(); voice=null; } bgm.volume=bgmVol*.5; }
 function levelDone(){ state='win'; const pct=delivered/Math.max(1,houseCount), st=1+(pct>=.5?1:0)+(pct>=.75?1:0); $('wStars').textContent='★'.repeat(st)+'☆'.repeat(3-st);
-  $('wTxt').innerHTML=`Prezenty w kominach: <b>${delivered} / ${houseCount}</b> · Punkty: <b>${score}</b><br>Inez spadła w zaspę, a rodzinka leci dalej!`;
+  $('wTxt').innerHTML=`Prezenty w kominach: <b>${delivered} / ${houseCount}</b> · Punkty: <b>${score}</b><br>Inez odfrunęła na spadochronie, a rodzinka leci dalej!`;
   try{ const best=+localStorage.getItem('pn-best1')||0; if(score>best) localStorage.setItem('pn-best1',score); }catch(e){}
   $('win').classList.remove('hidden'); sfx('win',.6); say('nk_win',()=>setTimeout(()=>say('nz_win'),300),true); }
 function pauseGame(){ if(state!=='play') return; state='pause'; $('pause').classList.remove('hidden'); bgm.pause(); if(voice) voice.pause(); }
