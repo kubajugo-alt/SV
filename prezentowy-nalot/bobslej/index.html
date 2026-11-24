@@ -4,27 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pościg w bobslejach — Prezentowy nalot</title>
-<meta name="description" content="Prezentowy nalot: Kaczor, Kaka i mały Mikołaj gonią Inez w bobsleju po lodowym torze i strzelają z armatki śnieżnej.">
+<meta name="description" content="Prezentowy nalot: Kaczor, Kaka i mały Mikołaj gonią Inez w bobsleju po lodowej rynnie i strzelają z armatki śnieżnej.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Lobster&subset=latin-ext&display=swap" rel="stylesheet">
 <style>
 :root{--red:#c0392b;--green:#2f6b45;--ink:#2b1d14}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#0b1430;overflow:hidden;font-family:'Baloo 2',system-ui,sans-serif;color:var(--ink);user-select:none;-webkit-tap-highlight-color:transparent}
-#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:0 0;container-type:size;background:#000;overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:50% 50%;background:#000;overflow:hidden}
 canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .hidden{display:none!important}
 .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:5}
 .dim{background:rgba(6,10,28,.55)}
-.card{background:rgba(255,248,234,.96);border-radius:22px;padding:26px 36px;max-width:780px;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+.card{background:rgba(255,248,234,.96);border-radius:22px;padding:24px 36px;max-width:800px;box-shadow:0 14px 40px rgba(0,0,0,.45)}
 .card h2{font-family:Lobster,cursive;font-weight:400;color:var(--red);font-size:48px;margin:0 0 6px}
-.card p{font-size:21px;line-height:1.35;margin:6px 0 14px}
-.faces{display:flex;gap:14px;justify-content:center;margin:6px 0 10px}.faces i{width:84px;height:84px;border-radius:50%;background:#f1dfc0 center/cover;border:4px solid var(--red)}
+.card p{font-size:20px;line-height:1.35;margin:6px 0 12px}
+.faces{display:flex;gap:14px;justify-content:center;margin:4px 0 8px}.faces i{width:80px;height:80px;border-radius:50%;background:#f1dfc0 center/cover;border:4px solid var(--red)}
 .btn{background:var(--red);color:#fff;border:0;border-radius:999px;padding:.45em 1.4em;font:700 22px 'Baloo 2';box-shadow:0 4px 0 #8e211b;cursor:pointer}
 .btn.alt{background:var(--green);box-shadow:0 4px 0 #1d4a2e}
 .btn:active{transform:translateY(2px)}
 .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.help{font-size:16px;color:#5a4a3a}
+.help{font-size:16px!important;color:#5a4a3a}
 #back{position:absolute;left:12px;top:10px;z-index:6;color:#fff;font-size:15px;text-decoration:none;background:rgba(6,10,28,.5);padding:.2em .8em;border-radius:99px}
 #mute{position:absolute;right:12px;top:10px;z-index:6;border:0;background:rgba(255,250,240,.85);border-radius:50%;width:44px;height:44px;font-size:20px;cursor:pointer}
 #touch{position:absolute;inset:0;z-index:4;pointer-events:none}
@@ -40,166 +40,241 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
   <div id="intro" class="ov dim"><div class="card">
     <h2>Pościg w bobslejach</h2>
     <div class="faces"><i style="background-image:url(art/face_kaka.webp)"></i><i style="background-image:url(art/face_mikolaj.webp)"></i><i style="background-image:url(art/face_kaczor.webp)"></i></div>
-    <p>Inez ucieka różowym bobslejem po lodowym torze dookoła fabryki! Kaczor steruje, Kaka pilnuje toru, a mały Mikołaj obsługuje <b>armatkę śnieżną</b>.</p>
-    <p>Trzymaj się lodu, omijaj jej prezenty i serduszka, i <b>trafiaj Inez śnieżkami 6 razy</b>, zanim przejedzie 3 okrążenia.</p>
+    <p>Inez ucieka różowym bobslejem lodową rynną dookoła fabryki zabawek! Kaczor steruje, a mały Mikołaj obsługuje <b>armatkę śnieżną</b> z fabryki.</p>
+    <p>Odbijaj się od ścian jak najmniej, wjeżdżaj na <b>żółte strzałki turbo</b>, zbieraj <b>skrzynki ze śnieżkami</b> i trafiaj Inez, aż jej serca się skończą — zanim przejedzie 3 okrążenia. Uważaj na jej prezenty i serduszka!</p>
     <p class="help">◀ ▶ / A D — skręt · ▼ / S — hamulec · <b>Spacja</b> / X — armatka śnieżna · M — dźwięk</p>
     <button class="btn" id="bGo">Ruszamy! ❄</button>
   </div></div>
   <div id="end" class="ov dim hidden"><div class="card"><h2 id="eH"></h2><p id="eTxt"></p><div class="row" id="eRow"></div></div></div>
 </div>
 <script>
-// ---------- stage scaling (same idea as the main game) ----------
+// =====================================================================================
+//  Pościg w bobslejach — a Mode 7 engine: a painted ground plane rendered per scanline,
+//  billboard sprites (walls, trees, spectators, crates, rivals), camera roll in curves.
+// =====================================================================================
 const stage=document.getElementById('stage'), cv=document.getElementById('cv'), c=cv.getContext('2d'), VW=1280, VH=720, $=id=>document.getElementById(id);
-function fit(){ const s=Math.min(innerWidth/VW,innerHeight/VH); stage.style.transform=`scale(${s}) translate(-50%,-50%)`; stage.style.transformOrigin='0 0'; stage.style.left=(innerWidth/2)+'px'; stage.style.top=(innerHeight/2)+'px'; stage.style.transform=`translate(-50%,-50%) scale(${s})`; stage.style.transformOrigin='50% 50%'; }
+function fit(){ const s=Math.min(innerWidth/VW,innerHeight/VH); stage.style.transform=`translate(-50%,-50%) scale(${s})`; }
 addEventListener('resize',fit); fit();
 const TOUCH=matchMedia('(pointer:coarse)').matches;
-// ---------- assets ----------
-const IMG={}; ['bob_family','bob_inez','tree','pole','gift','heart','snowball','bg_pole'].forEach(n=>{ const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; });
+const IMG={}; ['bob_rear','inez_rear','wall','crate','arch','snowman','sky','tree','pole','gift','heart','snowball','elf_happy','kiss'].forEach(n=>{ const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; });
 const ok=i=>i&&i.complete&&i.naturalWidth;
+const rnd=(()=>{ let s=12345; return ()=>{ s=(s*16807)%2147483647; return s/2147483647; }; })();
+
+// ---------- audio: music, voices with subtitles, synthesised runners on ice ----------
 let muted=false; try{ muted=localStorage.getItem('pn-mute')==='1'; }catch(e){}
-const bgm=new Audio('audio/music.mp3'); bgm.loop=true; bgm.volume=.3;
-let voice=null, sub=null;
+const bgm=new Audio('audio/music.mp3'); bgm.loop=true; bgm.volume=.28;
+let voice=null, sub=null, AC=null, runG=null, runF=null;
 const SUBS={b_start:['Kaka','Wszyscy w bobsleju? Mikołaj, trzymaj się mocno!'],b_start_m:['Mikołaj','Szybciej, tato! Dogonimy ją!'],b_inez1:['Inez','Kaczorku, nie dogonisz mnie! Mój bobslej jest różowy, więc szybszy!'],b_inez2:['Inez','Prezencik dla was! Uważajcie na serduszka!'],
   b_inez3:['Inez','Au! To moja nowa fryzura!'],b_inez4:['Inez','Brr! Zimno! Kaczorku, przestań!'],b_hit1:['Mikołaj','Trafiłem! Trafiłem w Inez!'],b_hit2:['Kaczor','Prosto w cel! Armatka działa!'],b_hit3:['Kaka','Jeszcze raz, jeszcze trochę!'],
   b_bump:['Kaczor','Uwaga, prezent na torze!'],b_bump2:['Kaka','Kaczor, patrz na tor!'],b_snow:['Mikołaj','Ojej, jedziemy po śniegu!'],b_close:['Kaczor','Mamy ją! Ognia!'],b_lose:['Kaka','Uciekła… Spróbujmy jeszcze raz!'],
   b_win_inez:['Inez','Dobrze, dobrze! Poddaję się! Oddaję biegun… Ale Kaczorku, jeszcze się spotkamy!'],b_win:['Kaczor','Wygraliśmy! Biegun wolny!'],b_win_m:['Mikołaj','Hurra! Mamo, tato, uratowaliśmy święta!']};
 const WHO_COL={Kaka:'#ffd1dc',Kaczor:'#cfe6ff',Mikołaj:'#fff1a8',Inez:'#ff9ccf'};
-function say(k,onend,force){ if(voice&&!force) return false; if(voice){ voice.onended=null; voice.pause(); } sub={who:SUBS[k][0],t:SUBS[k][1],ttl:5}; if(muted){ voice=null; setTimeout(()=>onend&&onend(),1500); return true; }
-  const a=new Audio('audio/'+k+'.mp3'); a.volume=.95; voice=a; bgm.volume=.12; a.onended=()=>{ if(voice===a){ voice=null; bgm.volume=.3; } if(sub) sub.ttl=Math.min(sub.ttl,.6); onend&&onend(); }; a.play().catch(()=>{ voice=null; onend&&onend(); }); return true; }
+function say(k,onend,force){ if(voice&&!force) return false; if(voice){ voice.onended=null; voice.pause(); } sub={who:SUBS[k][0],t:SUBS[k][1],ttl:5.5}; if(muted){ voice=null; setTimeout(()=>onend&&onend(),1600); return true; }
+  const a=new Audio('audio/'+k+'.mp3'); a.volume=.95; voice=a; bgm.volume=.1; a.onended=()=>{ if(voice===a){ voice=null; bgm.volume=.28; } if(sub) sub.ttl=Math.min(sub.ttl,.6); onend&&onend(); }; a.play().catch(()=>{ voice=null; onend&&onend(); }); return true; }
 function sfx(n,v=.5){ if(muted) return; const a=new Audio('audio/'+n+'.mp3'); a.volume=v; a.play().catch(()=>{}); }
-function setMute(m){ muted=m; try{ localStorage.setItem('pn-mute',m?'1':'0'); }catch(e){} $('mute').textContent=m?'🔇':'🔊'; if(m){ bgm.pause(); if(voice) voice.pause(); } else if(state==='race') bgm.play().catch(()=>{}); }
+function beep(f,d=.15,v=.12,type='square'){ if(muted||!AC) return; const o=AC.createOscillator(), g=AC.createGain(); o.type=type; o.frequency.value=f; g.gain.setValueAtTime(v,AC.currentTime); g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime+d); }
+function initAudio(){ if(AC) return; try{ AC=new (window.AudioContext||window.webkitAudioContext)(); const n=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate), d=n.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  const src=AC.createBufferSource(); src.buffer=n; src.loop=true; runF=AC.createBiquadFilter(); runF.type='bandpass'; runF.frequency.value=900; runF.Q.value=.8; runG=AC.createGain(); runG.gain.value=0; src.connect(runF).connect(runG).connect(AC.destination); src.start(); }catch(e){} }
+function setMute(m){ muted=m; try{ localStorage.setItem('pn-mute',m?'1':'0'); }catch(e){} $('mute').textContent=m?'🔇':'🔊'; if(m){ bgm.pause(); if(voice) voice.pause(); if(runG) runG.gain.value=0; } else if(state==='race'||state==='count') bgm.play().catch(()=>{}); }
 $('mute').onclick=()=>setMute(!muted);
 
-// ---------- the track: a closed Catmull-Rom loop around the toy factory ----------
-const WORLD=4096, HALF=92; // track half-width in world units
-const CP=[[700,3300],[600,2000],[900,900],[1800,500],[2700,700],[3050,1400],[2500,2000],[2700,2650],[3400,2500],[3500,3300],[2600,3650],[1600,3300]];
+// ---------- the course: a closed Catmull-Rom loop, an ice channel with walls ----------
+const WORLD=6000, HALF=118, WALLPAD=24;
+const CP=[[1000,5000],[800,3600],[1200,2400],[900,1300],[1700,700],[2700,900],[3000,1700],[2500,2400],[2800,3100],[3800,3000],[4300,2100],[4100,1100],[4900,700],[5400,1400],[5300,2800],[5000,4200],[4300,5100],[3300,4700],[2600,5300],[1700,5400]];
 const PATH=[]; (function(){ const n=CP.length; for(let i=0;i<n;i++){ const p0=CP[(i-1+n)%n],p1=CP[i],p2=CP[(i+1)%n],p3=CP[(i+2)%n];
-  for(let t=0;t<1;t+=1/60){ const t2=t*t,t3=t2*t; const f=(a,b,c2,d)=>.5*((2*b)+(-a+c2)*t+(2*a-5*b+4*c2-d)*t2+(-a+3*b-3*c2+d)*t3); PATH.push([f(p0[0],p1[0],p2[0],p3[0]),f(p0[1],p1[1],p2[1],p3[1])]); } } })();
+  for(let t=0;t<1;t+=1/50){ const t2=t*t,t3=t2*t, f=(a,b,c2,d)=>.5*((2*b)+(-a+c2)*t+(2*a-5*b+4*c2-d)*t2+(-a+3*b-3*c2+d)*t3); PATH.push([f(p0[0],p1[0],p2[0],p3[0]),f(p0[1],p1[1],p2[1],p3[1])]); } } })();
 const SEG=[]; let LAP=0; for(let i=0;i<PATH.length;i++){ const a=PATH[i], b=PATH[(i+1)%PATH.length], l=Math.hypot(b[0]-a[0],b[1]-a[1]); SEG.push({x:a[0],y:a[1],dx:(b[0]-a[0])/l,dy:(b[1]-a[1])/l,l,s:LAP}); LAP+=l; }
-function trackAt(s){ s=((s%LAP)+LAP)%LAP; let lo=0,hi=SEG.length-1; while(lo<hi){ const m=(lo+hi+1)>>1; if(SEG[m].s<=s) lo=m; else hi=m-1; } const g=SEG[lo], u=s-g.s; return {x:g.x+g.dx*u,y:g.y+g.dy*u,dx:g.dx,dy:g.dy}; }
-// nearest point on the track to (x,y), searching around a hint index
-function nearest(x,y,hint){ let best=1e18,bi=hint||0; const n=SEG.length, from=hint==null?0:hint-40, to=hint==null?n:hint+40;
-  for(let k=from;k<to;k++){ const i=((k%n)+n)%n, g=SEG[i]; let u=(x-g.x)*g.dx+(y-g.y)*g.dy; u=Math.max(0,Math.min(g.l,u)); const px=g.x+g.dx*u, py=g.y+g.dy*u, d=(x-px)**2+(y-py)**2; if(d<best){ best=d; bi=i; } }
-  const g=SEG[bi]; let u=(x-g.x)*g.dx+(y-g.y)*g.dy; u=Math.max(0,Math.min(g.l,u)); return {i:bi,s:g.s+u,d:Math.sqrt(best),side:Math.sign((x-g.x)*g.dy-(y-g.y)*g.dx)}; }
+SEG.forEach((g,i)=>{ const h=SEG[(i+3)%SEG.length], k=SEG[(i-3+SEG.length)%SEG.length]; let ds=h.s-k.s; if(ds<=0) ds+=LAP; g.curv=Math.atan2(k.dx*h.dy-k.dy*h.dx,k.dx*h.dx+k.dy*h.dy)/ds; });
+function segAt(s){ s=((s%LAP)+LAP)%LAP; let lo=0,hi=SEG.length-1; while(lo<hi){ const m=(lo+hi+1)>>1; if(SEG[m].s<=s) lo=m; else hi=m-1; } return lo; }
+function trackAt(s,lat=0){ s=((s%LAP)+LAP)%LAP; const g=SEG[segAt(s)], u=s-g.s; return {x:g.x+g.dx*u-g.dy*lat,y:g.y+g.dy*u+g.dx*lat,dx:g.dx,dy:g.dy,curv:g.curv}; }
+function nearest(x,y,hint){ let best=1e18,bi=0; const n=SEG.length, from=hint==null?0:hint-25, to=hint==null?n:hint+25;
+  for(let k=from;k<to;k++){ const i=((k%n)+n)%n, g=SEG[i]; let u=(x-g.x)*g.dx+(y-g.y)*g.dy; u=Math.max(0,Math.min(g.l,u)); const d=(x-g.x-g.dx*u)**2+(y-g.y-g.dy*u)**2; if(d<best){ best=d; bi=i; } }
+  const g=SEG[bi]; let u=(x-g.x)*g.dx+(y-g.y)*g.dy; u=Math.max(0,Math.min(g.l,u)); const px=g.x+g.dx*u, py=g.y+g.dy*u, lat=(x-px)*-g.dy+(y-py)*g.dx; return {i:bi,s:g.s+u,lat,px,py,dx:g.dx,dy:g.dy,curv:g.curv}; }
+const BOOSTS=[0.13,0.31,0.47,0.62,0.8,0.93].map(f=>({s:f*LAP,lat:(f*7%1-.5)*HALF*.8}));
+const CRATES=[]; for(let f=.06;f<1;f+=.105) CRATES.push({s:f*LAP,lat:((f*13)%1-.5)*HALF*1.1,gone:0});
 
-// ---------- the ground texture (2 world units per texel) ----------
-const TS=2048, TSC=TS/WORLD; let TEX=null;
+// ---------- the painted ground (Mode 7 texture) ----------
+const TS=2048, TSC=TS/WORLD; let TEX32=null; const SNOW32=0xfffbf3ee;
 (function(){ const o=document.createElement('canvas'); o.width=o.height=TS; const g=o.getContext('2d');
-  g.fillStyle='#eef4fb'; g.fillRect(0,0,TS,TS);
-  for(let k=0;k<9000;k++){ g.fillStyle=`rgba(${170+Math.random()*40|0},${190+Math.random()*40|0},230,${.08+Math.random()*.12})`; const r=2+Math.random()*10; g.beginPath(); g.arc(Math.random()*TS,Math.random()*TS,r,0,6.29); g.fill(); }
+  g.fillStyle='#edf3fb'; g.fillRect(0,0,TS,TS);
+  for(let k=0;k<14000;k++){ g.fillStyle=`rgba(${160+rnd()*50|0},${185+rnd()*45|0},${225+rnd()*25|0},${.06+rnd()*.12})`; g.beginPath(); g.arc(rnd()*TS,rnd()*TS,1+rnd()*7,0,6.29); g.fill(); }
+  for(let k=0;k<60;k++){ g.strokeStyle='rgba(170,190,215,.35)'; g.lineWidth=1.5; g.beginPath(); let x=rnd()*TS,y=rnd()*TS; g.moveTo(x,y); for(let j=0;j<8;j++){ x+=(rnd()-.5)*90; y+=(rnd()-.5)*90; g.lineTo(x,y); } g.stroke(); }
   const path=()=>{ g.beginPath(); PATH.forEach((p,i)=>i?g.lineTo(p[0]*TSC,p[1]*TSC):g.moveTo(p[0]*TSC,p[1]*TSC)); g.closePath(); };
   g.lineJoin='round'; g.lineCap='round';
-  path(); g.strokeStyle='#c93a3a'; g.lineWidth=(HALF*2+22)*TSC; g.stroke();
-  path(); g.setLineDash([16,16]); g.strokeStyle='#ffffff'; g.lineWidth=(HALF*2+22)*TSC; g.stroke(); g.setLineDash([]);
-  path(); g.strokeStyle='#9fd0ee'; g.lineWidth=HALF*2*TSC; g.stroke();
-  path(); g.strokeStyle='#bfe3f6'; g.lineWidth=HALF*1.3*TSC; g.stroke();
-  path(); g.strokeStyle='rgba(255,255,255,.55)'; g.lineWidth=3; g.setLineDash([30,40]); g.stroke(); g.setLineDash([]);
-  // start line
-  const s0=trackAt(0); g.save(); g.translate(s0.x*TSC,s0.y*TSC); g.rotate(Math.atan2(s0.dy,s0.dx)); for(let i=-6;i<6;i++) for(let j=0;j<2;j++){ g.fillStyle=(i+j)%2?'#222':'#fff'; g.fillRect(j*8-8,i*HALF*TSC/6,8,HALF*TSC/6); } g.restore();
-  TEX=g.getImageData(0,0,TS,TS).data; })();
+  path(); g.strokeStyle='#dbe5f1'; g.lineWidth=(HALF*2+120)*TSC; g.stroke();
+  path(); g.strokeStyle='#c43a3a'; g.lineWidth=(HALF*2+18)*TSC; g.stroke();
+  path(); g.setLineDash([10,10]); g.strokeStyle='#ffffff'; g.lineWidth=(HALF*2+18)*TSC; g.stroke(); g.setLineDash([]);
+  // the banked channel: darker blue ice near the walls, light in the groove
+  [[2,'#7fb7de'],[1.75,'#93c6e7'],[1.45,'#a9d3ef'],[1.1,'#bfe1f6'],[.7,'#d3ebfa']].forEach(([w,col])=>{ path(); g.strokeStyle=col; g.lineWidth=HALF*w*TSC; g.stroke(); });
+  path(); g.setLineDash([22,30]); g.strokeStyle='rgba(255,255,255,.7)'; g.lineWidth=2; g.stroke(); g.setLineDash([]);
+  // turbo chevrons
+  BOOSTS.forEach(b=>{ for(let k=0;k<4;k++){ const t=trackAt(b.s+k*26,b.lat), a=Math.atan2(t.dy,t.dx); g.save(); g.translate(t.x*TSC,t.y*TSC); g.rotate(a); g.fillStyle=k%2?'#ffb02e':'#ffe14a'; g.beginPath(); g.moveTo(-6,-14); g.lineTo(4,0); g.lineTo(-6,14); g.lineTo(-2,14); g.lineTo(8,0); g.lineTo(-2,-14); g.closePath(); g.fill(); g.restore(); } });
+  // checkered start line
+  const s0=trackAt(0); g.save(); g.translate(s0.x*TSC,s0.y*TSC); g.rotate(Math.atan2(s0.dy,s0.dx)); const cs=HALF*TSC/4; for(let i=-4;i<4;i++) for(let j=0;j<2;j++){ g.fillStyle=(i+j)%2?'#1d1d24':'#ffffff'; g.fillRect(j*cs-cs,i*cs,cs,cs); } g.restore();
+  TEX32=new Uint32Array(g.getImageData(0,0,TS,TS).data.buffer); })();
 
-// scenery: trees and candy-cane poles just outside the track
-const PROPS=[]; (function(){ let seed=7; const rnd=()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; };
-  for(let s=0;s<LAP;s+=70){ const t=trackAt(s); for(const side of [-1,1]){ if(rnd()<.55) continue; const off=HALF+40+rnd()*160, x=t.x-t.dy*side*off, y=t.y+t.dx*side*off; const n=nearest(x,y); if(n.d<HALF+30) continue; PROPS.push({x,y,img:rnd()<.8?'tree':'pole',h:rnd()<.8?150+rnd()*90:110}); } } })();
+// ---------- billboards placed along the course ----------
+const PROPS=[];
+for(let s=0;s<LAP;s+=64){ for(const side of [-1,1]){ const t=trackAt(s,side*(HALF+16)); PROPS.push({x:t.x,y:t.y,img:'wall',h:34,wall:1}); } }
+for(let s=30;s<LAP;s+=110){ for(const side of [-1,1]){ if(rnd()<.35) continue; const off=HALF+90+rnd()*420, t=trackAt(s,side*off); const n=nearest(t.x,t.y); if(Math.abs(n.lat)<HALF+70) continue; PROPS.push({x:t.x,y:t.y,img:rnd()<.86?'tree':'pole',h:rnd()<.86?170+rnd()*110:120}); } }
+for(let s=200;s<LAP;s+=380){ const side=rnd()<.5?-1:1; for(let k=0;k<3;k++){ const t=trackAt(s+k*34,side*(HALF+58+rnd()*20)); PROPS.push({x:t.x,y:t.y,img:rnd()<.5?'snowman':'elf_happy',h:rnd()<.5?62:54,fan:1,ph:rnd()*6}); } }
+{ const t=trackAt(0); PROPS.push({x:t.x,y:t.y,img:'arch',h:(HALF*2+70)*420/539}); }
 
 // ---------- state ----------
-const F=170, HZ=64, CAMH=34, RW=320, RH=180; // mode-7 camera, low-res render target
-const low=document.createElement('canvas'); low.width=RW; low.height=RH-HZ; const lc=low.getContext('2d'), LD=lc.createImageData(RW,RH-HZ);
-let state='intro', P, INEZ, shots, obst, parts, t0=0, hits, timeLeft, hint=null, saidSnow=0, saidClose=0, last=performance.now(), shake=0;
+const RW=400, RH=225, HZ=74, FH=RH-HZ, CAMH=44, CAMD=100, FAR=4200, S=VW/RW;
+const low=document.createElement('canvas'); low.width=RW; low.height=FH; const lc=low.getContext('2d'), LD=lc.createImageData(RW,FH), LD32=new Uint32Array(LD.data.buffer);
+const VMAX=640, NEED_HP=8;
+let state='intro', P, INEZ, shots, obst, hearts, sparks, t0=0, count=0, clock=0, cam={x:0,y:0,a:0,f:200,roll:0}, shake=0, flash=0, hint=null, saidWall=0, saidClose=0, ammoMsg=0, last=performance.now();
 const K={};
-function reset(){ const s=trackAt(10); P={x:s.x,y:s.y,a:Math.atan2(s.dy,s.dx),v:0,i:0,s:0,spin:0,cool:0,steer:0,laps:0,lastS:0};
-  INEZ={s:420,lat:0,v:0,hit:0,spin:0,drop:4,laps:0}; shots=[]; obst=[]; parts=[]; hits=0; timeLeft=0; }
+function reset(){ const t=trackAt(-180); P={x:t.x,y:t.y,a:Math.atan2(t.dy,t.dx),vx:0,vy:0,i:segAt(-180),s:-180,lap:-1,lastS:LAP-180,spin:0,boost:0,cool:0,steer:0,ammo:6,bump:0,fire:0};
+  INEZ={s:520,lat:0,v:0,hp:NEED_HP,spin:0,atk:5,dodge:0,dsign:1,lap:0,phase:1,x:0,y:0,a:0}; shots=[]; obst=[]; hearts=[]; sparks=[]; clock=0; CRATES.forEach(c2=>c2.gone=0);
+  cam={x:P.x-Math.cos(P.a)*CAMD,y:P.y-Math.sin(P.a)*CAMD,a:P.a,f:200,roll:0}; const it=trackAt(INEZ.s); INEZ.x=it.x; INEZ.y=it.y; INEZ.a=Math.atan2(it.dy,it.dx); }
 reset();
-const MAXV=430, NEED=6;
 
 // ---------- input ----------
 const KEYS={ArrowLeft:'L',KeyA:'L',ArrowRight:'R',KeyD:'R',ArrowDown:'B',KeyS:'B',Space:'F',KeyX:'F',KeyJ:'F'};
-addEventListener('keydown',e=>{ const k=KEYS[e.code]; if(k){ e.preventDefault(); if(!K[k]) K[k+'Hit']=true; K[k]=true; } if(e.code==='KeyM') setMute(!muted); if((e.code==='Enter'||e.code==='Space')&&state!=='race'){ const b=[...document.querySelectorAll('.ov:not(.hidden) .btn')][0]; if(b&&!e.repeat){ e.preventDefault(); b.click(); } } });
+addEventListener('keydown',e=>{ const k=KEYS[e.code]; if(k){ e.preventDefault(); if(!K[k]) K[k+'Hit']=true; K[k]=true; } if(e.code==='KeyM') setMute(!muted); if((e.code==='Enter'||e.code==='Space')&&state!=='race'&&state!=='count'){ const b=[...document.querySelectorAll('.ov:not(.hidden) .btn')][0]; if(b&&!e.repeat){ e.preventDefault(); b.click(); } } });
 addEventListener('keyup',e=>{ const k=KEYS[e.code]; if(k) K[k]=false; });
 if(TOUCH) $('touch').classList.remove('hidden');
 [['tL','L'],['tR','R'],['tB','B'],['tF','F']].forEach(([id,k])=>{ const b=$(id); b.addEventListener('pointerdown',e=>{ e.preventDefault(); if(!K[k]) K[k+'Hit']=true; K[k]=true; }); ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>{ K[k]=false; })); });
 
-// ---------- race ----------
-function start(){ $('intro').classList.add('hidden'); $('end').classList.add('hidden'); reset(); state='race'; timeLeft=0; if(!muted) bgm.play().catch(()=>{}); bgm.currentTime=0;
-  say('b_start',()=>setTimeout(()=>say('b_start_m',()=>setTimeout(()=>say('b_inez1'),600)),300),true); }
+// ---------- flow ----------
+function start(){ initAudio(); if(AC&&AC.state==='suspended') AC.resume(); $('intro').classList.add('hidden'); $('end').classList.add('hidden'); reset(); state='count'; count=3.6; if(!muted){ bgm.currentTime=0; bgm.play().catch(()=>{}); }
+  say('b_start',()=>setTimeout(()=>say('b_start_m'),200),true); }
 $('bGo').onclick=start;
-function finish(win){ state='end'; K.L=K.R=K.F=K.B=false; const row=$('eRow'); row.innerHTML='';
-  if(win){ $('eH').textContent='Inez pokonana! ❄'; $('eTxt').innerHTML='Sześć celnych śnieżek z armatki — różowy bobslej wylądował w zaspie, a Inez oddała biegun.'; try{ if((+localStorage.getItem('pn-level')||1)<8) localStorage.setItem('pn-level',8); }catch(e){}
-    say('b_win_inez',()=>setTimeout(()=>say('b_win',()=>setTimeout(()=>say('b_win_m'),300)),300),true);
+function finish(win){ state='end'; ['L','R','F','B'].forEach(k=>K[k]=false); if(runG) runG.gain.value=0; const row=$('eRow'); row.innerHTML='';
+  if(win){ $('eH').textContent='Inez pokonana! ❄'; $('eTxt').innerHTML=`Ostatnia śnieżka z armatki i różowy bobslej wylądował w zaspie. Inez oddała biegun!<br>Czas pościgu: <b>${fmt(clock)}</b>`; try{ if((+localStorage.getItem('pn-level')||1)<8) localStorage.setItem('pn-level',8); }catch(e){}
     const b1=document.createElement('button'); b1.className='btn'; b1.textContent='Dalej ➜'; b1.onclick=()=>{ location.href='../index.html?after=bobslej'; }; row.append(b1); }
-  else { $('eH').textContent='Inez uciekła!'; $('eTxt').innerHTML=`Trafienia: <b>${hits} / ${NEED}</b>. Inez przejechała trzy okrążenia. Spróbujcie jeszcze raz — trzymajcie się lodu i strzelajcie, gdy jest blisko!`; say('b_lose',null,true); }
+  else { $('eH').textContent='Inez uciekła!'; $('eTxt').innerHTML=`Inez przejechała trzy okrążenia i zostały jej ${'❤'.repeat(INEZ.hp)}. Trzymajcie się środka rynny, łapcie turbo i strzelajcie, gdy jest blisko!`; say('b_lose',null,true); }
   const b2=document.createElement('button'); b2.className='btn'+(win?' alt':''); b2.textContent='Jeszcze raz'; b2.onclick=start; row.append(b2); $('end').classList.remove('hidden'); }
-function puff(x,y,col,n,sp=80){ for(let k=0;k<n;k++){ const a=Math.random()*6.28; parts.push({x,y,z:Math.random()*20,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,vz:60+Math.random()*80,t:.6+Math.random()*.4,col}); } }
-function update(dt){ t0+=dt; timeLeft+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } shake=Math.max(0,shake-dt); if(hint){ hint.ttl-=dt; if(hint.ttl<=0) hint=null; }
-  // player: always pushing forward; brake, steer; snow slows you down
-  const n=nearest(P.x,P.y,P.i); P.i=n.i; const onIce=n.d<HALF; const vmax=onIce?MAXV:MAXV*.5;
-  if(P.spin>0){ P.spin-=dt; P.a+=dt*9; P.v*=Math.pow(.25,dt); }
-  else { const st=(K.R?1:0)-(K.L?1:0); P.steer+=(st-P.steer)*Math.min(1,dt*8); P.a+=P.steer*dt*(1.5+P.v/600); P.v+=((K.B?vmax*.35:vmax)-P.v)*Math.min(1,dt*(P.v<vmax?.9:2.5)); }
-  
-  if(!onIce&&P.v>150&&saidSnow<=0&&!voice){ saidSnow=14; say(Math.random()<.5?'b_snow':'b_bump2'); } saidSnow-=dt;
-  P.x+=Math.cos(P.a)*P.v*dt; P.y+=Math.sin(P.a)*P.v*dt; P.x=Math.max(20,Math.min(WORLD-20,P.x)); P.y=Math.max(20,Math.min(WORLD-20,P.y));
-  // lap counting by progress along the track
-  if(n.s<300&&P.lastS>LAP-300) P.laps++; if(n.s>LAP-300&&P.lastS<300) P.laps--; P.lastS=n.s; P.s=P.laps*LAP+n.s;
-  // Inez: rubber band — she keeps 250..900 units ahead; slower while spinning
-  const gap=INEZ.s-P.s; let iv=MAXV*.86; if(gap>900) iv=MAXV*.7; if(gap<260) iv=MAXV*.98; if(gap<120) iv=MAXV*1.05; if(gap<0) iv=MAXV*1.4; if(INEZ.spin>0){ INEZ.spin-=dt; iv*=.35; }
-  INEZ.v+=(iv-INEZ.v)*Math.min(1,dt*(gap<0?4:1.5)); INEZ.s+=INEZ.v*dt; INEZ.lat=Math.sin(t0*.7)*HALF*.45;
-  const it=trackAt(INEZ.s); INEZ.x=it.x-it.dy*INEZ.lat; INEZ.y=it.y+it.dx*INEZ.lat; INEZ.a=Math.atan2(it.dy,it.dx);
-  INEZ.drop-=dt; if(INEZ.drop<=0&&gap<1100&&gap>150){ INEZ.drop=3.2+Math.random()*2.5; const bt=trackAt(INEZ.s-40); const lat=(Math.random()-.5)*HALF*1.2; obst.push({x:bt.x-bt.dy*lat,y:bt.y+bt.dx*lat,img:Math.random()<.5?'gift':'heart',t:0}); if(!voice&&Math.random()<.35) say('b_inez2'); }
-  if(gap<330&&saidClose<=0&&!voice){ saidClose=16; say('b_close'); } saidClose-=dt;
-  // the snow cannon
-  P.cool-=dt; if(K.FHit&&P.cool<=0&&P.spin<=0){ P.cool=.45; shots.push({x:P.x+Math.cos(P.a)*30,y:P.y+Math.sin(P.a)*30,vx:Math.cos(P.a)*(P.v+620),vy:Math.sin(P.a)*(P.v+620),t:1.4,z:24}); sfx('throw',.4); }
-  K.FHit=false;
-  shots.forEach(b=>{ b.t-=dt;
-    // the brass sight from the factory: snowballs curve gently towards Inez when she is roughly ahead
-    { const sp=Math.hypot(b.vx,b.vy), va=Math.atan2(b.vy,b.vx), ta=Math.atan2(INEZ.y-b.y,INEZ.x-b.x), d=Math.atan2(Math.sin(ta-va),Math.cos(ta-va)); if(Math.abs(d)<.45&&Math.hypot(INEZ.x-b.x,INEZ.y-b.y)<1000){ const na=va+Math.max(-2.6*dt,Math.min(2.6*dt,d)); b.vx=Math.cos(na)*sp; b.vy=Math.sin(na)*sp; } }
-    b.x+=b.vx*dt; b.y+=b.vy*dt; b.z=Math.max(4,b.z-10*dt);
-    if(Math.hypot(b.x-INEZ.x,b.y-INEZ.y)<70&&INEZ.spin<=0){ b.t=0; hits++; INEZ.spin=1.6; INEZ.hit=.6; sfx('splat',.7); puff(INEZ.x,INEZ.y,'#ffffff',22,140); shake=.25;
-      if(hits>=NEED){ setTimeout(()=>finish(true),900); state='won'; } else { const ln=['b_hit1','b_hit2','b_hit3','b_inez3','b_inez4']; say(ln[(hits-1)%ln.length],null,true); } }
-    obst.forEach(o=>{ if(!o.gone&&Math.hypot(b.x-o.x,b.y-o.y)<44){ o.gone=true; b.t=0; puff(o.x,o.y,o.img==='gift'?'#ff9ccf':'#ff6f9c',14,120); sfx('pick',.4); } }); });
-  shots=shots.filter(b=>b.t>0);
-  // obstacles knock you into a spin
-  obst.forEach(o=>{ o.t+=dt; if(!o.gone&&P.spin<=0&&Math.hypot(P.x-o.x,P.y-o.y)<46){ o.gone=true; P.spin=.9; shake=.4; sfx('hurt',.5); puff(o.x,o.y,'#ff9ccf',16,120); if(!voice) say('b_bump'); } });
-  obst=obst.filter(o=>!o.gone&&o.t<60);
-  parts.forEach(p=>{ p.t-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.z+=p.vz*dt; p.vz-=300*dt; }); parts=parts.filter(p=>p.t>0&&p.z>-5);
-  INEZ.hit=Math.max(0,INEZ.hit-dt);
-  if(INEZ.s>=LAP*3+420&&state==='race') finish(false);
-  if(timeLeft<6&&!hint) hint={t:TOUCH?'◀ ▶ skręt · ❄ armatka śnieżna':'◀ ▶ skręt · Spacja — armatka śnieżna',ttl:5}; }
+const fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 
-// ---------- drawing ----------
-function project(x,y){ const dx=x-CAM.x, dy=y-CAM.y, ca=Math.cos(CAM.a), sa=Math.sin(CAM.a); const z=dx*ca+dy*sa, lx=-dx*sa+dy*ca; if(z<8) return null; return {sx:VW/2+lx*F/z*(VW/RW), sy:(HZ+CAMH*F/z)*(VH/RH), s:F/z*(VW/RW), z}; }
-let CAM={x:0,y:0,a:0};
-function drawFloor(){ const ca=Math.cos(CAM.a), sa=Math.sin(CAM.a), d=LD.data, H=RH-HZ;
-  for(let y=0;y<H;y++){ const z=CAMH*F/(y+.5), fog=Math.min(1,z/2600);
-    const cx=CAM.x+ca*z, cy=CAM.y+sa*z, rx=-sa*z/F, ry=ca*z/F;
-    let wx=cx+rx*(-RW/2), wy=cy+ry*(-RW/2); let o=y*RW*4;
-    for(let x=0;x<RW;x++){ let r=238,g=244,b=251; const tx=(wx*TSC)|0, ty=(wy*TSC)|0; if(tx>=0&&ty>=0&&tx<TS&&ty<TS){ const k=(ty*TS+tx)*4; r=TEX[k]; g=TEX[k+1]; b=TEX[k+2]; }
-      d[o]=r+(205-r)*fog; d[o+1]=g+(215-g)*fog; d[o+2]=b+(240-b)*fog; d[o+3]=255; o+=4; wx+=rx; wy+=ry; } }
-  lc.putImageData(LD,0,0); c.imageSmoothingEnabled=false; c.drawImage(low,0,HZ*VH/RH,VW,(RH-HZ)*VH/RH); c.imageSmoothingEnabled=true; }
-function drawSky(){ const bg=IMG.bg_pole, hy=HZ*VH/RH; if(ok(bg)){ const h=hy+60, w=h*bg.naturalWidth/(bg.naturalHeight*.62), off=((-CAM.a/(Math.PI*2))*w*2%w+w)%w; for(let x=-off;x<VW;x+=w) c.drawImage(bg,0,0,bg.naturalWidth,bg.naturalHeight*.62,x,hy+60-h,w+1,h); } else { c.fillStyle='#24305a'; c.fillRect(0,0,VW,hy); } }
-function sprite(name,x,y,h,opts={}){ const p=project(x,y); if(!p||p.z>3000||p.z<(opts.near||90)) return null; const im=IMG[name]; if(!ok(im)) return null; const hh=h*p.s, w=hh*im.naturalWidth/im.naturalHeight; return {z:p.z,draw:()=>{ c.save(); c.globalAlpha=Math.min(1,(3000-p.z)/600); c.translate(p.sx,p.sy-(opts.lift||0)*p.s); if(opts.rot) c.rotate(opts.rot); if(opts.flip) c.scale(-1,1); c.drawImage(im,-w/2,-hh,w,hh); c.restore(); }}; }
+// ---------- simulation ----------
+function burst(x,y,col,n,sp=160,z=20){ for(let k=0;k<n;k++){ const a=Math.random()*6.28; sparks.push({x,y,z:z+Math.random()*20,vx:Math.cos(a)*sp*Math.random(),vy:Math.sin(a)*sp*Math.random(),vz:80+Math.random()*120,t:.5+Math.random()*.5,col}); } }
+function spin(o,t){ o.spin=Math.max(o.spin,t); }
+function update(dt){ t0+=dt; clock+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } shake=Math.max(0,shake-dt); flash=Math.max(0,flash-dt); if(hint){ hint.ttl-=dt; if(hint.ttl<=0) hint=null; }
+  // --- our bobsled: ice physics, the channel walls, turbo
+  const fx=Math.cos(P.a), fy=Math.sin(P.a); let vf=P.vx*fx+P.vy*fy, vl=-P.vx*fy+P.vy*fx;
+  const st=(K.R?1:0)-(K.L?1:0); P.steer+=(st-P.steer)*Math.min(1,dt*7);
+  P.boost=Math.max(0,P.boost-dt); P.spin=Math.max(0,P.spin-dt); P.bump=Math.max(0,P.bump-dt);
+  const top=VMAX*(P.boost>0?1.35:1)*(K.B?.55:1);
+  if(P.spin>0){ P.a+=dt*8; vf*=Math.pow(.35,dt); }
+  else { P.a+=P.steer*dt*(1.65*Math.min(1,Math.max(.25,vf/260)))*(K.B?1.35:1); vf+=(top-vf)*Math.min(1,dt*(vf<top?.75:2.2)); }
+  vl*=Math.exp(-dt*(K.B?2.5:4.2)); // ice: you slide sideways a little in hard turns
+  P.vx=Math.cos(P.a)*vf-Math.sin(P.a)*vl; P.vy=Math.sin(P.a)*vf+Math.cos(P.a)*vl;
+  P.x+=P.vx*dt; P.y+=P.vy*dt;
+  const n=nearest(P.x,P.y,P.i); P.i=n.i; const lim=HALF-WALLPAD;
+  if(Math.abs(n.lat)>lim){ const sg=Math.sign(n.lat), nx=-n.dy*sg, ny=n.dx*sg, over=Math.abs(n.lat)-lim; P.x-=nx*over; P.y-=ny*over; const vn=P.vx*nx+P.vy*ny; if(vn>0){ P.vx-=vn*1.6*nx; P.vy-=vn*1.6*ny; }
+    if(P.bump<=0&&vn>60){ P.bump=.35; shake=Math.min(.5,vn/500); sfx('hurt',.25); burst(P.x+nx*30,P.y+ny*30,'#e8f7ff',12,180,10); if(!voice&&saidWall<=0){ saidWall=12; say('b_bump2'); } } P.vx*=.985; P.vy*=.985;
+    // turn the nose away from the wall so you do not grind along it forever
+    const wa=Math.atan2(n.dy,n.dx); let d=Math.atan2(Math.sin(wa-P.a),Math.cos(wa-P.a)); if(Math.abs(d)<1.4) P.a+=d*Math.min(1,dt*3); }
+  saidWall-=dt;
+  if(n.s<400&&P.lastS>LAP-400) P.lap++; if(n.s>LAP-400&&P.lastS<400) P.lap--; P.lastS=n.s; P.s=P.lap*LAP+n.s;
+  BOOSTS.forEach(b=>{ const d=((n.s-b.s)%LAP+LAP)%LAP; if(d<100&&Math.abs(n.lat-b.lat)<55&&P.boost<.9){ if(P.boost<=0){ beep(520,.12,.08,'sawtooth'); beep(780,.18,.08,'sawtooth'); } P.boost=1.4; } });
+  CRATES.forEach(cr=>{ cr.gone=Math.max(0,cr.gone-dt); if(cr.gone>0) return; const t=trackAt(cr.s,cr.lat); if(Math.hypot(P.x-t.x,P.y-t.y)<52){ cr.gone=9; P.ammo=Math.min(12,P.ammo+4); ammoMsg=1.4; sfx('pick',.5); burst(t.x,t.y,'#ffffff',16,140,20); } });
+  ammoMsg=Math.max(0,ammoMsg-dt);
+  // --- the snow cannon (little Mikołaj): arcing snowballs, the brass sight curves them towards Inez
+  P.cool-=dt; P.fire=Math.max(0,P.fire-dt);
+  if(K.FHit&&P.cool<=0&&P.spin<=0){ if(P.ammo>0){ P.ammo--; P.cool=.32; P.fire=.18; const sp=Math.max(0,vf)+780; shots.push({x:P.x+fx*20,y:P.y+fy*20,vx:fx*sp,vy:fy*sp,z:46,vz:130,t:1.7}); sfx('throw',.4); } else { beep(160,.12,.08); ammoMsg=1.4; } }
+  K.FHit=false;
+  // --- Inez: a racing line with rubber band, two phases, gifts on the track and hearts thrown back
+  const gap=INEZ.s-P.s; let iv=VMAX*.86; if(gap>1600) iv=VMAX*.7; else if(gap>800) iv=VMAX*.82; else if(gap<300) iv=VMAX*.98; if(gap<120) iv=VMAX*1.06; if(gap<0) iv=VMAX*1.4;
+  if(INEZ.phase===2) iv*=1.05; if(INEZ.spin>0){ INEZ.spin-=dt; iv*=.3; }
+  INEZ.v+=(iv-INEZ.v)*Math.min(1,dt*(gap<0?4:1.3)); INEZ.s+=INEZ.v*dt;
+  INEZ.dodge=Math.max(0,INEZ.dodge-dt); const it0=trackAt(INEZ.s); const want=Math.sin(t0*.55)*HALF*.45-it0.curv*HALF*260;
+  INEZ.lat+=(Math.max(-HALF*.7,Math.min(HALF*.7,want+(INEZ.dodge>0?INEZ.dsign*HALF*.5:0)))-INEZ.lat)*Math.min(1,dt*2.2);
+  const it=trackAt(INEZ.s,INEZ.lat); INEZ.x=it.x; INEZ.y=it.y; INEZ.a=Math.atan2(it.dy,it.dx); INEZ.lap=Math.floor(INEZ.s/LAP);
+  INEZ.atk-=dt; if(INEZ.atk<=0&&gap>180&&gap<1500&&INEZ.spin<=0){ INEZ.atk=(INEZ.phase===2?2.6:4.2)+Math.random()*2;
+    if(Math.random()<.55){ const bt=trackAt(INEZ.s-50,INEZ.lat); obst.push({x:bt.x,y:bt.y,img:'gift',t:0}); if(!voice&&Math.random()<.4) say('b_inez2'); }
+    else { hearts.push({x:INEZ.x,y:INEZ.y,s:INEZ.s,lat:INEZ.lat,t:0}); beep(880,.12,.05,'sine'); } }
+  if(gap<380&&gap>0&&saidClose<=0&&!voice){ saidClose=18; say('b_close'); } saidClose-=dt;
+  // hearts float back along the track towards us, drifting towards our side of the channel
+  hearts.forEach(h=>{ h.t+=dt; h.s-=170*dt; h.lat+=(n.lat-h.lat)*Math.min(1,dt*.8); const t=trackAt(h.s,h.lat); h.x=t.x; h.y=t.y;
+    if(!h.gone&&Math.hypot(P.x-h.x,P.y-h.y)<46){ h.gone=1; spin(P,.9); shake=.4; flash=.25; sfx('splat',.5); burst(h.x,h.y,'#ff8fbf',18,160,30); if(!voice) say('b_bump'); } });
+  hearts=hearts.filter(h=>!h.gone&&h.t<9&&h.s>P.s-600);
+  obst.forEach(o=>{ o.t+=dt; if(!o.gone&&P.spin<=0&&Math.hypot(P.x-o.x,P.y-o.y)<48){ o.gone=1; spin(P,.85); shake=.45; sfx('hurt',.45); burst(o.x,o.y,'#ff9ccf',18,160,20); if(!voice) say('b_bump'); } });
+  obst=obst.filter(o=>!o.gone&&o.t<50);
+  // snowballs
+  shots.forEach(b=>{ b.t-=dt; const sp=Math.hypot(b.vx,b.vy), va=Math.atan2(b.vy,b.vx), ta=Math.atan2(INEZ.y-b.y,INEZ.x-b.x), d=Math.atan2(Math.sin(ta-va),Math.cos(ta-va));
+    if(Math.abs(d)<.42&&Math.hypot(INEZ.x-b.x,INEZ.y-b.y)<1200){ const na=va+Math.max(-2.4*dt,Math.min(2.4*dt,d)); b.vx=Math.cos(na)*sp; b.vy=Math.sin(na)*sp; }
+    b.x+=b.vx*dt; b.y+=b.vy*dt; b.vz-=420*dt; b.z=Math.max(14,b.z+b.vz*dt);
+    // Inez sometimes swerves when she sees a snowball coming
+    if(INEZ.dodge<=0&&Math.hypot(INEZ.x-b.x,INEZ.y-b.y)<260&&Math.random()<(INEZ.phase===2?.03:.015)){ INEZ.dodge=.5; INEZ.dsign=INEZ.lat>0?-1:1; }
+    if(state==='race'&&Math.hypot(b.x-INEZ.x,b.y-INEZ.y)<64&&INEZ.spin<=0){ b.t=0; INEZ.hp--; spin(INEZ,1.4); shake=.25; sfx('splat',.7); burst(INEZ.x,INEZ.y,'#ffffff',26,200,30);
+      if(INEZ.hp<=0){ state='won'; INEZ.spin=99; say('b_win_inez',()=>setTimeout(()=>say('b_win',()=>setTimeout(()=>{ say('b_win_m'); finish(true); },300)),300),true); }
+      else { if(INEZ.hp===NEED_HP/2) INEZ.phase=2; const ln=['b_hit1','b_inez3','b_hit2','b_inez4','b_hit3']; say(ln[(NEED_HP-INEZ.hp-1)%ln.length],null,true); } }
+    obst.forEach(o=>{ if(!o.gone&&Math.hypot(b.x-o.x,b.y-o.y)<46){ o.gone=1; b.t=0; burst(o.x,o.y,'#ff9ccf',14,140,20); sfx('pick',.35); } });
+    hearts.forEach(h=>{ if(!h.gone&&Math.hypot(b.x-h.x,b.y-h.y)<50){ h.gone=1; b.t=0; burst(h.x,h.y,'#ff8fbf',14,140,30); sfx('pick',.35); } }); });
+  shots=shots.filter(b=>b.t>0);
+  // bumping into Inez
+  if(Math.hypot(P.x-INEZ.x,P.y-INEZ.y)<56&&P.bump<=0){ P.bump=.5; shake=.3; sfx('hurt',.3); const dx=P.x-INEZ.x, dy=P.y-INEZ.y, d=Math.hypot(dx,dy)||1; P.vx+=dx/d*160; P.vy+=dy/d*160; P.vx*=.8; P.vy*=.8; }
+  sparks.forEach(p=>{ p.t-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.z+=p.vz*dt; p.vz-=380*dt; }); sparks=sparks.filter(p=>p.t>0&&p.z>0);
+  if(INEZ.s>=LAP*3+520&&state==='race') finish(false);
+  if(clock<7&&!hint) hint={t:TOUCH?'◀ ▶ skręt · ❄ armatka':'◀ ▶ skręt · Spacja — armatka śnieżna',ttl:5};
+  // runners on ice
+  if(runG&&!muted){ const sp=Math.hypot(P.vx,P.vy); runG.gain.value=Math.min(.12,sp/VMAX*.09+(P.bump>0?.06:0)); runF.frequency.value=500+sp*1.4; }
+  // camera: follows the heading with a little lag, rolls in curves, widens with speed
+  const da=Math.atan2(Math.sin(P.a-cam.a),Math.cos(P.a-cam.a)); cam.a+=da*Math.min(1,dt*5.5);
+  cam.x=P.x-Math.cos(cam.a)*CAMD; cam.y=P.y-Math.sin(cam.a)*CAMD;
+  cam.roll+=((-P.steer*.05-n.curv*vf*1.6)-cam.roll)*Math.min(1,dt*3); cam.roll=Math.max(-.12,Math.min(.12,cam.roll));
+  cam.f+=((P.boost>0?168:200)-cam.f)*Math.min(1,dt*3); }
+
+// ---------- rendering ----------
+function drawFloor(){ const ca=Math.cos(cam.a), sa=Math.sin(cam.a), F=cam.f;
+  for(let y=0;y<FH;y++){ const z=CAMH*F/(y+.6); let o=y*RW; if(z>FAR){ LD32.fill(SNOW32,o,o+RW); continue; }
+    const cx=cam.x+ca*z, cy=cam.y+sa*z, rx=-sa*z/F, ry=ca*z/F; let wx=cx-rx*RW/2, wy=cy-ry*RW/2;
+    for(let x=0;x<RW;x++){ const tx=(wx*TSC)|0, ty=(wy*TSC)|0; LD32[o++]=(tx>=0&&ty>=0&&tx<TS&&ty<TS)?TEX32[ty*TS+tx]:SNOW32; wx+=rx; wy+=ry; } }
+  lc.putImageData(LD,0,0); c.imageSmoothingEnabled=false; c.drawImage(low,-60,HZ*S,VW+120,FH*S+40); c.imageSmoothingEnabled=true;
+  // haze towards the horizon
+  const g=c.createLinearGradient(0,HZ*S,0,HZ*S+150); g.addColorStop(0,'rgba(214,226,244,.95)'); g.addColorStop(1,'rgba(214,226,244,0)'); c.fillStyle=g; c.fillRect(-60,HZ*S,VW+120,150); }
+function drawSky(){ const im=IMG.sky, hy=HZ*S; if(!ok(im)){ c.fillStyle='#1b2650'; c.fillRect(-60,-60,VW+120,hy+60); return; } const sh=im.naturalHeight*.87, h=hy+80, w=h*im.naturalWidth/sh, off=((-cam.a/(Math.PI*2))*w*1.5%w+w)%w;
+  for(let x=-off-w;x<VW+w;x+=w) c.drawImage(im,0,0,im.naturalWidth,sh,x,hy+6-h,w+1,h); }
+function project(x,y){ const dx=x-cam.x, dy=y-cam.y, ca=Math.cos(cam.a), sa=Math.sin(cam.a), z=dx*ca+dy*sa; if(z<12) return null; const lx=-dx*sa+dy*ca, k=cam.f/z; return {sx:VW/2+lx*k*S, sy:(HZ+CAMH*k)*S, k:k*S, z}; }
+let DL=[];
+function bill(name,x,y,h,o={}){ const p=project(x,y); if(!p||p.z>(o.far||2600)||p.z<(o.near||60)) return; const im=IMG[name]; if(!ok(im)) return; const hh=h*p.k; if(hh<2) return; const w=hh*im.naturalWidth/im.naturalHeight; if(p.sx+w<-80||p.sx-w>VW+80) return;
+  DL.push({z:p.z,f:()=>{ c.save(); c.globalAlpha=Math.min(1,((o.far||2600)-p.z)/500); c.translate(p.sx,p.sy-(o.lift||0)*p.k); if(o.rot) c.rotate(o.rot); if(o.flip) c.scale(-1,1); c.drawImage(im,-w/2,-hh,w,hh); c.restore(); }}); return p; }
 function txt(s,x,y,size,col,al){ c.font=`800 ${size}px "Baloo 2",sans-serif`; c.textAlign=al||'left'; c.textBaseline='middle'; c.lineWidth=Math.max(3,size/5); c.strokeStyle='rgba(10,10,30,.75)'; c.strokeText(s,x,y); c.fillStyle=col; c.fillText(s,x,y); }
-function draw(){ CAM={x:P.x-Math.cos(P.a)*70,y:P.y-Math.sin(P.a)*70,a:P.a}; c.setTransform(1,0,0,1,0,0); if(shake>0) c.translate((Math.random()-.5)*20*shake,(Math.random()-.5)*14*shake);
+function draw(){ c.setTransform(1,0,0,1,0,0); c.fillStyle='#0b1430'; c.fillRect(0,0,VW,VH);
+  c.save(); if(shake>0) c.translate((Math.random()-.5)*22*shake,(Math.random()-.5)*16*shake); c.translate(VW/2,VH*.86); c.rotate(cam.roll); c.translate(-VW/2,-VH*.86);
   drawSky(); drawFloor();
-  const L=[]; PROPS.forEach(o=>{ const s=sprite(o.img,o.x,o.y,o.h); if(s) L.push(s); });
-  obst.forEach(o=>{ const s=sprite(o.img,o.x,o.y,o.img==='gift'?60:70,{lift:o.img==='heart'?14+Math.sin(t0*4)*6:0}); if(s) L.push(s); });
-  { const rel=Math.atan2(Math.sin(INEZ.a-CAM.a),Math.cos(INEZ.a-CAM.a)); const s=sprite('bob_inez',INEZ.x,INEZ.y,72,{rot:INEZ.spin>0?Math.sin(t0*20)*.4:0,flip:rel<-.25}); if(s){ L.push(s); if(INEZ.hit>0) L.push({z:s.z-1,draw:()=>{ const p=project(INEZ.x,INEZ.y); if(p) txt('❄ PAC!',p.sx,p.sy-110*p.s,28,'#ffffff','center'); }}); } }
-  shots.forEach(b=>{ const s=sprite('snowball',b.x,b.y,16,{lift:b.z,near:30}); if(s) L.push(s); });
-  parts.forEach(q=>{ const p=project(q.x,q.y); if(p&&p.z>60) L.push({z:p.z,draw:()=>{ c.globalAlpha=Math.min(1,q.t*2); c.fillStyle=q.col; c.beginPath(); c.arc(p.sx,p.sy-q.z*p.s,Math.min(10,Math.max(2,3*p.s)),0,6.29); c.fill(); c.globalAlpha=1; }}); });
-  L.sort((a,b)=>b.z-a.z).forEach(s=>s.draw());
-  // our bobsled, always in front of the camera
-  const fam=IMG.bob_family; if(ok(fam)){ const h=250, w=h*fam.naturalWidth/fam.naturalHeight, bob=Math.sin(t0*14)*2*(P.v/MAXV); c.save(); c.translate(VW/2,VH-30+bob); c.rotate(P.spin>0?Math.sin(t0*25)*.3:P.steer*.08); if(P.steer<-.3) c.scale(-1,1); c.drawImage(fam,-w/2,-h,w,h); c.restore(); }
-  if(P.v>200&&Math.random()<.6) for(let k=0;k<2;k++){ c.fillStyle='rgba(255,255,255,.8)'; c.beginPath(); c.arc(VW/2+(Math.random()-.5)*260,VH-30-Math.random()*30,4+Math.random()*6,0,6.29); c.fill(); }
+  DL=[];
+  PROPS.forEach(o=>bill(o.img,o.x,o.y,o.h,{lift:o.fan?Math.abs(Math.sin(t0*5+o.ph))*8:0,far:o.wall?1500:2600,near:o.wall?40:70}));
+  CRATES.forEach(cr=>{ if(cr.gone>0) return; const t=trackAt(cr.s,cr.lat); bill('crate',t.x,t.y,40,{lift:4+Math.sin(t0*3+cr.s)*4}); });
+  obst.forEach(o=>bill(o.img,o.x,o.y,46));
+  hearts.forEach(h=>bill('kiss',h.x,h.y,38,{lift:22+Math.sin(t0*8+h.t)*6,rot:Math.sin(t0*6)*.3}));
+  { const rel=Math.atan2(Math.sin(INEZ.a-cam.a),Math.cos(INEZ.a-cam.a)); const p=bill('inez_rear',INEZ.x,INEZ.y,62,{rot:INEZ.spin>0&&state!=='won'?Math.sin(t0*22)*.5:rel*.25,near:85,far:3600}); if(p&&INEZ.spin>0&&state==='race') DL.push({z:p.z-1,f:()=>txt('❄ PAC!',p.sx,p.sy-80*p.k,30,'#ffffff','center')}); }
+  shots.forEach(b=>bill('snowball',b.x,b.y,13,{lift:b.z,near:18}));
+  sparks.forEach(q=>{ const p=project(q.x,q.y); if(p&&p.z>40) DL.push({z:p.z,f:()=>{ c.globalAlpha=Math.min(1,q.t*2); c.fillStyle=q.col; c.beginPath(); c.arc(p.sx,p.sy-q.z*p.k,Math.min(9,Math.max(1.5,2.5*p.k)),0,6.29); c.fill(); c.globalAlpha=1; }}); });
+  DL.sort((a,b)=>b.z-a.z).forEach(d=>d.f());
+  // our bobsled with the family
+  const im=IMG.bob_rear, sp=Math.hypot(P.vx,P.vy); if(ok(im)){ const h=280, w=h*im.naturalWidth/im.naturalHeight, bob=Math.sin(t0*16)*2.5*(sp/VMAX), lean=P.spin>0?Math.sin(t0*25)*.35:P.steer*.12;
+    c.save(); c.translate(VW/2+P.steer*28,VH-14+bob); c.rotate(lean); c.drawImage(im,-w/2,-h,w,h);
+    if(P.fire>0){ c.globalAlpha=P.fire/.18; c.fillStyle='#ffffff'; c.beginPath(); c.arc(w*.07,-h*.66,26*(1.2-P.fire*2),0,6.29); c.fill(); c.globalAlpha=1; } c.restore(); }
+  // snow spray from the runners
+  if(sp>150) for(let k=0;k<(P.boost>0?6:3);k++){ const sd=k%2?1:-1; c.fillStyle='rgba(255,255,255,.85)'; c.beginPath(); c.arc(VW/2+P.steer*28+sd*(95+Math.random()*40)-P.steer*60,VH-14-Math.random()*26,3+Math.random()*7,0,6.29); c.fill(); }
+  c.restore();
+  if(P.boost>0){ c.strokeStyle='rgba(255,236,150,.55)'; c.lineWidth=3; for(let k=0;k<14;k++){ const a=k/14*6.28+t0*2, r1=260+((t0*900+k*97)%260); c.beginPath(); c.moveTo(VW/2+Math.cos(a)*r1,VH*.55+Math.sin(a)*r1*.55); c.lineTo(VW/2+Math.cos(a)*(r1+80),VH*.55+Math.sin(a)*(r1+80)*.55); c.stroke(); } }
+  if(flash>0){ c.fillStyle=`rgba(255,140,190,${flash})`; c.fillRect(0,0,VW,VH); }
   drawHud(); }
-function drawHud(){ for(let k=0;k<NEED;k++) txt(k<hits?'❄':'·',30+k*38,40,32,k<hits?'#bfe9ff':'rgba(255,255,255,.5)'); txt(`Trafienia w Inez: ${hits} / ${NEED}`,30,82,22,'#fff');
-  const il=Math.min(3,Math.floor(INEZ.s/LAP)+1), gap=Math.round((INEZ.s-P.s)/10); txt(`Okrążenie Inez: ${il} / 3`,VW-80,40,24,'#ffd1dc','right'); txt(gap>0?`Dystans: ${gap} m`:'Jesteś przed nią!',VW-80,76,22,'#fff','right');
-  // minimap
-  const mx=VW-230, my=100, ms=180/WORLD; c.save(); c.globalAlpha=.85; c.fillStyle='rgba(10,20,40,.45)'; c.beginPath(); c.roundRect(mx-10,my-10,200,200,14); c.fill(); c.strokeStyle='#bfe3f6'; c.lineWidth=5; c.beginPath(); PATH.forEach((p,i)=>i?c.lineTo(mx+p[0]*ms,my+p[1]*ms):c.moveTo(mx+p[0]*ms,my+p[1]*ms)); c.closePath(); c.stroke();
+function drawHud(){
+  txt('Inez',VW/2-176,40,26,'#ff9ccf','right'); for(let k=0;k<NEED_HP;k++){ c.globalAlpha=k<INEZ.hp?1:.22; txt('❤',VW/2-150+k*40,40,30,'#ff5c8a','left'); } c.globalAlpha=1;
+  if(INEZ.phase===2&&state==='race') txt('Inez przyspiesza! 💢',VW/2,80,20,'#ffd1dc','center');
+  txt('❄ × '+P.ammo,30,VH-150,34,P.ammo?'#ffffff':'#ff8a7a'); if(ammoMsg>0) txt(P.ammo?'+4 śnieżki!':'Brak śnieżek — zbieraj skrzynki!',30,VH-192,22,'#ffe27a');
+  const sp=Math.hypot(P.vx,P.vy), fr=Math.min(1,sp/(VMAX*1.35)); c.fillStyle='rgba(10,20,40,.5)'; c.beginPath(); c.roundRect(30,VH-80,220,22,11); c.fill(); c.fillStyle=P.boost>0?'#ffcf3a':'#8fd3ff'; c.beginPath(); c.roundRect(30,VH-80,220*fr,22,11); c.fill(); txt(`${Math.round(sp/5)} km/h`+(P.boost>0?'  TURBO!':''),30,VH-102,20,'#fff');
+  const il=Math.min(3,Math.floor(Math.max(0,INEZ.s)/LAP)+1), gap=Math.round((INEZ.s-P.s)/8); txt(`Okrążenie Inez: ${il} / 3`,VW-30,40,24,'#ffd1dc','right'); txt(gap>0?`Do Inez: ${gap} m`:'Jesteś przed nią!',VW-30,74,22,'#fff','right'); txt('⏱ '+fmt(clock),VW-30,106,20,'#fff','right');
+  const mx=VW-215, my=130, ms=180/WORLD; c.save(); c.fillStyle='rgba(10,20,40,.45)'; c.beginPath(); c.roundRect(mx-10,my-10,200,200,14); c.fill(); c.strokeStyle='#bfe3f6'; c.lineWidth=6; c.lineJoin='round'; c.beginPath(); PATH.forEach((p,i)=>i?c.lineTo(mx+p[0]*ms,my+p[1]*ms):c.moveTo(mx+p[0]*ms,my+p[1]*ms)); c.closePath(); c.stroke();
   c.fillStyle='#ff6fae'; c.beginPath(); c.arc(mx+INEZ.x*ms,my+INEZ.y*ms,6,0,6.29); c.fill(); c.fillStyle='#ffe27a'; c.beginPath(); c.arc(mx+P.x*ms,my+P.y*ms,6,0,6.29); c.fill(); c.restore();
-  if(hint){ c.save(); c.globalAlpha=Math.min(1,hint.ttl*2); txt(hint.t,VW/2,VH-300,30,'#ffe27a','center'); c.restore(); }
-  if(sub){ c.save(); c.globalAlpha=Math.min(1,sub.ttl*2); c.font='700 24px "Baloo 2",sans-serif'; const s=sub.who+': '+sub.t, w=Math.min(1200,c.measureText(s).width+40); c.fillStyle='rgba(10,14,34,.74)'; c.beginPath(); c.roundRect(VW/2-w/2,VH-330-60,w,46,23); c.fill(); txt(sub.who+':',VW/2-w/2+20,VH-367,24,WHO_COL[sub.who]||'#fff'); c.font='700 24px "Baloo 2",sans-serif'; c.fillStyle='#fff'; c.textAlign='left'; c.fillText(sub.t,VW/2-w/2+26+c.measureText(sub.who+':').width,VH-367); c.restore(); } }
-function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now; if(state==='race') update(dt); else if(state==='won'){ t0+=dt; INEZ.spin=1; INEZ.s+=INEZ.v*.2*dt; P.v*=Math.pow(.3,dt); P.x+=Math.cos(P.a)*P.v*dt; P.y+=Math.sin(P.a)*P.v*dt; parts.forEach(p=>{ p.t-=dt; }); if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } } else t0+=dt; draw(); requestAnimationFrame(loop); }
+  if(state==='count'){ const n=Math.ceil(count-.6); txt(n>0?String(n):'START!',VW/2,VH*.36,n>0?120:96,n>0?'#ffe27a':'#7dff7a','center'); }
+  if(hint&&state==='race'){ c.save(); c.globalAlpha=Math.min(1,hint.ttl*2); txt(hint.t,VW/2,VH*.36,30,'#ffe27a','center'); c.restore(); }
+  if(sub){ c.save(); c.globalAlpha=Math.min(1,sub.ttl*2); c.font='700 24px "Baloo 2",sans-serif'; const s=sub.who+': '+sub.t, w=Math.min(1220,c.measureText(s).width+44), y=VH*.5; c.fillStyle='rgba(10,14,34,.74)'; c.beginPath(); c.roundRect(VW/2-w/2,y-23,w,46,23); c.fill(); txt(sub.who+':',VW/2-w/2+20,y,24,WHO_COL[sub.who]||'#fff'); c.font='700 24px "Baloo 2",sans-serif'; c.fillStyle='#fff'; c.textAlign='left'; c.fillText(sub.t,VW/2-w/2+26+c.measureText(sub.who+':').width,y); c.restore(); } }
+function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now;
+  if(state==='race') update(dt);
+  else if(state==='count'){ const before=Math.ceil(count-.6); count-=dt; t0+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } const after=Math.ceil(count-.6); if(after!==before) beep(after>0?440:880,.2,.12); if(count<=.6) state='race'; }
+  else if(state==='won'){ t0+=dt; P.vx*=Math.pow(.4,dt); P.vy*=Math.pow(.4,dt); P.x+=P.vx*dt; P.y+=P.vy*dt; INEZ.s+=INEZ.v*.15*dt; INEZ.v*=Math.pow(.2,dt); const it=trackAt(INEZ.s,HALF*.8); INEZ.x=it.x; INEZ.y=it.y; sparks.forEach(p=>{ p.t-=dt; p.z+=p.vz*dt; p.vz-=380*dt; }); if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } if(runG) runG.gain.value=0; }
+  else t0+=dt;
+  draw(); requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
-window.__trackAt=trackAt; window.__bob={get P(){return P}, get INEZ(){return INEZ}, get state(){return state}, get hits(){return hits}, K, start, LAP};
+window.__bob={get P(){return P}, get INEZ(){return INEZ}, get state(){return state}, K, start, LAP, trackAt, nearest};
 </script>
 </body>
 </html>

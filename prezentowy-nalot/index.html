@@ -427,13 +427,13 @@ function updateCut(dt){ CUT.t+=dt; t0+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) 
   if(Math.floor(t0*1.3)!==Math.floor((t0-dt)*1.3)&&CUT.t<3.8) jingle(.035); }
 function endCut(){ if(state!=='cut'||CUT.done) return; if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; CUT.kind==='jugo'?startCot():CUT.kind==='pole'?theEnd():startTent(); }
 function drawCut(){ c.setTransform(RES,0,0,RES,0,0); const J=CUT.kind==='jugo', PO=CUT.kind==='pole', bg=J?IMG.village:PO?IMG.pole_land:IMG.landing; if(ok(bg)){ const sc=Math.max(VW/bg.naturalWidth,VH/bg.naturalHeight); c.drawImage(bg,(VW-bg.naturalWidth*sc)/2,(VH-bg.naturalHeight*sc)/2,bg.naturalWidth*sc,bg.naturalHeight*sc); } else { c.fillStyle='#0b1430'; c.fillRect(0,0,VW,VH); }
-  if(J){ drawStand('jugo',1000,690,300,sub&&sub.who==='Jugo'); if(CUT.t>4) hearts(1000,380,CUT.t); }
-  else if(PO){ drawStand('santa_stand',930,700,330,sub&&sub.who==='Papi'); for(let k=0;k<3;k++){ const hop=Math.abs(Math.sin(t0*3+k*1.3))*(sub&&sub.who==='Elf'&&k===1?40:18); drawStand('elf_happy',1080+k*70,690-hop-(k%2)*14,120-k*8,false,k===2); }
+  if(J){ drawStand('jugo',1030,705,390,sub&&sub.who==='Jugo'); if(CUT.t>4) hearts(1030,300,CUT.t); }
+  else if(PO){ drawStand('santa_stand',940,712,400,sub&&sub.who==='Papi'); for(let k=0;k<2;k++){ const hop=Math.abs(Math.sin(t0*3+k*1.3))*(sub&&sub.who==='Elf'&&k===1?40:18); drawStand('elf_happy',1120+k*110,705-hop,210-k*14,false,k===1); }
     if(CUT.t>4){ for(let k=0;k<12;k++){ const ph=(t0*.25+k/12)%1; c.fillStyle=['#ff5a4e','#ffd34e','#7dff7a','#5ad1ff','#ff9ccf'][k%5]; c.save(); c.translate(200+k*90+Math.sin(t0+k)*30,-20+ph*760); c.rotate(t0*3+k); c.fillRect(-5,-3,10,6); c.restore(); } } }
-  else { const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',960,655,290,t0); }
-  const p=Math.min(1,CUT.t/3.5), e=1-Math.pow(1-p,3), x=-260+640*e, y=150+430*e-Math.sin(p*Math.PI)*40;
-  if(p<1) drawAnim('nl_sleigh','sleigh',x,y,330,CUT.t*1.2,(1-p)*.12); else drawImg('sleigh',x,y,330);
-  if(p>=1&&CUT.t<4.6){ c.globalAlpha=Math.max(0,1-(CUT.t-3.5)); c.fillStyle='#fff'; for(let k=0;k<10;k++){ c.beginPath(); c.arc(x-140+k*30,y+80+Math.sin(k)*6,10+((k*7)%9),0,6.29); c.fill(); } c.globalAlpha=1; }
+  else { const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',1000,700,390,t0); }
+  const p=Math.min(1,CUT.t/3.5), e=1-Math.pow(1-p,3), x=-420+800*e, y=130+400*e-Math.sin(p*Math.PI)*60;
+  if(p<1) drawAnim('nl_sleigh','sleigh',x,y,640,CUT.t*1.2,(1-p)*.12); else drawImg('sleigh',x,y,640);
+  if(p>=1&&CUT.t<4.6){ c.globalAlpha=Math.max(0,1-(CUT.t-3.5)); c.fillStyle='#fff'; for(let k=0;k<10;k++){ c.beginPath(); c.arc(x-280+k*60,y+150+Math.sin(k)*10,18+((k*7)%14),0,6.29); c.fill(); } c.globalAlpha=1; }
   // falling snow
   c.fillStyle='rgba(255,255,255,.85)'; SNOW.forEach(s=>{ const yy=(s.y+t0*s.s)%VH, xx=((s.x-t0*s.s*.6+Math.sin(t0+s.d)*10)%VW+VW)%VW; c.beginPath(); c.arc(xx,yy,s.r,0,6.29); c.fill(); });
   txt(J?'Skraj wioski':PO?'Biegun północny':'Skraj lasu',VW/2,40,30,'#ffe27a','center'); drawSub(); }
@@ -501,8 +501,7 @@ function drawTent(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.tent_in; if(o
   if(D.dc){ drawImg('dreamcatcher',640,150,74,Math.sin(t0*1.2)*.05); drawImg('garland',250,200,64,Math.sin(t0)*.03); drawImg('garland',1030,200,64,-Math.sin(t0)*.03); }
   if(D.ck) drawImg('plate',165,452,170);
   // family and Maryańska
-  const fam=IMG.family; if(ok(fam)){ const h=290, w=h*fam.naturalWidth/fam.naturalHeight; c.drawImage(fam,330-w/2,705-h,w,h); }
-  const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',820,705,320,t0);
+  const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',770,716,470,t0);
   // hotspots
   if(!G){ txt('Namiot Maryańskiej',VW/2,40,30,'#ffcf8a','center'); for(const id in HOT){ const h=HOT[id], dn=D[id], hov=!dn&&MOUSE.x>h.x&&MOUSE.x<h.x+h.w&&MOUSE.y>h.y&&MOUSE.y<h.y+h.h;
       if(!dn){ c.save(); c.setLineDash([10,8]); c.lineDashOffset=-t0*30; c.strokeStyle=hov?'rgba(255,231,122,.95)':`rgba(255,231,122,${.45+.25*Math.sin(t0*4)})`; c.lineWidth=hov?5:3; c.beginPath(); c.roundRect(h.x,h.y,h.w,h.h,20); c.stroke(); c.restore(); }
@@ -530,7 +529,7 @@ function beadAt(b,x,y,r){ if(b.img) drawImg(b.img,x,y,r*2.2); else { c.fillStyle
 
 // ---------- Jugo's gingerbread cottage: Gayzilla cooks, Papi (Santa) is spoiled rotten, three mini-games ----------
 let COT=null, CG=null; const CKEY={};
-const COT_HOT={kc:{x:205,y:330,w:265,h:250,label:'🧪 Kociołek Gayzilli',voice:'gz_g1',done:'gz_g1done'},dn:{x:560,y:58,w:160,h:200,label:'🪩 Taniec z Papim',voice:'gz_g3',done:'santa_g3done'},fd:{x:930,y:380,w:320,h:320,label:'🥟 Karmienie Papiego',voice:'jugo_g2',done:'santa_g2done'}};
+const COT_HOT={kc:{x:205,y:330,w:265,h:250,label:'🧪 Kociołek Gayzilli',voice:'gz_g1',done:'gz_g1done'},dn:{x:560,y:58,w:160,h:200,label:'🪩 Taniec z Papim',voice:'gz_g3',done:'santa_g3done'},fd:{x:880,y:300,w:400,h:420,label:'🥟 Karmienie Papiego',voice:'jugo_g2',done:'santa_g2done'}};
 function drawStand(n,x,yF,h,talk,flip,rot){ const i=IMG[n]; if(!ok(i)) return; const w=h*i.naturalWidth/i.naturalHeight, s=talk?.03*Math.sin(t0*13):.012*Math.sin(t0*2.2+x);
   c.save(); c.translate(x,yF); if(rot) c.rotate(rot); c.scale((flip?-1:1)*(1-s*.5),1+s); c.drawImage(i,-w/2,-h,w,h); c.restore(); }
 function heart(x,y,r,col,a){ c.save(); c.globalAlpha=a; c.fillStyle=col; c.beginPath(); c.moveTo(x,y+r*.9); c.bezierCurveTo(x-r*1.6,y-r*.2,x-r*.7,y-r*1.4,x,y-r*.5); c.bezierCurveTo(x+r*.7,y-r*1.4,x+r*1.6,y-r*.2,x,y+r*.9); c.fill(); c.restore(); }
@@ -606,13 +605,12 @@ function drawCot(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.cottage_in; if
   // cauldron steam: green and cheerful once the soup is done
   { const n=D.kc?8:3; for(let k=0;k<n;k++){ const ph=(t0*.35+k/n)%1; c.fillStyle=D.kc?`rgba(140,255,120,${.35*(1-ph)})`:`rgba(255,255,255,${.18*(1-ph)})`; c.beginPath(); c.arc(330+Math.sin(k*1.7+t0)*30,410-ph*200,16+ph*30,0,6.29); c.fill(); } }
   // family, Gayzilla the cook, Jugo with mistletoe, Papi in the armchair
-  const fam=IMG.family; if(ok(fam)){ const h=230, w=h*fam.naturalWidth/fam.naturalHeight; c.drawImage(fam,112-w/2,712-h,w,h); }
-  drawStand('gay_cook',565,708,330,who==='Gayzilla');
-  drawStand('jugo',815,708,330,who==='Jugo');
-  drawStand('santa',1095,716,322,who==='Papi',false,Math.sin(t0*(D.dn?5:1.4))*(D.dn?.05:.012));
-  if(D.fd){ drawImg('plate',1000,690,120); }
+  drawStand('gay_cook',590,718,470,who==='Gayzilla');
+  drawStand('jugo',800,718,470,who==='Jugo');
+  drawStand('santa',1085,722,430,who==='Papi',false,Math.sin(t0*(D.dn?5:1.4))*(D.dn?.05:.012));
+  if(D.fd){ drawImg('plate',940,690,140); }
   // the not-so-secret romance: hearts drift between Jugo, Gayzilla and Papi
-  hearts(965,470,COT.t,D.fd?6:3); if(Math.sin(COT.t*.7)>.3) hearts(690,420,COT.t*1.2,2);
+  hearts(930,330,COT.t,D.fd?6:3); if(Math.sin(COT.t*.7)>.3) hearts(700,280,COT.t*1.2,2);
   if(!CG){ txt('Piernikowa chatka Jugo',VW/2,40,30,'#ffcf8a','center');
     for(const id in COT_HOT){ const h=COT_HOT[id], dn=D[id], hov=!dn&&MOUSE.x>h.x&&MOUSE.x<h.x+h.w&&MOUSE.y>h.y&&MOUSE.y<h.y+h.h;
       if(!dn){ c.save(); c.setLineDash([10,8]); c.lineDashOffset=-t0*30; c.strokeStyle=hov?'rgba(255,231,122,.95)':`rgba(255,231,122,${.45+.25*Math.sin(t0*4)})`; c.lineWidth=hov?5:3; c.beginPath(); c.roundRect(h.x,h.y,h.w,h.h,20); c.stroke(); c.restore(); }
@@ -705,8 +703,7 @@ function drawFab(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.fab_in; if(ok(
   if(FAB.end&&FAB.build>.6){ const a=Math.min(1,(FAB.build-.6)*2); c.save(); c.globalAlpha=a; drawImg('cannon',528,368,330*(.8+.2*a)); c.restore(); if(FAB.build<2) for(let k=0;k<8;k++){ c.fillStyle='#fff6b0'; c.beginPath(); c.arc(528+Math.cos(k+t0*6)*160*(FAB.build),368+Math.sin(k+t0*6)*60,4,0,6.29); c.fill(); } }
   else { if(D.p1) drawImg('part_boiler',440,370,70); if(D.p2) drawImg('part_sight',540,352,110); if(D.p3) drawImg('part_hopper',630,366,80); }
   // the family and Maryańska (she leads the elf resistance here)
-  const fam=IMG.family; if(ok(fam)){ const h=230, w=h*fam.naturalWidth/fam.naturalHeight; c.drawImage(fam,780-w/2,712-h,w,h); }
-  const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',1190,712,300,t0);
+  const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',805,718,470,t0);
   if(!FG){ txt('Fabryka zabawek — ruch oporu',VW/2,40,30,'#ffcf8a','center');
     for(const id in FAB_HOT){ const h=FAB_HOT[id], dn=D[id], hov=!dn&&MOUSE.x>h.x&&MOUSE.x<h.x+h.w&&MOUSE.y>h.y&&MOUSE.y<h.y+h.h;
       if(!dn){ c.save(); c.setLineDash([10,8]); c.lineDashOffset=-t0*30; c.strokeStyle=hov?'rgba(255,231,122,.95)':`rgba(255,231,122,${.45+.25*Math.sin(t0*4)})`; c.lineWidth=hov?5:3; c.beginPath(); c.roundRect(h.x,h.y,h.w,h.h,20); c.stroke(); c.restore(); }
