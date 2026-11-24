@@ -128,7 +128,7 @@ const ENV={}, ENVM={}; ['earth','forest','ice','cobble','snowpack','cave','pier'
 ['cp_on','cp_off','spring','spikes','icicle','vent'].forEach(n=>ENV[n]=img('env/'+n)); ['earth','forest','ice','cobble','snowpack','cave','pier','rock','wood'].forEach(s=>ENV['tex_'+s]=img('env/tex_'+s));
 fetch('art/env/env.json').then(r=>r.json()).then(j=>Object.assign(ENVM,j)).catch(()=>{});
 const envImg=n=>{ const i=ENV[n]; return i&&i.complete&&i.naturalWidth?i:null; };
-const IMG={}; ['kz_idle','kz_run1','kz_run2','kz_run3','kz_run4','kz_jump','kz_fall','kz_punch','kz_wind','kz_throw','kz_glide','kz_towel','kz_twalk1','kz_twalk2','kz_tjoy','inez_walk1','inez_walk2','inez_kiss','it_vihta','it_ladle','it_snow','it_chore','it_kiss','it_phone','sauna','bg_village','inez_hit','inez_dizzy','inez_huff','mar_idle','enemy_vac','enemy_note','cage','elf_happy','it_gold','bg_factory','fab_door','bg_palace_in','pal_door','mk_idle','mk_run1','mk_run2','mk_jump','ka_idle','ka_run1','ka_run2','ka_jump','mik_face','kaka_face','kaczor_face'].forEach(n=>IMG[n]=img(n));
+const IMG={}; ['kz_idle','kz_run1','kz_run2','kz_run3','kz_run4','kz_jump','kz_fall','kz_punch','kz_wind','kz_throw','kz_glide','kz_towel','kz_twalk1','kz_twalk2','kz_tjoy','inez_walk1','inez_walk2','inez_kiss','it_vihta','it_ladle','it_snow','it_chore','it_kiss','it_phone','sauna','bg_village','inez_hit','inez_dizzy','inez_huff','mar_idle','enemy_vac','enemy_note','cage','elf_happy','it_gold','bg_factory','fab_door','bg_palace_in','pal_door','mk_idle','mk_run1','mk_run2','mk_jump','ka_idle','ka_run1','ka_run2','ka_jump','mik_face','kaka_face','kaczor_face','mirror_frame'].forEach(n=>IMG[n]=img(n));
 
 // ---------- smooth animations (Ludo.ai spritesheets, packed into strips with a body anchor) ----------
 const ANIM={}; fetch('art/anim/anim.json').then(r=>r.json()).then(j=>{ for(const k in j){ ANIM[k]=j[k]; ANIM[k].img=img('anim/'+k); } }).catch(()=>{});
@@ -390,11 +390,11 @@ function miniBoss(e,dt,punching,hx0,hx1,hy0,hy1){ const C=MB[e.who]; L.boss=e; c
   else if(e.mode==='mirror'){
     // Inez splits into five reflections; the fakes shimmer, the real one does not. Hitting a fake shatters it; hitting the real Inez breaks the spell and leaves her dizzy.
     if(!e.fired){ e.fired=true; const n=5, slots=[]; for(let k=0;k<n;k++) slots.push(e.a-120+(e.b-e.a+120)*k/(n-1)); const real=Math.floor(Math.random()*n);
-      e.clones=slots.map((x,k)=>({x,dir:Math.sign(P.x-x)||-1,ph:Math.random()*6,real:k===real,alive:k!==real,cool:1+Math.random()*1.5})).filter(q=>!q.real); e.x=slots[real]; flash=.5; sfx('phone',.5);
-      for(const x of slots) puff(x,gy-120,'#ffd1ec',14); if(!e.toldMirror){ e.toldMirror=1; toast('Pięć Inez! Prawdziwa nie migocze — znajdź ją 🪞','#ffd1ec'); } if(!cur) play('qb_mirror'); }
+      e.clones=slots.map((x,k)=>({x,dir:Math.sign(P.x-x)||-1,ph:Math.random()*6,real:k===real,alive:k!==real,cool:1+Math.random()*1.5})).filter(q=>!q.real); e.broken=[]; e.x=slots[real]; flash=.5; sfx('phone',.5);
+      for(const x of slots) puff(x,gy-120,'#ffd1ec',14); if(!e.toldMirror){ e.toldMirror=1; toast('Inez w lustrach! Prawdziwa stoi przed lustrem 🪞','#ffd1ec'); } if(!cur) play('qb_mirror'); }
     face(); e.clones.forEach(q=>{ q.dir=Math.sign(P.x-q.x)||-1; q.cool-=dt; if(q.cool<=0&&Math.abs(P.x-q.x)<900){ q.cool=1.8+Math.random()*1.6; for(let k=0;k<2;k++) kisses.push({x:q.x+q.dir*30,y:gy-120-k*40,vx:q.dir*(200+k*40),t:3.5,ph:k}); } });
     const hitQ=q=>{ const top2=gy-185, sb2=snowballs.find(b=>b.t>0&&Math.abs(b.x-q.x)<46&&b.y>top2&&b.y<gy), pun=punching&&q.x>hx0-40&&q.x<hx1+40&&top2<hy1&&gy>hy0, st2=Math.abs(P.x-q.x)<50&&P.vy>0&&P.y+P.h>top2&&P.y+P.h<top2+42; if(sb2) sb2.t=0; if(st2) P.vy=-620; return sb2||pun||st2; };
-    e.clones.forEach(q=>{ if(!q.alive||!hitQ(q)) return; q.alive=false; for(let k=0;k<22;k++) parts.push({x:q.x+(Math.random()-.5)*60,y:gy-60-Math.random()*150,vx:(Math.random()-.5)*420,vy:-Math.random()*380,t:.8,col:k%2?'#ffffff':'#bfe6ff',r:2+Math.random()*4}); sfx('splat',.5); shake=.12;
+    e.clones.forEach(q=>{ if(!q.alive||!hitQ(q)) return; q.alive=false; (e.broken=e.broken||[]).push({x:q.x,t:0}); for(let k=0;k<22;k++) parts.push({x:q.x+(Math.random()-.5)*90,y:gy-110-Math.random()*200,vx:(Math.random()-.5)*420,vy:-Math.random()*380,t:.8,col:k%2?'#ffffff':'#bfe6ff',r:2+Math.random()*4}); sfx('splat',.5); shake=.12;
       if(!e.saidFake){ e.saidFake=1; if(!cur) play('kz_mirror'); } for(let k=0;k<3;k++) kisses.push({x:q.x,y:gy-150,vx:(Math.sign(P.x-q.x)||1)*(180+k*70),vy:-140+k*70,t:3,ph:k,home:1}); });
     e.clones=e.clones.filter(q=>q.alive);
     if(e.inv<=0&&hitQ(e)){ e.clones.forEach(q=>puff(q.x,gy-120,'#ffffff',14)); e.clones=[]; flash=.3; sfx('defeat',.5); toast('Prawdziwa Inez! Teraz ją dopadnij 💫','#d6ffd9'); tired(ph?1.6:2); return; }
@@ -412,8 +412,17 @@ function miniBoss(e,dt,punching,hx0,hx1,hy0,hy1){ const C=MB[e.who]; L.boss=e; c
   if(sb&&!open){ sb.t=0; puff(sb.x,sb.y,'#ffffff',6); sfx('phone',.3); if(!e.toldGuard){ e.toldGuard=1; toast(C.guard,'#ffe6a8'); } }
   if(ox&&e.inv<=0&&e.mode!=='tired'&&e.mode!=='hurt'&&P.y+P.h>top+42&&P.y<gy) hurt(C.ram||'Generał cię staranował! 🧝',e.who); }
 function drawMiniBoss(e,X){ const C=MB[e.who], fl=e.dir<0, sc=.6, Y=e.y+2;
-  if(e.mode==='mirror'&&e.clones){ const all=e.clones.map(q=>q.x).concat([e.x]); all.forEach(x=>{ const sx=x-cam; c.save(); c.strokeStyle='rgba(255,215,120,.85)'; c.lineWidth=6; c.fillStyle='rgba(200,230,255,.18)'; c.beginPath(); c.ellipse(sx,Y-110,70,125,0,0,Math.PI*2); c.fill(); c.stroke(); c.restore(); });
-    e.clones.forEach(q=>{ const sx=q.x-cam; c.save(); c.globalAlpha=.72+.22*Math.sin(t0*11+q.ph); drawAnim(C.an.mirror[0],sx,Y,e.t*.5+q.ph,q.dir<0,null,sc); c.globalCompositeOperation='lighter'; c.globalAlpha=.18+.14*Math.sin(t0*7+q.ph); c.fillStyle='#bfe6ff'; c.fillRect(sx-50,Y-220+((t0*120+q.ph*40)%220),100,10); c.restore(); }); }
+  if(e.mode==='mirror'&&e.clones){ const mf=IMG.mirror_frame, k=.75, FW=226*k, FH=480*k, glass=(sx)=>({x:sx,y:Y-FH+215*k,rx:66*k,ry:148*k});
+    const frame=(x,broken)=>{ const sx=x-cam, g=glass(sx); c.save(); c.beginPath(); c.ellipse(sx,Y-4,FW*.42,10,0,0,Math.PI*2); c.fillStyle='rgba(60,20,50,.25)'; c.fill(); if(mf.complete&&mf.naturalWidth) c.drawImage(mf,sx-FW/2,Y-FH,FW,FH);
+      if(broken){ c.beginPath(); c.ellipse(g.x,g.y,g.rx,g.ry,0,0,Math.PI*2); c.clip(); c.fillStyle='rgba(40,30,70,.45)'; c.fillRect(g.x-g.rx,g.y-g.ry,g.rx*2,g.ry*2); c.strokeStyle='rgba(255,255,255,.85)'; c.lineWidth=2; for(let j=0;j<7;j++){ const a=j*0.9+x*.01; c.beginPath(); c.moveTo(g.x,g.y-10); c.lineTo(g.x+Math.cos(a)*g.rx*.6,g.y-10+Math.sin(a)*g.ry*.5); c.lineTo(g.x+Math.cos(a+.2)*g.rx*1.2,g.y-10+Math.sin(a+.2)*g.ry*1.1); c.stroke(); } }
+      c.restore(); return g; };
+    (e.broken||[]).forEach(b=>frame(b.x,true)); frame(e.x,false);
+    e.clones.forEach(q=>{ const g=frame(q.x,false); c.save(); c.beginPath(); c.ellipse(g.x,g.y,g.rx-3,g.ry-3,0,0,Math.PI*2); c.clip();
+      // the reflection: Inez inside the glass, cooled and flickering, with a sliding sheen
+      c.globalAlpha=.62+.3*Math.sin(t0*11+q.ph); c.filter='hue-rotate(-25deg) saturate(.7) brightness(1.15)'; drawAnim(C.an.mirror[0],g.x,g.y+g.ry-8,e.t*.5+q.ph,q.dir<0,null,sc*.9); c.filter='none';
+      c.globalCompositeOperation='lighter'; c.globalAlpha=.22; c.fillStyle='#9fd4ff'; c.fillRect(g.x-g.rx,g.y-g.ry,g.rx*2,g.ry*2);
+      c.globalAlpha=.35; c.translate(g.x,g.y); c.rotate(-.5); const sh=((t0*90+q.ph*50)%(g.ry*3))-g.ry*1.5; c.fillStyle='#ffffff'; c.fillRect(-g.rx*2,sh,g.rx*4,9); c.fillRect(-g.rx*2,sh+18,g.rx*4,4); c.restore();
+      if(Math.random()<.25) parts.push({x:g.x+cam+(Math.random()-.5)*g.rx*2,y:g.y+(Math.random()-.5)*g.ry*2,vx:0,vy:-30,t:.5,col:'#ffffff',r:1.5+Math.random()*2}); }); }
   if(e.state==='gone'){ c.globalAlpha=Math.max(0,Math.min(1,e.st)); drawAnim(C.an.gone[0],X,Y,t0,false,null,sc); c.globalAlpha=1; return; }
   if(e.mode==='hurt'&&Math.floor(e.mt*16)%2) return;
   if(e.mode==='tired'&&!C.daze[e.tfrom]){ c.save(); c.globalAlpha=.6+.3*Math.sin(t0*8); c.font='800 26px "Baloo 2",sans-serif'; c.textAlign='center'; c.fillText('💫',X,Y-200); c.restore(); }

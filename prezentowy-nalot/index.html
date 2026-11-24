@@ -88,7 +88,7 @@ const TOUCH=matchMedia('(pointer:coarse)').matches; if(TOUCH){ document.body.cla
 
 // ---------- assets ----------
 const IMG={}, img=n=>{ if(IMG[n]) return IMG[n]; const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; return i; };
-const ART=['fin_throne','fin_santa','fin_sauna','bg_palace','inez_deer','inez_stand','throne','h_room','h_sofa_sleep','h_sofa','h_kaka','h_kaka_cheer','h_mik','h_tree','h_presents','arcade','bg_night','sleigh','plane_inez','plane_gay','plane_grinch','house1','house2','house3','house4','gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold','candy','cookie','star','coal','kiss','phone','para_inez','para_gay','para_grinch','face_kaka','face_kaczor','face_mikolaj','face_inez','bg_forest','tree1','tree2','tree3','lodge','sett','beaver','badger','plane_goblin','landing','mar_idle','tent_in','family','ck_star','ck_heart','ck_tree','ck_deer','ck_peace','pr_feather','pr_cone','dreamcatcher','plate','garland','village','cottage_in','jugo','gay_cook','santa','f_mush','f_beet','f_egg','f_sock','f_pierog','f_cake','f_disco','raven','raven_boss','raven_daze','bauble','snowball','feather','bg_pole','ws1','ws2','plane_elf','para_elf','elf_happy','pole_land','santa_stand','fab_in','cannon','part_boiler','part_sight','part_hopper'];
+const ART=['h_clock','mar_left','h_table','h_lights','h_stocking','h_cookies','fin_throne','fin_santa','fin_sauna','bg_palace','inez_deer','inez_stand','throne','h_room','h_sofa_sleep','h_sofa','h_kaka','h_kaka_cheer','h_mik','h_tree','h_presents','arcade','bg_night','sleigh','plane_inez','plane_gay','plane_grinch','house1','house2','house3','house4','gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold','candy','cookie','star','coal','kiss','phone','para_inez','para_gay','para_grinch','face_kaka','face_kaczor','face_mikolaj','face_inez','bg_forest','tree1','tree2','tree3','lodge','sett','beaver','badger','plane_goblin','landing','mar_idle','tent_in','family','ck_star','ck_heart','ck_tree','ck_deer','ck_peace','pr_feather','pr_cone','dreamcatcher','plate','garland','village','cottage_in','jugo','gay_cook','santa','f_mush','f_beet','f_egg','f_sock','f_pierog','f_cake','f_disco','raven','raven_boss','raven_daze','bauble','snowball','feather','bg_pole','ws1','ws2','plane_elf','para_elf','elf_happy','pole_land','santa_stand','fab_in','cannon','part_boiler','part_sight','part_hopper'];
 ART.forEach(img);
 let ANIM={}, HOUSES={}, TREES={};
 const ready=Promise.all([fetch('art/anim/anim.json').then(r=>r.json()).then(j=>{ ANIM=j; for(const k in j) ANIM[k].img=img('anim/'+k); }).catch(()=>{}),
@@ -101,14 +101,14 @@ function drawAnim(name,still,x,y,w,t,rot){ const a=ANIM[name]; if(!a||!ok(a.img)
 
 // a character strip anchored at its feet (Maryańska's strips from Kaczor do sauny)
 function drawFeet(name,still,x,yFeet,h,t){ const a=ANIM[name]; if(!a||!ok(a.img)){ const i=IMG[still]; if(ok(i)){ const w=h*i.naturalWidth/i.naturalHeight; c.drawImage(i,x-w/2,yFeet-h,w,h); } return; }
-  const f=Math.floor(t*a.fps)%a.n, s=h/a.fy; c.drawImage(a.img,f*a.w,0,a.w,a.h,x-a.ax*s,yFeet-a.fy*s,a.w*s,a.h*s); }
+  const f=Math.floor(t*a.fps)%a.n, s=h/(a.fig||a.fy); c.drawImage(a.img,f*a.w,0,a.w,a.h,x-a.ax*s,yFeet-a.fy*s,a.w*s,a.h*s); }
 // ---------- audio ----------
 let muted=false; try{ muted=localStorage.getItem('pn-mute')==='1'; }catch(e){}
 const bgm=new Audio(); bgm.loop=true; let bgmVol=.32;
 function setMusic(src){ if(bgm.src.endsWith(src)) return; bgm.src='audio/'+src; bgm.volume=bgmVol; if(!muted) bgm.play().catch(()=>{}); }
 const AUD={}, aud=n=>{ if(!AUD[n]){ const a=new Audio('audio/'+n+'.mp3'); a.preload='auto'; AUD[n]=a; } return AUD[n]; };
 const VOICES=['nk_start','nk_hit','nm_glow','nk_win','nz_start','nz_inez','nz_hit','nz_boss','nz_win','nm_drop','nm_good','nm_miss','ni_intro','ni_boss','ni_down','mar_l2','nz_mar','nk_mar','nm_mar','nz_goblin','nk_tree','gb_taunt','gr_intro','gr_down','nz_boss2','an_beaver','an_badger','nk_win2','mar_invite','mar_tent','mar_g1','mar_g1done','mar_g2','mar_g2done','mar_g3','mar_g3done','mar_all','nk_tent','nm_tent','nz_tent','nk_raven','nz_raven','rk_intro','nz_boss1','rk_down','nk_start3','nz_start3','elf_taunt','nz_elf','elf_thx','ni3_intro','nz_boss3','ni3_down','nk_win3','nz_win3','ni3_cameo','nz_crash','nk_crash'];
-const SUBS={fp_papi1:['Papi','Ho ho ho! Rodzinko, uratowaliście święta! Mój worek wrócił!'],fp_papi2:['Papi','Kaka, twoja lista była bez zarzutu. Od dziś jesteś Królową Świata! Tron jest twój.'],fp_kaka1:['Kaka','Królowa Świata? No… wreszcie ktoś to docenił! Lista na przyszły rok już gotowa.'],fp_papi3:['Papi','A ty, mały Mikołaju, dostajesz najważniejszą posadę: od dziś to ty jesteś Świętym Mikołajem! Rudolf, słuchaj go!'],fp_mik1:['Mikołaj','Ja?! Hurra! Rudolf, lecimy roznosić prezenty!'],fp_papi4:['Papi','Aaah… No, Kaczorku, tu się dopiero odpoczywa. Zasłużyliśmy.'],fp_kz1:['Kaczor','Ooo… ale masz bicepsy, Papi… Znaczy… sauna! Tak, sauna to świetny pomysł!'],fp_papi5:['Papi','Przysuń się bliżej, Kaczorku, bo para ucieka… A jak będziesz grzeczny, pokażę ci, co jeszcze trzymam w worku. Ho ho ho!'],fp_kaka2:['Kaka','Kaczor! Tylko nie siedź tam do rana!'],nk_start4:['Kaka','To tam! Różowy Pałac Inez. Worek prezentów Papiego musi być w środku!'],nz_start4:['Kaczor','Trzymajcie się! Lecimy prosto na pałac!'],nk_raven4:['Kaka','Znowu te kruki! Inez zebrała całe stado!'],ni4_intro:['Inez','Kaczorku! Myślałeś, że zaspa mnie zatrzyma? Poznaj mojego Różowego Renifera!'],nz_boss4:['Kaczor','Rudolf, pokażmy jej, kto tu jest prawdziwym reniferem!'],ni4_duel:['Inez','Różowy promień miłości! Nie wytrzymasz, Kaczorku!'],nm_duel:['Mikołaj','Rudolf, świeć! Szybciej, szybciej!'],ni4_down:['Inez','Aaa! Mój renifer! Dobrze, uciekam do pałacu… ale tam mnie nie dostaniesz!'],nk_win4:['Kaka','Ląduje w pałacu! Kaczor, idziesz za nią!'],ni_throne1:['Inez','Kaczorku… po co ci te listy zakupów i rozwożenie prezentów? Zostań ze mną w pałacu. Tu jest sauna, szampan i nikt niczego od ciebie nie chce.'],ni_throne2:['Inez','No? Zostajesz?'],nk_stay:['Kaka','KACZOR! Chyba się przesłyszałam?!'],nm_stay:['Mikołaj','Tato? A prezenty?'],nz_stay:['Kaczor','Żartowałem! Żartowałem, kochanie…'],nz_go:['Kaczor','Dzięki, Inez, ale mam rodzinę, a prezenty same się nie rozwiozą. Bierzemy worek i wracamy.'],ni_go:['Inez','Phi! I tak byłeś za stary na mój bobslej! Bierzcie ten worek… Wesołych Świąt, Kaczorku.'],nk_go:['Kaka','To mój Kaczor! Lecimy oddać worek Papiemu!'],hp_kaka1:['Kaka','Uff, goście poszli, wszystko posprzątane. Kaczor, masz tylko jedno zadanie: o północy połóż prezenty pod choinką. Tylko jedno!'],hp_kz1:['Kaczor','Jasne, kochanie… Tylko na chwileczkę zamknę oczy…'],hp_mik1:['Mikołaj','Tato, a Mikołaj na pewno zdąży do nas przed północą?'],hp_kz2:['Kaczor','Zdąży, synku… zdąży… Rudolf… sanie… chrrr…'],wk_kaka1:['Kaka','Kaczor! Kaczor, obudź się! Za dwie minuty północ, a prezentów dalej nie ma pod choinką!'],wk_kz1:['Kaczor','Inez! Bobslej! Armatka śnieżna… Ojej. To był tylko sen?'],wk_kaka2:['Kaka','Jaki bobslej? Szybko, prezenty!'],wk_kz2:['Kaczor','Zdążyłem! Tym razem żadnego uciekania od obowiązków.'],wk_kaka3:['Kaka','Jestem z ciebie dumna, Kaczorku. Wesołych Świąt.'],wk_mik1:['Mikołaj','Tato… był tu Mikołaj?'],wk_kz3:['Kaczor','Był, synku. Ledwo zdążył… ale zdążył.'],nk_start:['Kaka','Lista prezentów sprawdzona, renifer nakarmiony. Lecimy, rodzinko!'],nk_hit:['Kaka','Uważaj, Kaczor! Prawie wypadł mi notes!'],nm_glow:['Mikołaj','Rudolf, zaświeć noskiem!'],nk_win:['Kaka','Wszystkie kominy odhaczone! Brawo, drużyno!'],
+const SUBS={fp_papi1:['Papi','Ho ho ho! Rodzinko, uratowaliście święta! Mój worek wrócił!'],fp_papi2:['Papi','Kaka, twoja lista była bez zarzutu. Od dziś jesteś Królową Świąt! Tron jest twój.'],fp_kaka1:['Kaka','Królowa Świąt? No… wreszcie ktoś to docenił! Lista na przyszły rok już gotowa.'],fp_papi3:['Papi','A ty, mały Mikołaju, dostajesz najważniejszą posadę: od dziś to ty jesteś Świętym Mikołajem! Rudolf, słuchaj go!'],fp_mik1:['Mikołaj','Ja?! Hurra! Rudolf, lecimy roznosić prezenty!'],fp_papi4:['Papi','Aaah… No, Kaczorku, tu się dopiero odpoczywa. Zasłużyliśmy.'],fp_kz1:['Kaczor','Ooo… ale masz bicepsy, Papi… Znaczy… sauna! Tak, sauna to świetny pomysł!'],fp_papi5:['Papi','Przysuń się bliżej, Kaczorku, bo para ucieka… A jak będziesz grzeczny, pokażę ci, co jeszcze trzymam w worku. Ho ho ho!'],fp_kaka2:['Kaka','Kaczor! Tylko nie siedź tam do rana!'],nk_start4:['Kaka','To tam! Różowy Pałac Inez. Worek prezentów Papiego musi być w środku!'],nz_start4:['Kaczor','Trzymajcie się! Lecimy prosto na pałac!'],nk_raven4:['Kaka','Znowu te kruki! Inez zebrała całe stado!'],ni4_intro:['Inez','Kaczorku! Myślałeś, że zaspa mnie zatrzyma? Poznaj mojego Różowego Renifera!'],nz_boss4:['Kaczor','Rudolf, pokażmy jej, kto tu jest prawdziwym reniferem!'],ni4_duel:['Inez','Różowy promień miłości! Nie wytrzymasz, Kaczorku!'],nm_duel:['Mikołaj','Rudolf, świeć! Szybciej, szybciej!'],ni4_down:['Inez','Aaa! Mój renifer! Dobrze, uciekam do pałacu… ale tam mnie nie dostaniesz!'],nk_win4:['Kaka','Ląduje w pałacu! Kaczor, idziesz za nią!'],ni_throne1:['Inez','Kaczorku… po co ci te listy zakupów i rozwożenie prezentów? Zostań ze mną w pałacu. Tu jest sauna, szampan i nikt niczego od ciebie nie chce.'],ni_throne2:['Inez','No? Zostajesz?'],nk_stay:['Kaka','KACZOR! Chyba się przesłyszałam?!'],nm_stay:['Mikołaj','Tato? A prezenty?'],nz_stay:['Kaczor','Żartowałem! Żartowałem, kochanie…'],nz_go:['Kaczor','Dzięki, Inez, ale mam rodzinę, a prezenty same się nie rozwiozą. Bierzemy worek i wracamy.'],ni_go:['Inez','Phi! I tak byłeś za stary na mój bobslej! Bierzcie ten worek… Wesołych Świąt, Kaczorku.'],nk_go:['Kaka','To mój Kaczor! Lecimy oddać worek Papiemu!'],hp_kaka1:['Kaka','Uff, goście poszli, wszystko posprzątane. Kaczor, masz tylko jedno zadanie: o północy połóż prezenty pod choinką. Tylko jedno!'],hp_kz1:['Kaczor','Jasne, kochanie… Tylko na chwileczkę zamknę oczy…'],hp_mik1:['Mikołaj','Tato, a Mikołaj na pewno zdąży do nas przed północą?'],hp_kz2:['Kaczor','Zdąży, synku… zdąży… Rudolf… sanie… chrrr…'],wk_kaka1:['Kaka','Kaczor! Kaczor, obudź się! Za dwie minuty północ, a prezentów dalej nie ma pod choinką!'],wk_kz1:['Kaczor','Inez! Bobslej! Armatka śnieżna… Ojej. To był tylko sen?'],wk_kaka2:['Kaka','Jaki bobslej? Szybko, prezenty!'],wk_kz2:['Kaczor','Zdążyłem! Tym razem żadnego uciekania od obowiązków.'],wk_kaka3:['Kaka','Jestem z ciebie dumna, Kaczorku. Wesołych Świąt.'],wk_mik1:['Mikołaj','Tato… był tu Mikołaj?'],wk_kz3:['Kaczor','Był, synku. Ledwo zdążył… ale zdążył.'],nk_start:['Kaka','Lista prezentów sprawdzona, renifer nakarmiony. Lecimy, rodzinko!'],nk_hit:['Kaka','Uważaj, Kaczor! Prawie wypadł mi notes!'],nm_glow:['Mikołaj','Rudolf, zaświeć noskiem!'],nk_win:['Kaka','Wszystkie kominy odhaczone! Brawo, drużyno!'],
   nz_start:['Kaczor','Trzymajcie się mocno, Rudolf dziś szaleje!'],nz_inez:['Kaczor','Inez w samolocie? No pięknie…'],nz_hit:['Kaczor','Au! To był całus czy pocisk?'],nz_boss:['Kaczor','Dobra, Inez, pora na lądowanie!'],nz_win:['Kaczor','Ani jednego komina nie przegapiliśmy. Prawie.'],
   nm_drop:['Mikołaj','Prezent poleciał!'],nm_good:['Mikołaj','Trafiłem w komin! Hurra!'],nm_miss:['Mikołaj','Ups… na dach.'],
   ni_intro:['Inez','Kaczorku, nie uciekniesz mi nawet w saniach!'],ni_boss:['Inez','Koniec zabawy! Teraz lecę ja, kochanie!'],ni_down:['Inez','Moje skrzydełka! To jeszcze nie koniec!'],
@@ -417,7 +417,7 @@ function draw(){
   c.save(); c.setLineDash([6,10]); c.strokeStyle='rgba(255,231,122,.28)'; c.lineWidth=2; c.beginPath(); c.moveTo(P.x-40,P.y+50); c.lineTo(P.x-40-120,GROUND-40); c.stroke(); c.restore();
   // sleigh
   { const blink=P.inv>0&&Math.floor(P.inv*14)%2; if(!blink) drawAnim('nl_sleigh','sleigh',P.x,P.y,330,P.anim,P.tilt);
-    if(P.shield>0){ c.globalAlpha=.35+.15*Math.sin(t0*8); c.strokeStyle='#ffe27a'; c.lineWidth=5; c.beginPath(); c.ellipse(P.x+20,P.y,190,95,0,0,6.29); c.stroke(); c.globalAlpha=1; } }
+    if(P.shield>0) drawShield(P.x+20,P.y,P.shield); }
   // shots
   shots.forEach(s=>{ c.fillStyle='#fff'; c.beginPath(); c.arc(s.x,s.y,8,0,6.29); c.fill(); c.fillStyle='rgba(200,225,255,.8)'; c.beginPath(); c.arc(s.x+2,s.y+2,4,0,6.29); c.fill(); });
   ebullets.forEach(b=>drawImg(b.img,b.x,b.y,34,Math.sin(b.rot)*.3));
@@ -481,7 +481,7 @@ function drawThrone(){ const H=CUT, bg=IMG.throne; if(ok(bg)){ const sc=Math.max
   if(H.ask&&!sub) txt('Co wybiera Kaczor?',VW/2,VH-150,30,'#ffe27a','center');
   txt('Sala tronowa Inez',VW/2,40,30,'#ffcfe8','center'); drawSub(); }
 // ---------- the finale: Papi comes back for his sack, crowns Kaka, hands the sleigh to little Mikołaj and takes Kaczor to the sauna ----------
-const FIN=[{bg:'throne',lines:['fp_papi1','fp_papi2'],title:'Sala tronowa'},{bg:'fin_throne',lines:['fp_kaka1'],title:'Królowa Świata'},{bg:'fin_santa',lines:['fp_papi3','fp_mik1'],title:'Nowy Święty Mikołaj'},{bg:'fin_sauna',lines:['fp_papi4','fp_kz1','fp_papi5','fp_kaka2'],title:'W saunie'}];
+const FIN=[{bg:'throne',lines:['fp_papi1','fp_papi2'],title:'Sala tronowa'},{bg:'fin_throne',lines:['fp_kaka1'],title:'Królowa Świąt'},{bg:'fin_santa',lines:['fp_papi3','fp_mik1'],title:'Nowy Święty Mikołaj'},{bg:'fin_sauna',lines:['fp_papi4','fp_kz1','fp_papi5','fp_kaka2'],title:'W saunie'}];
 function updateFinale(dt){ const H=CUT; if(H.panel==null){ H.panel=0; H.pt=0; } H.pt+=dt;
   if(!H.said&&H.t>1.2){ H.said=true; const play=i=>{ if(state!=='cut'||CUT.kind!=='finale'||H.done) return; if(i>=FIN.length){ setTimeout(endCut,1200); return; } H.panel=i; H.pt=0; if(i===2) jingle(.06);
       throneChainAny(0,FIN[i].lines,()=>setTimeout(()=>play(i+1),700)); }; play(0); } }
@@ -503,28 +503,54 @@ function updateHome(dt){ const H=CUT; if(H.fade>0) H.fade+=dt;
       if(chain[i]==='GIFTS'){ H.gifts=H.t; sfx('pick',.5); setTimeout(()=>{ H.midnight=H.t; chime(3); jingle(.05); },1700); setTimeout(()=>next(i+1),2600); return; }
       if(chain[i]==='hp_kz2') H.sleepy=H.t; if(chain[i]==='wk_kaka1') H.shake=H.t; if(chain[i]==='wk_kz1') H.awake=H.t; if(chain[i]==='wk_mik1') H.mik=H.t;
       say(chain[i],()=>setTimeout(()=>next(i+1),300),true); }; next(0); } }
-function drawClock(x,y,r,hh,mm){ c.save(); c.translate(x,y); c.fillStyle='#6b3f1f'; c.beginPath(); c.arc(0,0,r+7,0,6.29); c.fill(); c.fillStyle='#fff8e6'; c.beginPath(); c.arc(0,0,r,0,6.29); c.fill(); c.strokeStyle='#3a2414'; c.lineWidth=3;
-  for(let k=0;k<12;k++){ const a=k/12*6.283; c.beginPath(); c.moveTo(Math.sin(a)*r*.8,-Math.cos(a)*r*.8); c.lineTo(Math.sin(a)*r*.92,-Math.cos(a)*r*.92); c.stroke(); }
-  const ah=((hh%12)+mm/60)/12*6.283, am=mm/60*6.283; c.lineCap='round'; c.lineWidth=5; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.sin(ah)*r*.5,-Math.cos(ah)*r*.5); c.stroke(); c.lineWidth=3; c.beginPath(); c.moveTo(0,0); c.lineTo(Math.sin(am)*r*.8,-Math.cos(am)*r*.8); c.stroke(); c.restore();
-  txt(`${String(hh).padStart(2,'0')}:${String(Math.floor(mm)).padStart(2,'0')}`,x,y-r-20,20,'#ffe27a','center'); }
+let CLX=545,CLY=495;
+// star shield: a soft golden soap-bubble with a bright rim, a slow rainbow sheen, orbiting twinkle stars; it blinks out over its last two seconds
+function drawShield(x,y,left){ const RX=190, RY=100, born=Math.min(1,(10-left)*4), fade=left<2?(Math.floor(left*8)%2?.35:1):1, a=born*fade; c.save(); c.translate(x,y); c.scale(1+.03*Math.sin(t0*3),1-.03*Math.sin(t0*3)); c.globalAlpha=a;
+  let g=c.createRadialGradient(0,0,RY*.2,0,0,RX); g.addColorStop(0,'rgba(255,240,180,0)'); g.addColorStop(.72,'rgba(255,226,122,.07)'); g.addColorStop(.92,'rgba(255,214,90,.32)'); g.addColorStop(1,'rgba(255,250,220,.75)');
+  c.save(); c.scale(1,RY/RX); c.fillStyle=g; c.beginPath(); c.arc(0,0,RX,0,6.29); c.fill(); c.restore();
+  c.globalCompositeOperation='lighter'; c.lineWidth=4; const hue=(t0*60)%360; c.strokeStyle=`hsla(${hue},90%,75%,.35)`; c.beginPath(); c.ellipse(0,0,RX-6,RY-5,0,0,6.29); c.stroke();
+  c.lineWidth=3; c.strokeStyle='rgba(255,255,240,.9)'; c.beginPath(); c.ellipse(0,0,RX,RY,0,0,6.29); c.stroke();
+  c.lineCap='round'; c.lineWidth=7; c.strokeStyle='rgba(255,255,255,.55)'; c.beginPath(); c.ellipse(0,0,RX-16,RY-14,0,3.6,4.3); c.stroke(); c.lineWidth=4; c.beginPath(); c.ellipse(0,0,RX-16,RY-14,0,4.45,4.6); c.stroke();
+  for(let k=0;k<6;k++){ const an=t0*1.4+k*6.283/6, sx=Math.cos(an)*RX, sy=Math.sin(an)*RY, tw=.6+.4*Math.sin(t0*9+k*2); c.fillStyle=`rgba(255,240,160,${.9*tw})`; const r=6+5*tw; c.beginPath(); c.moveTo(sx,sy-r); c.quadraticCurveTo(sx,sy,sx+r,sy); c.quadraticCurveTo(sx,sy,sx,sy+r); c.quadraticCurveTo(sx,sy,sx-r,sy); c.quadraticCurveTo(sx,sy,sx,sy-r); c.fill(); }
+  c.restore(); }
+function drawClock(x,y,w,hh,mm){ const im=IMG.h_clock; if(!ok(im)) return; const s=w/im.naturalWidth, h=im.naturalHeight*s; c.drawImage(im,x-w/2,y-h,w,h);
+  const cx=x+(115-116)*s, cy=y-h+162*s, r=70*s, ah=((hh%12)+mm/60)/12*6.283, am=mm/60*6.283; c.save(); c.translate(cx,cy); c.lineCap='round'; c.strokeStyle='#1f140c';
+  c.lineWidth=Math.max(2,6*s); c.beginPath(); c.moveTo(-Math.sin(ah)*r*.12,Math.cos(ah)*r*.12); c.lineTo(Math.sin(ah)*r*.5,-Math.cos(ah)*r*.5); c.stroke();
+  c.lineWidth=Math.max(1.5,4*s); c.beginPath(); c.moveTo(-Math.sin(am)*r*.15,Math.cos(am)*r*.15); c.lineTo(Math.sin(am)*r*.78,-Math.cos(am)*r*.78); c.stroke();
+  c.fillStyle='#c9a24a'; c.beginPath(); c.arc(0,0,Math.max(2,6*s),0,6.29); c.fill(); c.restore();
+  txt(`${String(hh).padStart(2,'0')}:${String(Math.floor(mm)).padStart(2,'0')}`,x,y-h-14,20,'#ffe27a','center'); }
 function drawHome(){ const H=CUT, W=H.kind==='wake', bg=IMG.h_room; if(ok(bg)){ const sc=Math.max(VW/bg.naturalWidth,VH/bg.naturalHeight); c.drawImage(bg,(VW-bg.naturalWidth*sc)/2,(VH-bg.naturalHeight*sc)/2,bg.naturalWidth*sc,bg.naturalHeight*sc); } else { c.fillStyle='#3a2414'; c.fillRect(0,0,VW,VH); }
-  // late evening: dim room, warm fire glow, twinkling tree
-  c.fillStyle=W?'rgba(8,12,40,.42)':'rgba(10,14,40,.3)'; c.fillRect(0,0,VW,VH);
-  const fl=.5+.2*Math.sin(t0*7)+.1*Math.sin(t0*17), g=c.createRadialGradient(350,520,20,350,520,420); g.addColorStop(0,`rgba(255,170,70,${.35*fl})`); g.addColorStop(1,'rgba(255,170,70,0)'); c.fillStyle=g; c.fillRect(0,150,800,570);
-  drawStand('h_tree',640,660,470); for(let k=0;k<14;k++){ const a=k*2.4, r=(k%7)/7; const x=640+Math.sin(a)*120*(.3+r*.7), y=260+r*340; c.globalAlpha=.4+.6*Math.abs(Math.sin(t0*3+k)); c.fillStyle=['#ffe27a','#ff7a7a','#7ad1ff','#a6ff8a'][k%4]; c.beginPath(); c.arc(x,y,4,0,6.29); c.fill(); } c.globalAlpha=1;
-  // the clock on the chimney breast: 21:00 in the prologue, 23:58 → midnight when he wakes up
-  let hh=21, mm=Math.min(59,H.t*.25); if(W){ hh=23; mm=58+Math.min(1.9,H.t*.03); if(H.midnight!=null){ hh=0; mm=0; } } drawClock(424,292,26,hh,mm);
+  // the living room exactly as it looks at the end of part 2 (same positions as in kaka/, in its 1920×1072 stage space), fully decorated after the Wigilia dinner
+  const RS=Math.max(VW/1920,VH/1072), RX=(VW-1920*RS)/2;
+  const fit=(n,x,y,w,h,alpha,flip)=>{ const im=IMG[n]; if(!ok(im)) return; const s=Math.min(w/im.naturalWidth,h/im.naturalHeight), dw=im.naturalWidth*s, dh=im.naturalHeight*s; c.save(); if(alpha!=null) c.globalAlpha*=alpha; c.translate(x+w/2,y+h/2); if(flip) c.scale(-1,1); c.drawImage(im,-dw/2,-dh/2,dw,dh); c.restore(); };
+  const byW=(n,x,y,w,alpha)=>{ const im=IMG[n]; if(!ok(im)) return; const h=w*im.naturalHeight/im.naturalWidth; c.save(); if(alpha!=null) c.globalAlpha*=alpha; c.drawImage(im,x,y,w,h); c.restore(); };
+  c.save(); c.translate(RX,0); c.scale(RS,RS);
+  // fairy lights in the window, stockings on the mantel, cookies on the sideboard, the decorated tree
+  byW('h_lights',712.3,144.7,604.8,.75+.25*Math.sin(t0*2.2));
+  [[414.7,498.5,'none'],[503,502.8,'hue-rotate(115deg) saturate(.8)'],[591.4,498.5,'hue-rotate(-18deg) brightness(1.08)']].forEach(([x,y,f],k)=>{ const im=IMG.h_stocking; if(!ok(im)) return; c.save(); c.filter=f; c.translate(x+29.7,y); c.rotate(Math.sin(t0*1.5+k*1.3)*.04); c.drawImage(im,-29.7,0,59.5,59.5*im.naturalHeight/im.naturalWidth); c.restore(); });
+  byW('h_cookies',1320.7,500.4,157);
+  fit('h_tree',9.6,235.8,499.2,729);
+  for(let k=0;k<16;k++){ const a=k*2.4, r=(k%8)/8; const x=259+Math.sin(a)*170*(.25+r*.75), y=330+r*520; c.globalAlpha=.4+.6*Math.abs(Math.sin(t0*3+k)); c.fillStyle=['#ffe27a','#ff7a7a','#7ad1ff','#a6ff8a'][k%4]; c.beginPath(); c.arc(x,y,6,0,6.29); c.fill(); } c.globalAlpha=1;
+  // the first star in the window
+  { const sx=1095, sy=290, r=14+3*Math.sin(t0*2); c.fillStyle='rgba(255,250,210,.95)'; c.beginPath(); for(let k=0;k<10;k++){ const a=k*Math.PI/5-Math.PI/2, rr=k%2?r*.42:r; c.lineTo(sx+Math.cos(a)*rr,sy+Math.sin(a)*rr); } c.fill(); }
   // presents: missing until Kaczor puts them under the tree (plus a toy snow cannon, just like in the dream)
-  if(W&&H.gifts!=null){ const p=Math.min(1,(H.t-H.gifts)/1.4), e=1-Math.pow(1-p,3); c.save(); c.globalAlpha=e; drawStand('h_presents',1100-450*e,668,170); if(p>=1) drawImg('cannon',505,632,120,-.15); c.restore();
-    if(p<1) for(let k=0;k<6;k++){ c.fillStyle='#fff6b0'; c.beginPath(); c.arc(1100-450*e+Math.cos(k+t0*8)*90,580+Math.sin(k+t0*8)*40,4,0,6.29); c.fill(); } }
-  // Kaczor on the sofa: awake at first, then asleep (Zzz); in the end scene asleep until Kaka shakes him
-  const asleep=W?H.awake==null:H.sleepy!=null&&H.t>H.sleepy+2.5, kSh=W&&H.shake!=null&&H.awake==null?Math.sin(t0*40)*5:0, talkK=sub&&sub.who==='Kaczor';
-  drawStand(asleep?'h_sofa_sleep':'h_sofa',930+kSh,700,380,talkK&&!asleep);
-  if(asleep) for(let k=0;k<3;k++){ const ph=(t0*.45+k/3)%1; c.globalAlpha=Math.sin(ph*Math.PI); txt('Z',880+ph*60+k*8,330-ph*110,20+k*8+ph*10,'#cfe6ff','center'); } c.globalAlpha=1;
-  // Kaka
-  const cheer=W&&H.step>=5; drawStand(cheer?'h_kaka_cheer':'h_kaka',W?1120:1180,712,480,sub&&sub.who==='Kaka');
+  if(W&&H.gifts!=null){ const p=Math.min(1,(H.t-H.gifts)/1.4), e=1-Math.pow(1-p,3); byW('h_presents',76.8+700*(1-e),768,288,e); if(p>=1){ const im=IMG.cannon; if(ok(im)){ c.save(); c.translate(330,930); c.rotate(-.15); c.drawImage(im,-80,-50,160,160*im.naturalHeight/im.naturalWidth); c.restore(); } }
+    if(p<1) for(let k=0;k<6;k++){ c.fillStyle='#fff6b0'; c.beginPath(); c.arc(220+700*(1-e)+Math.cos(k+t0*8)*110,860+Math.sin(k+t0*8)*50,6,0,6.29); c.fill(); } }
+  // Kaczor on the sofa (behind the table): awake at first, then asleep (Zzz); in the end scene asleep until Kaka shakes him
+  const asleep=W?H.awake==null:H.sleepy!=null&&H.t>H.sleepy+2.5, kSh=W&&H.shake!=null&&H.awake==null?Math.sin(t0*40)*6:0;
+  fit(asleep?'h_sofa_sleep':'h_sofa',796.8+kSh,455.6,441.6,310.9);
+  fit('h_table',748.8,616.4,768,439.5);
   // little Mikołaj on the rug with his train (in the end he comes in sleepy at the very last moment)
-  if(!W||H.mik!=null){ c.save(); if(W) c.globalAlpha=Math.min(1,(H.t-H.mik)*1.5); drawStand('h_mik',300,700,250,sub&&sub.who==='Mikołaj'); c.restore(); }
+  if(!W||H.mik!=null) fit('h_mik',432,662.4,326.4,270.2,W?Math.min(1,(H.t-H.mik)*1.5):1);
+  // Kaka, at the right edge as in part 2
+  { const cheer=W&&H.step>=5, im=IMG[cheer?'h_kaka_cheer':'h_kaka']; if(ok(im)){ const h=761, w=h*im.naturalWidth/im.naturalHeight, b=Math.sin(t0*1.4)*.006; c.save(); c.translate(1910.4-w/2,1055.9); c.scale(1-b,1+b); c.drawImage(im,-w/2,-h,w,h); c.restore(); } }
+  c.restore();
+  // late evening light over the whole room, warm glow of the fire
+  c.fillStyle=W?'rgba(8,12,40,.32)':'rgba(10,14,40,.22)'; c.fillRect(0,0,VW,VH);
+  { const fl=.5+.2*Math.sin(t0*7)+.1*Math.sin(t0*17), fx=RX+410*RS, fy=740*RS, g=c.createRadialGradient(fx,fy,20,fx,fy,420); g.addColorStop(0,`rgba(255,170,70,${.32*fl})`); g.addColorStop(1,'rgba(255,170,70,0)'); c.fillStyle=g; c.fillRect(0,150,VW,570); }
+  if(asleep) for(let k=0;k<3;k++){ const ph=(t0*.45+k/3)%1; c.globalAlpha=Math.sin(ph*Math.PI); txt('Z',RX+(930+ph*90+k*12)*RS,(470-ph*160)*RS,20+k*8+ph*10,'#cfe6ff','center'); } c.globalAlpha=1;
+  // the clock on the mantel: 21:00 in the prologue, 23:58 → midnight when he wakes up
+  let hh=21, mm=Math.min(59,H.t*.25); if(W){ hh=23; mm=58+Math.min(1.9,H.t*.03); if(H.midnight!=null){ hh=0; mm=0; } } drawClock(RX+CLX*RS,CLY*RS,135*RS,hh,mm);
   txt(W?'Salon Kaczorów — Wigilia, 23:58':'Salon Kaczorów — Wigilia wieczorem',VW/2,40,30,'#ffe27a','center');
   // falling asleep: the room dissolves into the dream; waking up: the dream fades into the room
   if(!W&&H.fade>0){ const a=Math.min(1,H.fade/1.8); c.fillStyle=`rgba(255,255,255,${a})`; c.fillRect(0,0,VW,VH); if(a>.5){ c.globalAlpha=(a-.5)*2; txt('…i Kaczorowi śni się Wigilijna noc ✨',VW/2,VH/2,40,'#c0392b','center'); c.globalAlpha=1; } }
@@ -534,7 +560,7 @@ function drawCut(){ c.setTransform(RES,0,0,RES,0,0); if(CUT.kind==='home'||CUT.k
   if(J){ drawStand('jugo',1030,705,390,sub&&sub.who==='Jugo'); if(CUT.t>4) hearts(1030,300,CUT.t); }
   else if(PO){ drawStand('santa_stand',940,712,400,sub&&sub.who==='Papi'); for(let k=0;k<2;k++){ const hop=Math.abs(Math.sin(t0*3+k*1.3))*(sub&&sub.who==='Elf'&&k===1?40:18); drawStand('elf_happy',1120+k*110,705-hop,210-k*14,false,k===1); }
     if(CUT.t>4){ for(let k=0;k<12;k++){ const ph=(t0*.25+k/12)%1; c.fillStyle=['#ff5a4e','#ffd34e','#7dff7a','#5ad1ff','#ff9ccf'][k%5]; c.save(); c.translate(200+k*90+Math.sin(t0+k)*30,-20+ph*760); c.rotate(t0*3+k); c.fillRect(-5,-3,10,6); c.restore(); } } }
-  else { const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',1000,700,390,t0); }
+  else { const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_speak':'mar_calm','mar_left',1000,700,390,t0); }
   const p=Math.min(1,CUT.t/3.5), e=1-Math.pow(1-p,3), x=-420+800*e, y=130+400*e-Math.sin(p*Math.PI)*60;
   if(p<1) drawAnim('nl_sleigh','sleigh',x,y,640,CUT.t*1.2,(1-p)*.12); else drawImg('sleigh',x,y,640);
   if(p>=1&&CUT.t<4.6){ c.globalAlpha=Math.max(0,1-(CUT.t-3.5)); c.fillStyle='#fff'; for(let k=0;k<10;k++){ c.beginPath(); c.arc(x-280+k*60,y+150+Math.sin(k)*10,18+((k*7)%14),0,6.29); c.fill(); } c.globalAlpha=1; }
@@ -605,7 +631,7 @@ function drawTent(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.tent_in; if(o
   if(D.dc){ drawImg('dreamcatcher',640,150,74,Math.sin(t0*1.2)*.05); drawImg('garland',250,200,64,Math.sin(t0)*.03); drawImg('garland',1030,200,64,-Math.sin(t0)*.03); }
   if(D.ck) drawImg('plate',165,452,170);
   // family and Maryańska
-  const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',770,716,470,t0);
+  const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_speak':'mar_calm','mar_left',770,716,470,t0);
   // hotspots
   if(!G){ txt('Namiot Maryańskiej',VW/2,40,30,'#ffcf8a','center'); for(const id in HOT){ const h=HOT[id], dn=D[id], hov=!dn&&MOUSE.x>h.x&&MOUSE.x<h.x+h.w&&MOUSE.y>h.y&&MOUSE.y<h.y+h.h;
       if(!dn){ c.save(); c.setLineDash([10,8]); c.lineDashOffset=-t0*30; c.strokeStyle=hov?'rgba(255,231,122,.95)':`rgba(255,231,122,${.45+.25*Math.sin(t0*4)})`; c.lineWidth=hov?5:3; c.beginPath(); c.roundRect(h.x,h.y,h.w,h.h,20); c.stroke(); c.restore(); }
@@ -741,8 +767,8 @@ function drawCotGame(){ const g=CG; c.fillStyle='rgba(10,6,4,.45)'; c.fillRect(0
     txt(`Mniam ${g.hits} / ${g.need}`,300,580,22,'#9be38c'); txt(`⏱ ${Math.max(0,Math.ceil(g.time))} s`,980,580,22,g.time<10?'#ff8a7a':'#fff','right'); }
   if(g.id==='dn'){ const step=.62, si=Math.floor(g.t/step), show=g.phase==='show'&&g.t>=0&&si<g.seq.length&&(g.t-si*step)<step*.8?g.seq[si]:-1;
     // Gayzilla shows the steps, Papi copies the player
-    const gp=show>=0?show:-1; drawStand('gay_cook',395,600,250,gp>=0,false,gp===0?-.15:gp===2?.15:0);
-    const sp=g.poseT>0?g.pose:-1, si2=IMG.santa; if(ok(si2)){ const w=220,h=w*si2.naturalHeight/si2.naturalWidth; c.save(); c.translate(895,600-(sp===1?24:0)); c.rotate(sp===0?-.18:sp===2?.18:Math.sin(t0*3)*.03); c.scale(1,sp===3?.9:1); c.drawImage(si2,-w/2,-h,w,h); c.restore(); }
+    const gp=show>=0?show:-1; c.save(); c.translate(395,600); c.rotate(gp===0?-.12:gp===2?.12:0); c.translate(0,gp===1?-18:0); c.scale(1,gp===3?.9:1); c.translate(-395,-600); drawFeet('gz_dance','gay_cook',395,600,250,t0*(gp>=0?1.5:.7)); c.restore();
+    const sp=g.poseT>0?g.pose:-1; c.save(); c.translate(895,600-(sp===1?24:0)); c.rotate(sp===0?-.14:sp===2?.14:0); c.scale(1,sp===3?.9:1); c.translate(-895,-600); drawFeet('papi_dance','santa_stand',895,600,270,t0*(sp>=0?1.5:.8)); c.restore();
     ARR.forEach((a,i)=>{ const lit=i===show||(g.poseT>0&&g.pose===i), hov=g.phase==='input'&&Math.hypot(MOUSE.x-a.x,MOUSE.y-a.y)<52; c.fillStyle=lit?'rgba(255,90,209,.75)':hov?'rgba(255,255,255,.25)':'rgba(255,255,255,.1)'; c.beginPath(); c.arc(a.x,a.y,48,0,6.29); c.fill(); txt(a.k,a.x,a.y+2,lit?52:44,lit?'#fff':'#ffe27a','center'); });
     for(let k=0;k<g.seq.length;k++){ c.fillStyle=k<g.input.length?'#7dff7a':'rgba(255,255,255,.25)'; c.beginPath(); c.arc(VW/2-(g.seq.length-1)*14+k*28,232,8,0,6.29); c.fill(); }
     txt(`Układ ${Math.min(g.lens.length,g.round+1)} / ${g.lens.length}`,VW/2,600,18,'#ffe27a','center'); } }
@@ -820,7 +846,7 @@ function drawFab(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.fab_in; if(ok(
     if(!FG){ const hov=MOUSE.x>ARC.x&&MOUSE.x<ARC.x+ARC.w&&MOUSE.y>ARC.y&&MOUSE.y<ARC.y+ARC.h; if(hov){ c.save(); c.setLineDash([10,8]); c.lineDashOffset=-t0*30; c.strokeStyle='rgba(255,140,210,.95)'; c.lineWidth=4; c.beginPath(); c.roundRect(ARC.x-6,ARC.y-6,ARC.w+12,ARC.h+12,16); c.stroke(); c.restore(); }
       txt('🕹 Inez na łowach',ARC.x+ARC.w/2,ARC.y+ARC.h+20,19,hov?'#ffd1ec':'#ff9ccf','center'); txt('(automat — dla chętnych)',ARC.x+ARC.w/2,ARC.y+ARC.h+42,14,'#f3d9c4','center'); } } }
   // the family and Maryańska (she leads the elf resistance here)
-  const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',805,718,470,t0);
+  const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_speak':'mar_calm','mar_left',805,718,470,t0);
   if(!FG){ txt('Fabryka zabawek — ruch oporu',VW/2,40,30,'#ffcf8a','center');
     for(const id in FAB_HOT){ const h=FAB_HOT[id], dn=D[id], hov=!dn&&MOUSE.x>h.x&&MOUSE.x<h.x+h.w&&MOUSE.y>h.y&&MOUSE.y<h.y+h.h;
       if(!dn){ c.save(); c.setLineDash([10,8]); c.lineDashOffset=-t0*30; c.strokeStyle=hov?'rgba(255,231,122,.95)':`rgba(255,231,122,${.45+.25*Math.sin(t0*4)})`; c.lineWidth=hov?5:3; c.beginPath(); c.roundRect(h.x,h.y,h.w,h.h,20); c.stroke(); c.restore(); }
