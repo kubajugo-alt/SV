@@ -49,7 +49,7 @@ body.touch.playing #touch{ display:flex; }
   <div id="title" class="ov">
     <div class="logo"><small>Świąteczna trylogia · część 3</small><b>Prezentowy nalot</b></div>
     <div>
-      <button class="btn" id="bPlay" disabled>Ładowanie…</button> <button class="btn alt" id="bLvl2" style="display:none">Poziom 2: Las ▶</button> <button class="btn alt" id="bLvl3" style="display:none">Poziom 3: Biegun ▶</button> <button class="btn alt" id="bVil" style="display:none">Wioska elfów ▶</button>
+      <button class="btn" id="bPlay" disabled>Ładowanie…</button> <button class="btn alt" id="bLvl2" style="display:none">Poziom 2: Las ▶</button> <button class="btn alt" id="bLvl3" style="display:none">Poziom 3: Biegun ▶</button> <button class="btn alt" id="bVil" style="display:none">Wioska elfów ▶</button> <button class="btn alt" id="bFab" style="display:none">Fabryka zabawek ▶</button> <button class="btn alt" id="bHall" style="display:none">Hala produkcyjna ▶</button> <button class="btn alt" id="bBob" style="display:none">Pościg ▶</button>
       <p class="help" id="helpTouch" style="display:none">Przesuwaj palcem po ekranie, żeby sterować saniami · ❄ śnieżka Kaczora · 🎁 prezent od Mikołaja · 🦌 fala światła z nosa Rudolfa (czyści niebo)<br>Zrzucaj prezenty, gdy komin świeci na złoto, i nie daj się zatrzymać krukom, goblinom Grincha i elfom Inez!</p>
       <p class="help" id="helpKeys">◀ ▶ ▲ ▼ / WASD — lot sań · <b>Spacja</b> / J — śnieżka Kaczora · <b>X</b> / K — prezent od Mikołaja · <b>C</b> / L — fala światła z nosa Rudolfa (czyści niebo, 2 na poziom)<br>Zrzucaj prezenty prosto do kominów i nie daj się zatrzymać krukom, goblinom Grincha i elfom Inez! · P — pauza · M — dźwięk</p>
     </div>
@@ -67,8 +67,10 @@ body.touch.playing #touch{ display:flex; }
 
   <div id="over" class="ov dim hidden"><div class="card"><h2>Sanie na ziemi!</h2><p id="oTxt"></p><div class="row"><button class="btn" id="bRetry">Jeszcze raz</button><button class="btn alt" id="bMenu2">Menu</button></div></div></div>
 
-  <div id="tbc2" class="ov dim hidden"><div class="card"><h2>Ciąg dalszy nastąpi… 🎄</h2><p>Wioska elfów uwolniona! Generał Elfów się poddał, lojalne elfy wróciły do warsztatów, a brama warsztatu Mikołaja stoi otworem.</p><p>Ale <b>Inez</b> wciąż rządzi na biegunie… Finałowa bitwa już wkrótce!</p><div class="row"><button class="btn" id="bVilAgain">Wioska jeszcze raz</button><button class="btn alt" id="bMenu5">Menu</button></div></div></div>
-  <div id="tbc" class="ov dim hidden"><div class="card"><h2>Wesołych Świąt! 🎄</h2><p>Biegun uwolniony, elfy wróciły do warsztatów, a Inez odfrunęła na spadochronie.<br>Papi znów rządzi na biegunie… ale na Wigilię i tak leci do Jugo i Gayzilli na pierogi. 💕</p><p><b>Koniec świątecznej trylogii Kaki, Kaczora i Mikołaja!</b></p><div class="row"><button class="btn" id="bCotAgain">Biegun jeszcze raz</button><button class="btn alt" id="bMenu4">Menu</button></div></div></div>
+  <div id="tbc2" class="ov dim hidden"><div class="card"><h2>Wioska uwolniona! 🧝</h2><p>Generał Elfów się poddał, a brama warsztatu stoi otworem. Za nią czeka <b>fabryka zabawek</b> — i ktoś bardzo znajomy z elfickiego ruchu oporu…</p><div class="row"><button class="btn" id="bToFab">Do fabryki zabawek ▶</button><button class="btn alt" id="bVilAgain">Wioska jeszcze raz</button><button class="btn alt" id="bMenu5">Menu</button></div></div></div>
+  <div id="tbc3" class="ov dim hidden"><div class="card"><h2>Hala przebiegnięta! 🛷</h2><p>Kaczor wybiegł z fabryki, a przed bramą czeka bobslej z armatką śnieżną. Kaka i mały Mikołaj już siedzą w środku. Inez ucieka po lodowym torze — <b>pościg!</b></p><div class="row"><button class="btn" id="bToBob">Pościg w bobslejach ▶</button><button class="btn alt" id="bMenu6">Menu</button></div></div></div>
+  <div id="tbc4" class="ov dim hidden"><div class="card"><h2>Inez pokonana! ❄</h2><p>Armatka śnieżna trafiła w cel, a Inez oddała biegun. Czas wrócić do warsztatu, gdzie ktoś bardzo chce wam podziękować…</p><div class="row"><button class="btn" id="bToEnd">Zakończenie ▶</button><button class="btn alt" id="bBobAgain">Pościg jeszcze raz</button></div></div></div>
+  <div id="tbc" class="ov dim hidden"><div class="card"><h2>Wesołych Świąt! 🎄</h2><p>Biegun uwolniony, elfy wróciły do warsztatów, a różowy bobslej Inez wylądował w zaspie.<br>Papi znów rządzi na biegunie… ale na Wigilię i tak leci do Jugo i Gayzilli na pierogi. 💕</p><p><b>Koniec świątecznej trylogii Kaki, Kaczora i Mikołaja!</b></p><div class="row"><button class="btn" id="bCotAgain">Biegun jeszcze raz</button><button class="btn alt" id="bMenu4">Menu</button></div></div></div>
   <div id="win" class="ov dim hidden"><div class="card"><h2>Poziom 1 ukończony!</h2><div class="stars" id="wStars"></div><p id="wTxt"></p><p id="wNext"></p><div class="row"><button class="btn" id="bNext">Dalej ➜</button><button class="btn alt" id="bAgain">Zagraj jeszcze raz</button><button class="btn alt" id="bMenu3">Menu</button></div></div></div>
 </div>
 
@@ -84,7 +86,7 @@ const TOUCH=matchMedia('(pointer:coarse)').matches; if(TOUCH){ document.body.cla
 
 // ---------- assets ----------
 const IMG={}, img=n=>{ if(IMG[n]) return IMG[n]; const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; return i; };
-const ART=['bg_night','sleigh','plane_inez','plane_gay','plane_grinch','house1','house2','house3','house4','gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold','candy','cookie','star','coal','kiss','phone','para_inez','para_gay','para_grinch','face_kaka','face_kaczor','face_mikolaj','face_inez','bg_forest','tree1','tree2','tree3','lodge','sett','beaver','badger','plane_goblin','landing','mar_idle','tent_in','family','ck_star','ck_heart','ck_tree','ck_deer','ck_peace','pr_feather','pr_cone','dreamcatcher','plate','garland','village','cottage_in','jugo','gay_cook','santa','f_mush','f_beet','f_egg','f_sock','f_pierog','f_cake','f_disco','raven','raven_boss','raven_daze','bauble','snowball','feather','bg_pole','ws1','ws2','plane_elf','para_elf','elf_happy','pole_land','santa_stand'];
+const ART=['bg_night','sleigh','plane_inez','plane_gay','plane_grinch','house1','house2','house3','house4','gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold','candy','cookie','star','coal','kiss','phone','para_inez','para_gay','para_grinch','face_kaka','face_kaczor','face_mikolaj','face_inez','bg_forest','tree1','tree2','tree3','lodge','sett','beaver','badger','plane_goblin','landing','mar_idle','tent_in','family','ck_star','ck_heart','ck_tree','ck_deer','ck_peace','pr_feather','pr_cone','dreamcatcher','plate','garland','village','cottage_in','jugo','gay_cook','santa','f_mush','f_beet','f_egg','f_sock','f_pierog','f_cake','f_disco','raven','raven_boss','raven_daze','bauble','snowball','feather','bg_pole','ws1','ws2','plane_elf','para_elf','elf_happy','pole_land','santa_stand','fab_in','cannon','part_boiler','part_sight','part_hopper'];
 ART.forEach(img);
 let ANIM={}, HOUSES={}, TREES={};
 const ready=Promise.all([fetch('art/anim/anim.json').then(r=>r.json()).then(j=>{ ANIM=j; for(const k in j) ANIM[k].img=img('anim/'+k); }).catch(()=>{}),
@@ -134,6 +136,12 @@ const SUBS={nk_start:['Kaka','Lista prezentów sprawdzona, renifer nakarmiony. L
   ni3_intro:['Inez','Kaczorku! Przyleciałeś do mnie aż na biegun? Ten biegun jest mój!'],nz_boss3:['Kaczor','Inez, oddawaj biegun Mikołajowi!'],ni3_down:['Inez','Moje elfy! Mój biegun! Kaczorku, jeszcze się spotkamy!'],
   nk_win3:['Kaka','Biegun uwolniony! Elfy wolne, święta uratowane!'],nz_win3:['Kaczor','A teraz… naprawdę do sauny!'],
   santa_end:['Papi','Ho ho ho! Biegun znów jest mój! Dziękuję wam, rodzinko!'],santa_end2:['Papi','Ale na Wigilię i tak wracam do chłopców. Gayzilla obiecał pierogi!'],nm_end:['Mikołaj','Wesołych Świąt, Święty Mikołaju!'],elf_end:['Elf','Wesołych Świąt! Do roboty, elfy, prezenty same się nie zapakują!'],
+  mar_fab:['Maryańska','Psst! Tutaj, kochani! Elficki ruch oporu wita w fabryce zabawek. Inez tu nie zagląda. Peace!'],mar_fab2:['Maryańska','Żeby pokonać Inez, zbudujemy armatkę śnieżną. Potrzebujemy trzech części: kompresora, celownika i magazynka na śnieżki.'],
+  nz_fab:['Kaczor','Armatka śnieżna? Maryańska, ty to masz pomysły!'],nk_fab:['Kaka','Dobra, robię listę części. Kompresor, celownik, magazynek.'],nm_fab:['Mikołaj','Ja chcę strzelać z armatki!'],
+  mar_p1:['Maryańska','Rury z parą! Obracaj kawałki, aż para popłynie od kotła do kompresora.'],mar_p1done:['Maryańska','Ssss! Ciśnienie jest! Kompresor gotowy.'],
+  mar_p2:['Maryańska','Panel celownika. Kliknięcie zmienia lampkę i jej sąsiadów. Zapal wszystkie!'],mar_p2done:['Maryańska','Wszystkie lampki świecą! Celownik ustawiony.'],
+  mar_p3:['Maryańska','Magazyn zamknięty na szyfr z bombek. Zgadnij kolory, a ja podpowiem ci, ile trafiłeś.'],mar_p3done:['Maryańska','Otwarte! Magazynek pełen śnieżek.'],
+  mar_cannon:['Maryańska','Armatka śnieżna gotowa! Inez ucieka przez fabrykę na tor bobslejowy. Biegnij, Kaczorze, przez halę produkcyjną, a my przygotujemy bobslej!'],nz_cannon:['Kaczor','Lecę! Inez, tym razem nie uciekniesz.'],
   ni3_cameo:['Inez','Kaczorku, na mój biegun nie wlecisz! Moje elfy już na was czekają. Pa, pa!'],nz_crash:['Kaczor','Trafiła nas! Trzymajcie się, lądujemy awaryjnie!'],nk_crash:['Kaka','Wszyscy cali? To teraz pieszo, przez wioskę elfów!']};
 const WHO_COL={Kaka:'#ffd1dc',Kaczor:'#cfe6ff',Mikołaj:'#fff1a8',Inez:'#ff9ccf',Maryańska:'#ffcf8a',Goblin:'#b6f08a',Grinch:'#b6f08a',Bóbr:'#e8c49a',Borsuk:'#e0e0e0',Jugo:'#9fe6c8',Gayzilla:'#e0b0ff',Papi:'#ff9a8a','Wielki Kruk':'#c8b6ff',Elf:'#b6f08a','Zbuntowany elf':'#ff9ccf'};
 let voice=null, sub=null;
@@ -429,14 +437,14 @@ function drawCut(){ c.setTransform(RES,0,0,RES,0,0); const J=CUT.kind==='jugo', 
   // falling snow
   c.fillStyle='rgba(255,255,255,.85)'; SNOW.forEach(s=>{ const yy=(s.y+t0*s.s)%VH, xx=((s.x-t0*s.s*.6+Math.sin(t0+s.d)*10)%VW+VW)%VW; c.beginPath(); c.arc(xx,yy,s.r,0,6.29); c.fill(); });
   txt(J?'Skraj wioski':PO?'Biegun północny':'Skraj lasu',VW/2,40,30,'#ffe27a','center'); drawSub(); }
-$('bSkip').onclick=()=>{ if(state==='cut') endCut(); else if(state==='tent') leaveTent(); else if(state==='cot') leaveCot(); };
+$('bSkip').onclick=()=>{ if(state==='cut') endCut(); else if(state==='tent') leaveTent(); else if(state==='cot') leaveCot(); else if(state==='fab') leaveFab(); };
 
 // ---------- Maryańska's tent: a hub with three Christmas mini-games ----------
 let TENT=null, G=null; const MOUSE={x:0,y:0};
 const HOT={ck:{x:15,y:380,w:330,h:210,label:'🍪 Pierniki z ziołami',voice:'mar_g1',done:'mar_g1done'},dc:{x:540,y:30,w:200,h:190,label:'🪶 Łapacz snów',voice:'mar_g2',done:'mar_g2done'},gt:{x:960,y:290,w:210,h:330,label:'🎸 Kolęda na gitarze',voice:'mar_g3',done:'mar_g3done'}};
 function canvasXY(e){ const r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)/r.width*VW,y:(e.clientY-r.top)/r.height*VH}; }
 cv.addEventListener('pointermove',e=>{ const p=canvasXY(e); MOUSE.x=p.x; MOUSE.y=p.y; });
-cv.addEventListener('pointerdown',e=>{ if(state==='cot'){ const p=canvasXY(e); MOUSE.x=p.x; MOUSE.y=p.y; ac(); cotPointer(p.x,p.y); return; } if(state!=='tent') return; const p=canvasXY(e); MOUSE.x=p.x; MOUSE.y=p.y; ac(); if(G) gameClick(p.x,p.y); else hubClick(p.x,p.y); });
+cv.addEventListener('pointerdown',e=>{ if(state==='fab'){ const p=canvasXY(e); MOUSE.x=p.x; MOUSE.y=p.y; ac(); fabPointer(p.x,p.y); return; } if(state==='cot'){ const p=canvasXY(e); MOUSE.x=p.x; MOUSE.y=p.y; ac(); cotPointer(p.x,p.y); return; } if(state!=='tent') return; const p=canvasXY(e); MOUSE.x=p.x; MOUSE.y=p.y; ac(); if(G) gameClick(p.x,p.y); else hubClick(p.x,p.y); });
 addEventListener('keydown',e=>{ if(state!=='tent'||!G) return; if(e.code==='Escape'){ G=null; sub=null; return; }
   if(G.id==='gt'){ const lane={KeyA:0,KeyJ:0,ArrowLeft:0,KeyS:1,KeyK:1,ArrowDown:1,KeyD:2,KeyL:2,ArrowRight:2}[e.code]; if(lane!=null&&!e.repeat){ e.preventDefault(); strum(lane); } }
   if(G.id==='ck'&&G.stage==='bake'&&(e.code==='Space'||e.code==='Enter')&&!e.repeat){ e.preventDefault(); bakeStop(); } });
@@ -637,6 +645,93 @@ function drawCotGame(){ const g=CG; c.fillStyle='rgba(10,6,4,.45)'; c.fillRect(0
     for(let k=0;k<g.seq.length;k++){ c.fillStyle=k<g.input.length?'#7dff7a':'rgba(255,255,255,.25)'; c.beginPath(); c.arc(VW/2-(g.seq.length-1)*14+k*28,232,8,0,6.29); c.fill(); }
     txt(`Układ ${Math.min(g.lens.length,g.round+1)} / ${g.lens.length}`,VW/2,600,18,'#ffe27a','center'); } }
 
+// ---------- toy factory: Maryańska and the elf resistance; three logic puzzles build the snow cannon ----------
+let FAB=null, FG=null;
+const FAB_HOT={p1:{x:10,y:60,w:230,h:480,label:'♨ Rury z parą',voice:'mar_p1',done:'mar_p1done',part:'part_boiler'},p2:{x:455,y:92,w:180,h:186,label:'💡 Panel celownika',voice:'mar_p2',done:'mar_p2done',part:'part_sight'},p3:{x:930,y:118,w:170,h:470,label:'🔒 Szyfr do magazynu',voice:'mar_p3',done:'mar_p3done',part:'part_hopper'}};
+function startFab(){ ['win','over','pause','intro','title','tbc','tbc2'].forEach(id=>$(id).classList.add('hidden')); document.body.classList.remove('playing'); state='fab'; FG=null; FAB={done:{},t:0,end:false,fin:false}; sub=null; setMusic('music_title.mp3'); bgm.volume=bgmVol*.5;
+  $('bSkip').textContent='Pomiń zagadki ▶'; $('bSkip').style.display='';
+  const chain=['mar_fab','mar_fab2','nz_fab','nk_fab','nm_fab']; const next=i=>{ if(state!=='fab'||FG||i>=chain.length) return; say(chain[i],()=>setTimeout(()=>next(i+1),250),i===0); }; next(0); }
+function leaveFab(){ if(voice){ voice.onended=null; voice.pause(); voice=null; } FAB.fin=true; try{ if((+localStorage.getItem('pn-level')||1)<6) localStorage.setItem('pn-level',6); }catch(e){} location.href='wioska/?level=2'; }
+function fabPointer(x,y){ if(!FAB||FAB.fin) return; if(FG){ fabGameClick(x,y); return; } if(FAB.end) return;
+  for(const id in FAB_HOT){ const h=FAB_HOT[id]; if(!FAB.done[id]&&x>h.x&&x<h.x+h.w&&y>h.y&&y<h.y+h.h){ openFab(id); return; } } }
+addEventListener('keydown',e=>{ if(state!=='fab'||!FG) return; if(e.code==='Escape'){ FG=null; sub=null; } });
+function fabWon(){ FAB.done[FG.id]=true; sfx('win',.5); FG.won=1.8; say(FAB_HOT[FG.id].done,null,true); }
+function openFab(id){ blip(500,900,.12,.05,'sine'); say(FAB_HOT[id].voice,null,true);
+  if(id==='p1') FG=pipesNew(); if(id==='p2') FG=lightsNew(); if(id==='p3') FG=codeNew(); }
+// --- 1) steam pipes: rotate tiles until steam flows from the boiler (left) to the compressor (right). Bits: N1 E2 S4 W8
+const PC=6, PR=4, PS=88, PX=640-PC*PS/2, PY=236, ROT=m=>((m<<1)|(m>>3))&15;
+function pipesNew(){ const sr=Math.floor(Math.random()*PR), g=[]; for(let y=0;y<PR;y++){ g.push([]); for(let x=0;x<PC;x++) g[y].push(0); }
+  // a path that always moves right, with vertical detours inside each column
+  let y=sr, from=8; const path=[];
+  for(let x=0;x<PC;x++){ const ty=x===PC-1?Math.floor(Math.random()*PR):Math.floor(Math.random()*PR); let cy=y;
+    const cells=[[x,cy]]; while(cy!==ty){ cy+=Math.sign(ty-cy); cells.push([x,cy]); }
+    cells.forEach(([cx,yy],k)=>{ let m=k===0?from:(cells[k-1][1]<yy?1:4); m|= k===cells.length-1?2:(cells[k+1][1]>yy?4:1); g[yy][cx]=m; }); y=cy; from=8; }
+  const er=y;
+  const pieces=[5,3,7]; for(let yy=0;yy<PR;yy++) for(let x=0;x<PC;x++){ if(!g[yy][x]){ let m=pieces[Math.floor(Math.random()*3)]; g[yy][x]=m; } }
+  const sol=g.map(r=>r.slice()); for(let yy=0;yy<PR;yy++) for(let x=0;x<PC;x++){ let k=1+Math.floor(Math.random()*3); while(k--) g[yy][x]=ROT(g[yy][x]); }
+  const G={id:'p1',g,sr,er,flow:null,msg:'Klikaj rury, żeby je obracać. Para musi dojść od kotła do kompresora.'}; pipesFlow(G); return G; }
+function pipesFlow(G){ const seen=new Set(), q=[]; if(G.g[G.sr][0]&8){ q.push([0,G.sr]); seen.add('0,'+G.sr); }
+  const D=[[1,0,-1,4],[2,1,0,8],[4,0,1,1],[8,-1,0,2]];
+  while(q.length){ const [x,y]=q.shift(); for(const [b,dx,dy,back] of D){ if(!(G.g[y][x]&b)) continue; const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=PC||ny>=PR) continue; if(!(G.g[ny][nx]&back)) continue; const k=nx+','+ny; if(!seen.has(k)){ seen.add(k); q.push([nx,ny]); } } }
+  G.flow=seen; G.ok=seen.has((PC-1)+','+G.er)&&(G.g[G.er][PC-1]&2); }
+// --- 2) lights out: a press flips the lamp and its four neighbours; light them all
+const LN=4, LS=80, LX=640-LN*LS/2, LY=236;
+function lightsNew(){ const g=Array(LN*LN).fill(1); const tog=i=>{ const x=i%LN, y=Math.floor(i/LN); [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{ const X=x+dx, Y=y+dy; if(X>=0&&Y>=0&&X<LN&&Y<LN) g[Y*LN+X]^=1; }); };
+  let n=0; while(g.every(v=>v)||n<5){ tog(Math.floor(Math.random()*LN*LN)); n++; } return {id:'p2',g,start:g.slice(),tog,moves:0,msg:'Kliknięcie przełącza lampkę i jej sąsiadów. Zapal wszystkie 16!'}; }
+// --- 3) bauble code: four different colours out of six, ten tries, black = right place, white = right colour
+const BC=['#e03b3b','#f2b51d','#3fae4a','#3a7be0','#a54ee0','#f4f4f4'];
+function codeNew(){ const pool=[0,1,2,3,4,5].sort(()=>Math.random()-.5); return {id:'p3',code:pool.slice(0,4),cur:[],hist:[],max:10,msg:'Ułóż 4 różne bombki i sprawdź. ● dobre miejsce, ○ dobry kolor w złym miejscu.'}; }
+function codeCheck(G){ let b=0,w=0; G.cur.forEach((c,i)=>{ if(G.code[i]===c) b++; else if(G.code.includes(c)) w++; }); G.hist.push({g:G.cur.slice(),b,w}); G.cur=[];
+  if(b===4){ G.msg='Zamek otwarty!'; fabWon(); } else if(G.hist.length>=G.max){ G.msg='Zamek się zresetował — nowy szyfr, spróbuj jeszcze raz!'; const n=codeNew(); G.code=n.code; G.hist=[]; } else G.msg=`Dobre miejsce: ${b} · dobry kolor: ${w}`; blip(400+b*120,700+b*120,.12,.05,'sine'); }
+function fabGameClick(x,y){ const G=FG; if(G.won!=null) return;
+  if(G.id==='p1'){ const cx=Math.floor((x-PX)/PS), cy=Math.floor((y-PY)/PS); if(cx>=0&&cy>=0&&cx<PC&&cy<PR){ G.g[cy][cx]=ROT(G.g[cy][cx]); blip(300,420,.06,.05,'triangle'); pipesFlow(G); if(G.ok){ G.msg='Para płynie!'; fabWon(); } } return; }
+  if(G.id==='p2'){ const cx=Math.floor((x-LX)/LS), cy=Math.floor((y-LY)/LS); if(cx>=0&&cy>=0&&cx<LN&&cy<LN){ G.tog(cy*LN+cx); G.moves++; blip(600,900,.05,.04,'square'); if(G.g.every(v=>v)){ G.msg='Wszystkie lampki świecą!'; fabWon(); } }
+    if(x>540&&x<740&&y>580&&y<616){ G.g=G.start.slice(); G.moves=0; } return; }
+  if(G.id==='p3'){ BC.forEach((col,i)=>{ const bx=640-(BC.length-1)*36+i*72; if(Math.hypot(x-bx,y-570)<28&&G.cur.length<4&&!G.cur.includes(i)){ G.cur.push(i); blip(500+i*60,700+i*60,.06,.04,'sine'); } });
+    for(let k=0;k<4;k++){ const sx=520+k*60; if(Math.hypot(x-sx,y-505)<24&&k<G.cur.length){ G.cur.splice(k,1); } }
+    if(G.cur.length===4&&x>780&&x<900&&y>486&&y<524) codeCheck(G); } }
+function updateFab(dt){ t0+=dt; FAB.t+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } if(FAB.fin) return;
+  if(!FG){ if(!FAB.end&&FAB.done.p1&&FAB.done.p2&&FAB.done.p3&&!voice){ FAB.end=true; FAB.build=0; sfx('win',.6); $('bSkip').textContent='Do hali produkcyjnej ▶';
+      say('mar_cannon',()=>setTimeout(()=>say('nz_cannon',()=>setTimeout(leaveFab,900)),300),true); }
+    if(FAB.end) FAB.build+=dt; return; }
+  const G=FG; if(G.won!=null){ G.won-=dt; if(G.won<=0) FG=null; } }
+function drawBauble(x,y,r,col){ c.fillStyle=col; c.beginPath(); c.arc(x,y,r,0,6.29); c.fill(); c.fillStyle='rgba(255,255,255,.55)'; c.beginPath(); c.arc(x-r*.35,y-r*.35,r*.3,0,6.29); c.fill(); c.fillStyle='#c9a24a'; c.fillRect(x-r*.3,y-r-5,r*.6,6); }
+function drawFab(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.fab_in; if(ok(bg)) c.drawImage(bg,0,0,VW,VH); else { c.fillStyle='#3a2414'; c.fillRect(0,0,VW,VH); }
+  const D=FAB.done;
+  if(D.p1){ for(let k=0;k<6;k++){ const ph=(t0*.5+k/6)%1; c.fillStyle=`rgba(255,255,255,${.35*(1-ph)})`; c.beginPath(); c.arc(60+k*30+Math.sin(t0+k)*10,130-ph*90,10+ph*24,0,6.29); c.fill(); } }
+  if(D.p2){ for(let i=0;i<16;i++){ const x=495+(i%4)*32, y=136+Math.floor(i/4)*32, g=c.createRadialGradient(x,y,1,x,y,18); g.addColorStop(0,'rgba(255,240,150,.95)'); g.addColorStop(1,'rgba(255,200,80,0)'); c.fillStyle=g; c.fillRect(x-18,y-18,36,36); } }
+  if(D.p3){ c.fillStyle='rgba(20,12,6,.75)'; c.beginPath(); c.roundRect(960,150,110,430,8); c.fill(); for(let k=0;k<5;k++) drawBauble(990+(k%3)*25,560-Math.floor(k/3)*24,10,'#f4f4f4'); }
+  // parts land on the workbench; when all three are there the cannon appears
+  if(FAB.end&&FAB.build>.6){ const a=Math.min(1,(FAB.build-.6)*2); c.save(); c.globalAlpha=a; drawImg('cannon',528,368,330*(.8+.2*a)); c.restore(); if(FAB.build<2) for(let k=0;k<8;k++){ c.fillStyle='#fff6b0'; c.beginPath(); c.arc(528+Math.cos(k+t0*6)*160*(FAB.build),368+Math.sin(k+t0*6)*60,4,0,6.29); c.fill(); } }
+  else { if(D.p1) drawImg('part_boiler',440,370,70); if(D.p2) drawImg('part_sight',540,352,110); if(D.p3) drawImg('part_hopper',630,366,80); }
+  // the family and Maryańska (she leads the elf resistance here)
+  const fam=IMG.family; if(ok(fam)){ const h=230, w=h*fam.naturalWidth/fam.naturalHeight; c.drawImage(fam,780-w/2,712-h,w,h); }
+  const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',1190,712,300,t0);
+  if(!FG){ txt('Fabryka zabawek — ruch oporu',VW/2,40,30,'#ffcf8a','center');
+    for(const id in FAB_HOT){ const h=FAB_HOT[id], dn=D[id], hov=!dn&&MOUSE.x>h.x&&MOUSE.x<h.x+h.w&&MOUSE.y>h.y&&MOUSE.y<h.y+h.h;
+      if(!dn){ c.save(); c.setLineDash([10,8]); c.lineDashOffset=-t0*30; c.strokeStyle=hov?'rgba(255,231,122,.95)':`rgba(255,231,122,${.45+.25*Math.sin(t0*4)})`; c.lineWidth=hov?5:3; c.beginPath(); c.roundRect(h.x,h.y,h.w,h.h,20); c.stroke(); c.restore(); }
+      txt((dn?'✓ ':'')+h.label,h.x+h.w/2,id==='p1'?h.y-16:h.y+h.h+22,22,dn?'#9be38c':'#ffe27a','center'); }
+    const n=Object.keys(D).length; txt(FAB.end?'Armatka śnieżna gotowa! ❄':`Części armatki: ${n} / 3 — kliknij świecące miejsce`,VW/2,78,22,'#fff','center'); }
+  else drawFabGame();
+  drawSub(); }
+function drawFabGame(){ const G=FG; c.fillStyle='rgba(10,6,4,.5)'; c.fillRect(0,0,VW,VH); panel(250,110,780,520); txt(FAB_HOT[G.id].label,VW/2,150,30,'#ffcf8a','center'); txt(G.msg,VW/2,186,19,'#fff','center'); txt('Esc — wróć',1010,612,15,'rgba(255,255,255,.6)','right');
+  if(G.id==='p1'){ // boiler, pipes, compressor
+    c.fillStyle='#b8862b'; c.beginPath(); c.roundRect(PX-70,PY+G.sr*PS+14,60,PS-28,10); c.fill(); txt('♨',PX-40,PY+G.sr*PS+PS/2,28,'#fff','center');
+    c.fillStyle=G.ok?'#7dff7a':'#8a8a96'; c.beginPath(); c.roundRect(PX+PC*PS+10,PY+G.er*PS+14,60,PS-28,10); c.fill(); txt('⚙',PX+PC*PS+40,PY+G.er*PS+PS/2,26,'#fff','center');
+    for(let y=0;y<PR;y++) for(let x=0;x<PC;x++){ const X=PX+x*PS, Y=PY+y*PS, m=G.g[y][x], on=G.flow.has(x+','+y), hov=MOUSE.x>X&&MOUSE.x<X+PS&&MOUSE.y>Y&&MOUSE.y<Y+PS;
+      c.fillStyle=hov?'rgba(255,255,255,.14)':'rgba(255,255,255,.06)'; c.fillRect(X+2,Y+2,PS-4,PS-4);
+      c.strokeStyle=on?'#bfe9ff':'#c9a24a'; c.lineWidth=18; c.lineCap='round'; const cx=X+PS/2, cy=Y+PS/2;
+      [[1,0,-1],[2,1,0],[4,0,1],[8,-1,0]].forEach(([b,dx,dy])=>{ if(m&b){ c.beginPath(); c.moveTo(cx,cy); c.lineTo(cx+dx*PS/2,cy+dy*PS/2); c.stroke(); } });
+      c.fillStyle=on?'#e8f8ff':'#a8812e'; c.beginPath(); c.arc(cx,cy,11,0,6.29); c.fill();
+      if(on&&Math.random()<.04) parts.push({x:cx,y:cy,vx:0,vy:-40,t:.5,r:5,col:'#ffffff'}); } c.lineCap='butt'; }
+  if(G.id==='p2'){ for(let i=0;i<LN*LN;i++){ const x=LX+(i%LN)*LS+LS/2, y=LY+Math.floor(i/LN)*LS+LS/2, on=G.g[i]; if(on){ const g=c.createRadialGradient(x,y,4,x,y,38); g.addColorStop(0,'rgba(255,240,150,1)'); g.addColorStop(1,'rgba(255,200,80,0)'); c.fillStyle=g; c.fillRect(x-38,y-38,76,76); }
+      c.fillStyle=on?'#fff2a8':'#3a3530'; c.beginPath(); c.arc(x,y,26,0,6.29); c.fill(); c.strokeStyle='#c9a24a'; c.lineWidth=4; c.stroke(); }
+    txt(`Ruchy: ${G.moves}`,LX+LN*LS+60,LY+30,20,'#ffe27a','left'); c.fillStyle='rgba(255,255,255,.15)'; c.beginPath(); c.roundRect(540,580,200,36,18); c.fill(); txt('↺ Od nowa',640,598,19,'#fff','center'); }
+  if(G.id==='p3'){ G.hist.forEach((h,r)=>{ const y=232+r*25; h.g.forEach((ci,k)=>drawBauble(560+k*30,y,9,BC[ci])); for(let k=0;k<h.b+h.w;k++){ c.fillStyle=k<h.b?'#111':'#fff'; c.strokeStyle='#888'; c.lineWidth=1; c.beginPath(); c.arc(700+k*16,y,5,0,6.29); c.fill(); c.stroke(); } });
+    for(let k=0;k<4;k++){ const sx=520+k*60; c.strokeStyle='rgba(255,231,122,.7)'; c.lineWidth=3; c.beginPath(); c.arc(sx,505,22,0,6.29); c.stroke(); if(k<G.cur.length) drawBauble(sx,505,18,BC[G.cur[k]]); }
+    c.fillStyle=G.cur.length===4?'#c0392b':'rgba(255,255,255,.12)'; c.beginPath(); c.roundRect(780,486,120,38,19); c.fill(); txt('Sprawdź',840,505,19,'#fff','center');
+    BC.forEach((col,i)=>{ const bx=640-(BC.length-1)*36+i*72; c.globalAlpha=G.cur.includes(i)?.3:1; drawBauble(bx,570,22,col); c.globalAlpha=1; });
+    txt(`Próby: ${G.hist.length} / ${G.max}`,300,505,18,'#ffe27a','left'); } }
 // ---------- flow ----------
 function showIntro(i){ lvl=i; L=LEVELS[i]; reset(); $('iTitle').textContent=`Poziom ${i+1}: ${L.name}`; $('iText').innerHTML=L.intro; ['title','win','over','pause'].forEach(id=>$(id).classList.add('hidden')); $('intro').classList.remove('hidden'); state='intro'; if(i>0) setMusic(L.music); }
 function startLevel(){ document.body.classList.add('playing'); reset(); state='play'; ['intro','over','win','pause','title'].forEach(id=>$(id).classList.add('hidden')); setMusic(L.music); bgm.volume=bgmVol; last=performance.now(); if(L.start) say(L.start[0],()=>setTimeout(()=>say(L.start[1]),200),true); }
@@ -646,33 +741,36 @@ function levelDone(){ state='win'; const pct=delivered/Math.max(1,houseCount), s
   document.querySelector('#win h2').textContent=`Poziom ${lvl+1} ukończony!`; $('wNext').innerHTML=L.next; $('bNext').style.display=lvl<=2?'':'none';
   try{ const best=+localStorage.getItem('pn-best'+(lvl+1))||0; if(score>best) localStorage.setItem('pn-best'+(lvl+1),score); if((+localStorage.getItem('pn-level')||1)<lvl+2) localStorage.setItem('pn-level',lvl+2); }catch(e){} showLvlBtn();
   $('win').classList.remove('hidden'); sfx('win',.6); if(L.win.length) say(L.win[0],()=>{ if(L.win[1]) setTimeout(()=>say(L.win[1]),300); },true); }
-function showLvlBtn(){ let u=1; try{ u=+localStorage.getItem('pn-level')||1; }catch(e){} const q=+new URLSearchParams(location.search).get('level')||0; if(q>u) u=q; $('bLvl2').style.display=u>=2?'':'none'; $('bLvl3').style.display=u>=3?'':'none'; $('bVil').style.display=u>=4?'':'none'; }
+function showLvlBtn(){ let u=1; try{ u=+localStorage.getItem('pn-level')||1; }catch(e){} const q=+new URLSearchParams(location.search).get('level')||0; if(q>u) u=q; $('bLvl2').style.display=u>=2?'':'none'; $('bLvl3').style.display=u>=3?'':'none'; $('bVil').style.display=u>=4?'':'none'; $('bFab').style.display=u>=5?'':'none'; $('bHall').style.display=u>=6?'':'none'; $('bBob').style.display=u>=7?'':'none'; }
 function pauseGame(){ if(state!=='play') return; state='pause'; $('pause').classList.remove('hidden'); bgm.pause(); if(voice) voice.pause(); }
 function resumeGame(){ if(state!=='pause') return; state='play'; $('pause').classList.add('hidden'); if(!muted) bgm.play().catch(()=>{}); if(voice&&!muted) voice.play().catch(()=>{}); last=performance.now(); }
-function toMenu(){ $('tbc').classList.add('hidden'); $('tbc2').classList.add('hidden'); document.body.classList.remove('playing'); $('bSkip').style.display='none'; ['pause','over','win','intro'].forEach(id=>$(id).classList.add('hidden')); state='title'; if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; setMusic('music_title.mp3'); bgm.volume=bgmVol; $('title').classList.remove('hidden'); }
+function toMenu(){ ['tbc','tbc2','tbc3','tbc4'].forEach(id=>$(id).classList.add('hidden')); document.body.classList.remove('playing'); $('bSkip').style.display='none'; ['pause','over','win','intro'].forEach(id=>$(id).classList.add('hidden')); state='title'; if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; setMusic('music_title.mp3'); bgm.volume=bgmVol; $('title').classList.remove('hidden'); }
 function setMute(m){ muted=m; try{ localStorage.setItem('pn-mute',m?'1':'0'); }catch(e){} $('bMute').textContent=m?'🔇':'🔊'; if(m){ bgm.pause(); if(voice) voice.pause(); } else if(state!=='pause') bgm.play().catch(()=>{}); }
 $('bPlay').onclick=()=>{ ac(); setMusic('music_title.mp3'); showIntro(0); };
 const QS0=new URLSearchParams(location.search);
 // test links: ?tent opens Maryańska's tent, ?cut the landing cutscene (the button gives the browser the click it needs for sound)
-const QS=new URLSearchParams(location.search); const QTENT=QS.has('tent'), QCUT=QS.has('cut'), QCOT=QS.has('cottage'), QVIL=QS.has('village'), QPOLE=QS.has('pole');
-if(QTENT||QCUT||QCOT||QVIL||QPOLE){ $('bPlay').onclick=()=>{ ac(); QTENT?startTent():QCOT?startCot():QVIL?startCut('jugo'):QPOLE?startCut('pole'):startCut(); }; }
-$('bLvl2').onclick=()=>{ ac(); showIntro(1); }; $('bLvl3').onclick=()=>{ ac(); showIntro(2); }; $('bVil').onclick=()=>{ location.href='wioska/'; };
+const QS=new URLSearchParams(location.search); const QTENT=QS.has('tent'), QCUT=QS.has('cut'), QCOT=QS.has('cottage'), QVIL=QS.has('village'), QPOLE=QS.has('pole'), QFAB=QS.has('fab');
+if(QTENT||QCUT||QCOT||QVIL||QPOLE||QFAB){ $('bPlay').onclick=()=>{ ac(); QTENT?startTent():QCOT?startCot():QVIL?startCut('jugo'):QPOLE?startCut('pole'):QFAB?startFab():startCut(); }; }
+$('bLvl2').onclick=()=>{ ac(); showIntro(1); }; $('bLvl3').onclick=()=>{ ac(); showIntro(2); }; $('bVil').onclick=()=>{ location.href='wioska/'; }; $('bFab').onclick=()=>{ ac(); startFab(); }; $('bHall').onclick=()=>{ location.href='wioska/?level=2'; }; $('bBob').onclick=()=>{ location.href='bobslej/'; };
 $('bNext').onclick=()=>{ ac(); if(lvl===2){ location.href='wioska/'; return; } startCut(['mar','jugo'][lvl]); }; showLvlBtn();
 $('bGo').onclick=startLevel; $('bRetry').onclick=startLevel; $('bAgain').onclick=startLevel; $('bRestart').onclick=startLevel;
-$('bResume').onclick=resumeGame; ['bMenu','bMenu2','bMenu3','bMenu4','bMenu5'].forEach(id=>$(id).onclick=toMenu); $('bVilAgain').onclick=()=>{ location.href='wioska/'; };
+$('bResume').onclick=resumeGame; ['bMenu','bMenu2','bMenu3','bMenu4','bMenu5','bMenu6'].forEach(id=>$(id).onclick=toMenu); $('bVilAgain').onclick=()=>{ location.href='wioska/'; };
+$('bToFab').onclick=()=>{ ac(); startFab(); }; $('bToBob').onclick=()=>{ location.href='bobslej/'; }; $('bBobAgain').onclick=()=>{ location.href='bobslej/'; }; $('bToEnd').onclick=()=>{ ac(); ['tbc4'].forEach(id=>$(id).classList.add('hidden')); startCut('pole'); };
+{ const af=QS0.get('after'), card={fabryka:'tbc3',bobslej:'tbc4'}[af], lv={fabryka:7,bobslej:8}[af]; if(card){ $('title').classList.add('hidden'); $(card).classList.remove('hidden'); try{ if((+localStorage.getItem('pn-level')||1)<lv) localStorage.setItem('pn-level',lv); }catch(e){} } }
 if(QS0.get('after')==='wioska'){ $('title').classList.add('hidden'); $('tbc2').classList.remove('hidden'); try{ if((+localStorage.getItem('pn-level')||1)<4) localStorage.setItem('pn-level',4); }catch(e){} } $('bCotAgain').onclick=()=>{ ac(); $('tbc').classList.add('hidden'); showIntro(2); };
 $('bPause').onclick=()=>state==='play'?pauseGame():resumeGame(); $('bMute').onclick=()=>setMute(!muted); setMute(muted);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) pauseGame(); });
-window.__pn={get P(){return P}, get state(){return state}, get boss(){return boss}, get houses(){return houses}, get foes(){return foes}, get score(){return score}, get delivered(){return delivered}, set lvlT(v){lvlT=v; while(waveIdx<L.waves.length&&L.waves[waveIdx][0]<v) waveIdx++;}, get lvlT(){return lvlT}, get lvl(){return lvl}, get trees(){return trees}, get TENT(){return TENT}, get G(){return G}, startTent, startCot, get COT(){return COT}, cotClick:(x,y)=>cotPointer(x,y), danceKey:d=>danceKey(d), gameClick:(x,y)=>gameClick(x,y), hubClick:(x,y)=>hubClick(x,y), strum:l=>strum(l), K, startLevel, startBoss, dropWindow, startCut, showIntro, levelDone:()=>levelDone()};
+window.__pn={get P(){return P}, get state(){return state}, get boss(){return boss}, get houses(){return houses}, get foes(){return foes}, get score(){return score}, get delivered(){return delivered}, set lvlT(v){lvlT=v; while(waveIdx<L.waves.length&&L.waves[waveIdx][0]<v) waveIdx++;}, get lvlT(){return lvlT}, get lvl(){return lvl}, get trees(){return trees}, get TENT(){return TENT}, get G(){return G}, startTent, startCot, startFab, get FAB(){return FAB}, get FG(){return FG}, fabClick:(x,y)=>fabPointer(x,y), fabWin:()=>fabWon(), get COT(){return COT}, cotClick:(x,y)=>cotPointer(x,y), danceKey:d=>danceKey(d), gameClick:(x,y)=>gameClick(x,y), hubClick:(x,y)=>hubClick(x,y), strum:l=>strum(l), K, startLevel, startBoss, dropWindow, startCut, showIntro, levelDone:()=>levelDone()};
 
 // ---------- loop ----------
 function loop(now){ let dt=Math.min(.05,(now-last)/1000); last=now; if(state==='play'){ while(dt>0){ const s=Math.min(dt,1/60); update(s); dt-=s; } }
   else if(state==='cut') updateCut(dt);
   else if(state==='tent') updateTent(dt);
   else if(state==='cot') updateCot(dt);
+  else if(state==='fab') updateFab(dt);
   else if(state==='win'||state==='over'){ t0+=dt; parts.forEach(p=>{ p.t-=dt; }); }
-  if(state==='cut') drawCut(); else if(state==='tent') drawTent(); else if(state==='cot') drawCot(); else if(P) draw(); requestAnimationFrame(loop); }
-ready.then(()=>Promise.all(['bg_night','sleigh','house1','plane_inez'].map(n=>IMG[n].decode?IMG[n].decode().catch(()=>{}):0))).then(()=>{ reset(); $('bPlay').disabled=false; $('bPlay').textContent=QTENT?'Do namiotu Maryańskiej ▶':QCUT?'Lądowanie u Maryańskiej ▶':QCOT?'Do chatki Jugo ▶':QVIL?'Lądowanie u Jugo ▶':QPOLE?'Zakończenie na biegunie ▶':'Graj ▶'; requestAnimationFrame(loop); });
+  if(state==='cut') drawCut(); else if(state==='tent') drawTent(); else if(state==='cot') drawCot(); else if(state==='fab') drawFab(); else if(P) draw(); requestAnimationFrame(loop); }
+ready.then(()=>Promise.all(['bg_night','sleigh','house1','plane_inez'].map(n=>IMG[n].decode?IMG[n].decode().catch(()=>{}):0))).then(()=>{ reset(); $('bPlay').disabled=false; $('bPlay').textContent=QTENT?'Do namiotu Maryańskiej ▶':QCUT?'Lądowanie u Maryańskiej ▶':QCOT?'Do chatki Jugo ▶':QVIL?'Lądowanie u Jugo ▶':QPOLE?'Zakończenie na biegunie ▶':QFAB?'Do fabryki zabawek ▶':'Graj ▶'; requestAnimationFrame(loop); });
 </script>
 </body>
 </html>

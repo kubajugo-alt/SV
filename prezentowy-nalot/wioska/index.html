@@ -128,7 +128,7 @@ const ENV={}, ENVM={}; ['earth','forest','ice','cobble','snowpack','cave','pier'
 ['cp_on','cp_off','spring','spikes','icicle','vent'].forEach(n=>ENV[n]=img('env/'+n)); ['earth','forest','ice','cobble','snowpack','cave','pier','rock','wood'].forEach(s=>ENV['tex_'+s]=img('env/tex_'+s));
 fetch('art/env/env.json').then(r=>r.json()).then(j=>Object.assign(ENVM,j)).catch(()=>{});
 const envImg=n=>{ const i=ENV[n]; return i&&i.complete&&i.naturalWidth?i:null; };
-const IMG={}; ['kz_idle','kz_run1','kz_run2','kz_run3','kz_run4','kz_jump','kz_fall','kz_punch','kz_wind','kz_throw','kz_glide','kz_towel','kz_twalk1','kz_twalk2','kz_tjoy','inez_walk1','inez_walk2','inez_kiss','it_vihta','it_ladle','it_snow','it_chore','it_kiss','it_phone','sauna','bg_village','inez_hit','inez_dizzy','inez_huff','mar_idle','enemy_vac','enemy_note','cage','elf_happy','it_gold'].forEach(n=>IMG[n]=img(n));
+const IMG={}; ['kz_idle','kz_run1','kz_run2','kz_run3','kz_run4','kz_jump','kz_fall','kz_punch','kz_wind','kz_throw','kz_glide','kz_towel','kz_twalk1','kz_twalk2','kz_tjoy','inez_walk1','inez_walk2','inez_kiss','it_vihta','it_ladle','it_snow','it_chore','it_kiss','it_phone','sauna','bg_village','inez_hit','inez_dizzy','inez_huff','mar_idle','enemy_vac','enemy_note','cage','elf_happy','it_gold','bg_factory','fab_door'].forEach(n=>IMG[n]=img(n));
 
 // ---------- smooth animations (Ludo.ai spritesheets, packed into strips with a body anchor) ----------
 const ANIM={}; fetch('art/anim/anim.json').then(r=>r.json()).then(j=>{ for(const k in j){ ANIM[k]=j[k]; ANIM[k].img=img('anim/'+k); } }).catch(()=>{});
@@ -151,7 +151,7 @@ let gruntT=0; function grunt(kind,ch=1){ const t=performance.now(); if(t-gruntT<
 const SYN={punch:'throw',splat:'pop',ladle:'life',hurt:'hit',defeat:'pop',phone:'pop',spring:'jump',cp:'life',glide:'jump',splash:'hit',win:'life'};
 function initAudio(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); if(!SB._l){ SB._l=1; SFXN.forEach(n=>fetch('audio/sfx/'+n+'.mp3').then(r=>r.arrayBuffer()).then(b=>AC.decodeAudioData(b)).then(buf=>{ SB[n]=buf; }).catch(()=>{})); } }catch(e){} }
 // world ambience (seamless Web Audio loop) and footsteps that match the ground
-const AMB=['amb_village'];
+const AMB=['amb_village','amb_cave'];
 let ambSrc=null, ambGain=null, ambName=null; const ambBuf={};
 function ambVol(){ return muted?0:.32*sfxMul(); }
 function setAmb(name){ initAudio(); if(!AC) return; if(ambName===name&&ambSrc){ ambGain.gain.value=ambVol(); return; } stopAmb(); ambName=name; if(!name) return;
@@ -174,7 +174,7 @@ $('#mute').onclick=e=>{ e.stopPropagation(); muted=!muted; $('#mute').textConten
 // ---------- levels: 10 worlds, each generated from hand-designed chunks (seeded, so every run is the same) ----------
 // tiles: # ground   = one-way platform   c crumbling platform   w water (lake hole)
 // entities: vihta, ladle, inez, spring, icicle; plus moving platforms, steam vents, wind zones, checkpoints, goal
-function build(W){ const g=Array.from({length:ROWS},()=>Array(W).fill(' ')), L={W,g,ent:[],vents:[],cps:[],movs:[],winds:[],spikes:[],goal:0};
+function build(W){ const g=Array.from({length:ROWS},()=>Array(W).fill(' ')), L={W,g,ent:[],vents:[],cps:[],movs:[],winds:[],spikes:[],ropes:[],goal:0};
   const api={ L, ground:(a,b,top)=>{ for(let x=a;x<=b;x++) for(let y=top;y<ROWS;y++) g[y][x]='#'; },
     plat:(x,y,n,ch='=')=>{ for(let i=0;i<n;i++) if(x+i<W) g[y][x+i]=ch; },
     water:(a,b)=>{ for(let x=a;x<=b;x++) g[12][x]='w'; },
@@ -190,6 +190,7 @@ function build(W){ const g=Array.from({length:ROWS},()=>Array(W).fill(' ')), L={
     mov:(x,y,w,ax,range,sp)=>L.movs.push({x0:x*T,y0:y*T,w:w*T,ax,range:range*T,sp,ph:0,x:x*T,y:y*T,dx:0,dy:0}),
     vent:x=>L.vents.push(x*T+T/2),
     wind:(a,b,f)=>L.winds.push([a*T,b*T,f]),
+    rope:(x,len,a0)=>L.ropes.push({x:x*T+T/2,y:-T*.5,len,a:a0,w:0}),
     cp:x=>L.cps.push(x*T) };
   return api; }
 function rng(seed){ return ()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; }; }
@@ -218,9 +219,15 @@ const CH={
   elevator:(b,x,h,r,d)=>{ const top=Math.max(4,h-5); b.ground(x,x+4,h); b.mov(x+3,h-1,2,'y',-(h-top),1.1); b.ground(x+5,x+11,top); b.v(x+6,top-2,5); b.foe(x+9,x+7,x+11); return [x+12,top]; },
   spring:(b,x,h,r,d)=>{ const top=Math.max(4,h-5); b.ground(x,x+3,h); b.spring(x+3,h); b.ground(x+4,x+11,top); b.v(x+3,h-4,1); b.v(x+3,top-3,3,1,-.5); b.v(x+6,top-2,5); if(r()<.5) b.foe(x+10,x+7,x+11); return [x+12,top]; },
   icicles:(b,x,h,r,d)=>{ const n=12+Math.floor(r()*4); b.ground(x,x+n-1,h); for(let k=x+3;k<x+n-1;k+=Math.max(2,3-Math.round(d))) b.icicle(k); b.v(x+1,h-2,n-2); return [x+n,h]; },
+  // a swinging rope over a pit: jump, grab it, pump with left/right and let go with a jump
+  rope:(b,x,h,r,d)=>{ const two=r()<.3+d*.3, w=two?13:8; const end=(h-2.3)*T, len=end+T*.5;
+    if(two){ b.rope(x+3,len,.7); b.rope(x+9,len,-.7); b.plat(x+6,h-1,1,'c'); b.arc(x+2,h-4,w-3,1.2); } else { b.rope(x+4,len,(r()<.5?-1:1)*.75); b.arc(x+1,h-4,w-2,1.4); }
+    return [x+w,h]; },
+  // a spring on the edge of a pit: run onto it and it throws you across
+  springGap:(b,x,h,r,d)=>{ const nh=Math.max(6,h-1-Math.floor(r()*2)); b.ground(x,x+3,h); b.spring(x+3,h); const w=5+Math.floor(r()*2); b.v(x+5,h-6,w-1,1,0); b.ground(x+4+w,x+9+w,nh); return [x+10+w,nh]; },
   wind:(b,x,h,r,d)=>{ const w=13+Math.floor(r()*4); b.wind(x-2,x+w,260); b.v(x+1,h-4,w-2,1,0); return [x+w,Math.min(12,h+1)]; },
 };
-const GAPPY=['gap','pillars','crumbleBridge','movingPit','plats','bigGap','ventGap','wind'];
+const GAPPY=['gap','pillars','crumbleBridge','movingPit','plats','bigGap','ventGap','wind','rope','springGap'];
 function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=i/9; let x=0,h=12;
   b.foe=(x,a,c)=>{ const q=r(); b[q<.44?'inez':q<.84?'gay':'vac'](x,a,c); };
   b.ground(0,13,12); b.v(5,10,5); x=14;
@@ -230,7 +237,7 @@ function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=
   const ARENA=[2,5,9].includes(i);
   while(x<W-(ARENA?64:46)){ let k=pool[Math.floor(r()*pool.length)]; if(k===prev) k=pool[Math.floor(r()*pool.length)]; if(k===prev) k='bump';
     if(i===2&&x<130) k=['flat','gap','bump','spikes','gap','flat','bump'][Math.floor(r()*7)]; prev=k;
-    if(i===2&&!seenK[k]){ seenK[k]=1; const H={gap:'Skacz nad przepaścią! Przytrzymaj skok — paralotnia złapie podmuch 🪂',spikes:'Lodowe kolce! Przeskocz je 🧊',climb:'Wspinaczka: skacz po platformach w górę ⬆',crumbleBridge:'Kruchy most — nie zatrzymuj się! 💨',twoRoutes:'Górą trudniej, ale tam czekają nagrody ✨'}[k]; if(H) hints.push({x:x*T-T*3,t:H}); }
+    if((i===2||i===4)&&!seenK[k]){ seenK[k]=1; const H={rope:'Lina! Skocz i złap ją w locie, bujaj się ◀ ▶ i puść skokiem 🪢',springGap:'Sprężyna nad przepaścią — wskocz z rozpędu! 🌀',gap:'Skacz nad przepaścią! Przytrzymaj skok — paralotnia złapie podmuch 🪂',spikes:'Lodowe kolce! Przeskocz je 🧊',climb:'Wspinaczka: skacz po platformach w górę ⬆',crumbleBridge:'Kruchy most — nie zatrzymuj się! 💨',twoRoutes:'Górą trudniej, ale tam czekają nagrody ✨'}[k]; if(H) hints.push({x:x*T-T*3,t:H}); }
     const x0=x; [x,h]=CH[k](b,x,h,r,d);
     // after any gap-like chunk always land on a short piece of solid ground
     if(GAPPY.includes(k)){ const n=3+Math.floor(r()*3); b.ground(x,x+n-1,h); b.v(x+1,h-2,2); x+=n; }
@@ -263,7 +270,7 @@ function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=
   // nothing hostile right next to a checkpoint
   L.ent=L.ent.filter(e=>!['inez','gay','vac','note'].includes(e.k)||!L.cps.some(c=>Math.abs(c-e.x)<T*4));
   if(ARENA){ L.ent=L.ent.filter(e=>!['inez','gay','vac','note'].includes(e.k)||e.x<(W-66)*T); L.spikes=L.spikes.filter(([a])=>a<(W-66)*T); } // a clean, flat arena for the duel with Kaka
-  if(i===2){ const f=k=>L.ent.find(e=>e.k===k); hints.push({x:T*2,t:TOUCH?'◀ ▶ bieg · ⤒ skok — przebij się przez wioskę elfów!':'◀ ▶ bieg · Spacja skok — przebij się przez wioskę elfów!'});
+  if(i===2||i===4){ const f=k=>L.ent.find(e=>e.k===k); hints.push({x:T*2,t:TOUCH?'◀ ▶ bieg · ⤒ skok — przebij się przez wioskę elfów!':'◀ ▶ bieg · Spacja skok — przebij się przez wioskę elfów!'});
     [['inez',TOUCH?'Zbuntowany elf! 👊 cios, ❄ śnieżka albo skok na głowę':'Zbuntowany elf! X — cios, C — śnieżka albo skok na głowę'],['cage','Klatka z lojalnym elfem — dotknij jej albo uderz, żeby go uwolnić 🔓'],['vac','Nakręcany żołnierzyk! Wskocz mu na głowę 🪖'],['note','Samoloty-zabawki — strąć je śnieżką ❄']].forEach(([k,t])=>{ const e=f(k); if(e) hints.push({x:e.x-T*9,t}); });
     if(L.cps[0]) hints.push({x:L.cps[0]-T*4,t:'Latarnia na lasce cukrowej to punkt kontrolny ✓'}); hints.sort((a,b)=>a.x-b.x); }
   // Maryańska, Kaczor's hippie mentor, waits by the middle checkpoint (in the last level: right before the sauna)
@@ -278,9 +285,11 @@ const KZM_TXT=['Witaj, Maryańska! Uciekam przed Kaką, masz dla mnie jakąś ra
 const MAR_TXT=['Kaczorku, kochanie! Kaka ma listę zadań, a ty masz jedno życie. Biegnij, wolny ptaku!','Las szumi: rób, co kochasz! Odkurzanie poczeka, sauna nie.','Lód jest śliski jak wymówki Kaki. Stąpaj lekko i nie daj się zniewolić!','Na jarmarku kup sobie grzańca, nie mopa! Twoje życie, twoje zasady.','Pamiętaj, słoneczko: nikt nie ma prawa trzymać cię na smyczy z listą obowiązków.','W ciemności słuchaj serca, nie Kaki. A serce mówi: sauna!','Morsowanie hartuje ducha! Zimna woda, gorąca dusza. Peace!','Leć, Kaczorze! Wolność smakuje najlepiej z wysokości!','Gorące źródła, gorące serce. Już prawie! Nie oglądaj się za siebie.','To tu, kochany! Ręcznik na biodra i do sauny. Jestem z ciebie dumna!'];
 const LEVELS=[
  {name:'Wioska elfów',bg:'bg_village',style:'snowpack',snow:'#ffffff',kaka:200,line:'kz_elves',len:780,
-  txt:'Dobra, elfy. Kaczor idzie po swoje! Uwolnię każdego lojalnego elfa i otworzę bramę warsztatu.',mix:{flat:3,bump:2,gap:3,spikes:2,climb:2,drop:2,pillars:2,crumbleBridge:2,spring:2,movingPit:2,enemyPlat:3,twoRoutes:2,plats:2,icicles:1}},
+  txt:'Dobra, elfy. Kaczor idzie po swoje! Uwolnię każdego lojalnego elfa i otworzę bramę warsztatu.',mix:{flat:3,bump:2,gap:3,spikes:2,climb:2,drop:2,pillars:2,crumbleBridge:2,spring:2,movingPit:2,enemyPlat:3,twoRoutes:2,plats:2,icicles:1},gi:2},
+ {name:'Hala produkcyjna',bg:'bg_factory',style:'wood',snow:'#ffffff',kaka:200,line:'kz_factory',len:760,indoor:true,goalImg:'fab_door',gi:4,
+  txt:'Liny, sprężyny… Jak w małpim gaju! Lecimy, Inez nie ucieknie daleko.',mix:{rope:5,spring:3,springGap:3,movingPit:3,elevator:2,crumbleBridge:2,plats:2,climb:2,enemyPlat:2,flat:2,gap:2,pillars:1}},
 ];
-LEVELS.forEach((D,i)=>D.make=()=>genLevel(D,2));
+LEVELS.forEach((D,i)=>D.make=()=>genLevel(D,D.gi));
 
 // ---------- state ----------
 const TOUCH=matchMedia('(pointer:coarse)').matches;
@@ -454,8 +463,8 @@ function update(dt){
   // crumbling platforms: shake, drop, come back a few seconds later
   for(const k in L.crum){ const c=L.crum[k]; if(c.gone>0){ c.gone-=dt; if(c.gone<=0) delete L.crum[k]; } else if(c.t!=null){ c.t-=dt; if(c.t<=0){ c.gone=4; const tx=k%L.W, ty=Math.floor(k/L.W); puff(tx*T+T/2,ty*T+10,'#c9a47a',8); } } }
   const dir=(K.R?1:0)-(K.L?1:0);
-  if(dir){ P.vx+=dir*acc*dt; P.face=dir; } else { const f=(P.on?(slip?520:2400):500)*dt; P.vx=Math.abs(P.vx)<=f?0:P.vx-Math.sign(P.vx)*f; }
-  P.vx=Math.max(-max,Math.min(max,P.vx));
+  if(dir){ P.vx+=dir*acc*dt; P.face=dir; } else if(!(P.fling>0&&!P.on)) { const f=(P.on?(slip?520:2400):500)*dt; P.vx=Math.abs(P.vx)<=f?0:P.vx-Math.sign(P.vx)*f; }
+  { const mx=P.fling>0&&!P.on?Math.max(max,P.flingV||0):max; P.vx=Math.max(-mx,Math.min(mx,P.vx)); }
   // jump: coyote time + buffer + variable height; hold in the air while falling = paraglider
   P.coyote=P.on?.1:P.coyote-dt; if(K.JHit){ P.buf=.13; } else P.buf-=dt;
   if(P.buf>0&&P.coyote>0){ P.vy=-830; P.on=false; P.coyote=0; P.buf=0; grunt('jump',.75); P.boosted=false; }
@@ -483,6 +492,13 @@ function update(dt){
   // lake holes and the abyss
   const fx=Math.floor(P.x/T); if(tile(fx,12)==='w'&&P.y+P.h>12*T+26){ splash(P.x,12*T+12); fallOff('Plusk! Morsowanie… ale nie teraz!'); return; }
   if(P.y>VH+120){ fallOff(D.ice?'Plusk!':'Ups! Za krótki lot.'); return; }
+  P.ropeCool=(P.ropeCool||0)-dt; P.fling=(P.fling||0)-dt;
+  L.ropes.forEach(r=>{ if(r===P.rope) return; r.w+=-Math.sin(r.a)*(2200/r.len)*dt; r.a+=r.w*dt; });
+  if(!P.rope&&P.ropeCool<=0&&!P.on) for(const r of L.ropes){ const ex=Math.sin(r.a), ey=Math.cos(r.a), hx=P.x-r.x, hy=P.y+14-r.y, along=hx*ex+hy*ey, perp=Math.abs(hx*ey-hy*ex);
+    if(along>r.len*.3&&along<r.len+40&&perp<62){ P.rope=r; P.ropeD=Math.min(r.len,Math.max(r.len*.5,along)); r.w=(P.vx*Math.cos(r.a)-P.vy*Math.sin(r.a))/P.ropeD; sfx('pick',.4); if(!L.saidRope){ L.saidRope=1; if(!cur) play('kz_rope'); } break; } }
+  if(P.rope){ const r=P.rope, pump=(K.R?1:0)-(K.L?1:0); r.w+=(-Math.sin(r.a)*(2200/P.ropeD)+pump*2.2*Math.cos(r.a))*dt; r.w=Math.max(-3.4,Math.min(3.4,r.w)); r.a+=r.w*dt; if(Math.abs(r.a)>1.3){ r.a=Math.sign(r.a)*1.3; r.w*=-.3; }
+    P.x=r.x+Math.sin(r.a)*P.ropeD; P.y=r.y+Math.cos(r.a)*P.ropeD-14; P.vx=0; P.vy=0; P.on=false; P.glide=false; if(pump) P.face=pump; else if(Math.abs(r.w)>.2) P.face=Math.sign(r.w);
+    if(K.JHit){ const v=r.w*P.ropeD; P.vx=Math.max(-520,Math.min(520,Math.cos(r.a)*v)); P.vy=Math.max(-900,Math.min(0,-Math.sin(r.a)*v)-480); P.rope=null; P.ropeCool=.35; P.fling=.9; P.flingV=Math.abs(P.vx); P.buf=0; grunt('jump',.75); } }
   // punch: a big cartoon swing; it waves away Inez and her kisses
   if(K.XHit&&P.punchT<-.1&&!(P.snowA>0)){ P.punchT=.28; sfx('punch',.4); grunt('punch',.6); puff(P.x+P.face*80,P.y+40,'rgba(255,255,255,.9)',5); }
   // snowball: thrown in an arc, also sends Inez away and pops kisses
@@ -752,6 +768,9 @@ function drawSpring(X,Y,sq){ const spi=envImg('spring'); if(spi){ const w=66, h=
   c.fillStyle='#d24a3f'; c.beginPath(); c.roundRect(X-28,Y-12-h,56,10,5); c.fill(); c.fillStyle='rgba(255,255,255,.6)'; c.fillRect(X-22,Y-10-h,44,2); }
 function drawIcicle(X,Y,sh){ const ici=envImg('icicle'); if(ici){ c.drawImage(ici,X-17+sh,Y-6,34,34*ici.naturalHeight/ici.naturalWidth); return; } c.save(); c.translate(X+sh,Y); c.fillStyle='rgba(220,245,255,.95)'; c.beginPath(); c.moveTo(-14,0); c.lineTo(14,0); c.lineTo(2,62); c.lineTo(-2,62); c.closePath(); c.fill();
   c.fillStyle='rgba(255,255,255,.8)'; c.fillRect(-6,4,3,34); c.fillStyle='#b8d8e8'; c.fillRect(-22,-6,44,8); c.restore(); }
+function drawRopes(){ L.ropes.forEach(r=>{ const X=r.x-cam; if(X<-r.len-60||X>VW+r.len+60) return; const ex=X+Math.sin(r.a)*r.len, ey=r.y+Math.cos(r.a)*r.len;
+  c.fillStyle='#6b4a2a'; c.fillRect(X-40,r.y-6,80,14); c.strokeStyle='#b08850'; c.lineWidth=7; c.beginPath(); c.moveTo(X,r.y+4); c.lineTo(ex,ey); c.stroke(); c.strokeStyle='rgba(80,50,20,.55)'; c.lineWidth=2; c.setLineDash([6,6]); c.beginPath(); c.moveTo(X,r.y+4); c.lineTo(ex,ey); c.stroke(); c.setLineDash([]);
+  c.fillStyle='#b08850'; c.beginPath(); c.arc(ex,ey,10,0,6.29); c.fill(); }); }
 function drawMovs(){ const st=L.D.style; L.movs.forEach(m=>{ const X=m.x-cam, Y=m.y; if(X>VW+50||X+m.w<-50) return;
   const mim=envImg(st+'_mov'); if(mim){ const mt=(ENVM[st+'_mov']||{top:0}).top, s=(m.w+16)/mim.naturalWidth; if(m.ax==='y'){ c.strokeStyle='#555'; c.lineWidth=2; c.beginPath(); c.moveTo(X+8,Y); c.lineTo(X+8,0); c.moveTo(X+m.w-8,Y); c.lineTo(X+m.w-8,0); c.stroke(); } c.drawImage(mim,X-8,Y-mt*mim.naturalHeight*s,m.w+16,mim.naturalHeight*s); return; }
   if(st==='snowpack'){ c.strokeStyle='#444'; c.lineWidth=2; c.beginPath(); c.moveTo(X+m.w/2,Y-60); c.lineTo(X+m.w/2,Y); c.stroke(); c.beginPath(); c.moveTo(X-300,Y-60); c.lineTo(X+m.w+300,Y-60); c.stroke();
@@ -782,10 +801,10 @@ function drawVents(){ L.vents.forEach(vx=>{ const X=vx-cam; if(X<-120||X>VW+120)
   // warm glow and heat haze where the steam comes out
   const gl=c.createRadialGradient(X,VH-10,0,X,VH-10,150); gl.addColorStop(0,'rgba(255,214,170,.38)'); gl.addColorStop(1,'rgba(255,214,170,0)'); c.fillStyle=gl; c.fillRect(X-150,VH-160,300,170);
   const vi=envImg('vent'); if(vi) c.drawImage(vi,X-70,VH-70,140,140*vi.naturalHeight/vi.naturalWidth); }); }
-function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.random()-.5)*14*shake/.45,(Math.random()-.5)*10*shake/.45); c.imageSmoothingEnabled=true; c.imageSmoothingQuality='medium'; c.clearRect(0,0,VW,VH); drawBg(); c.save(); c.translate(0,Math.round(camY*RES)/RES); drawWinds(); drawVents(); drawTiles(); drawSpikes(); drawMovs(); drawSteam();
+function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.random()-.5)*14*shake/.45,(Math.random()-.5)*10*shake/.45); c.imageSmoothingEnabled=true; c.imageSmoothingQuality='medium'; c.clearRect(0,0,VW,VH); drawBg(); c.save(); c.translate(0,Math.round(camY*RES)/RES); drawWinds(); drawVents(); drawTiles(); drawSpikes(); drawMovs(); drawRopes(); drawSteam();
   // checkpoints (birch post with a towel) and the sauna
   L.cps.forEach(x=>{ const X=x-cam, gy=groundY(x+4)||VH; if(X<-60||X>VW+60) return; const cpi=envImg(cp>=x?'cp_on':'cp_off'); if(cpi){ const h=124, w=h*cpi.naturalWidth/cpi.naturalHeight; c.drawImage(cpi,X-w*.3,gy-h+4,w,h); return; } c.fillStyle='#f3efe6'; c.fillRect(X-4,gy-90,8,90); c.fillStyle='#333'; for(let i=0;i<5;i++) c.fillRect(X-4,gy-80+i*16,8,3); c.fillStyle=cp>=x?'#ff6f61':'#ddd'; c.beginPath(); c.roundRect(X+4,gy-88,34,24,4); c.fill(); });
-  const sx=L.goal-cam; if(sx>-500&&sx<VW+200){ drawImg(IMG.sauna,sx+140,(groundY(L.goal+140)||VH)+8,300,false); }
+  const sx=L.goal-cam; if(sx>-500&&sx<VW+200){ drawImg(IMG[L.D.goalImg||'sauna']||IMG.sauna,sx+140,(groundY(L.goal+140)||VH)+8,300,false); }
   ents.forEach(e=>{ if(!e.alive) return; const X=e.x-cam; if(X<-120||X>VW+120) return;
     if(e.k==='cage'){ if(!e.freed){ drawImg(IMG.cage,X,e.y+4,120,false); if(Math.sin(t0*3+e.x)>0){ c.save(); c.font='800 18px "Baloo 2",sans-serif'; c.textAlign='center'; c.lineWidth=4; c.strokeStyle='rgba(0,0,0,.6)'; c.fillStyle='#ffe27a'; c.strokeText('Pomocy!',X,e.y-128); c.fillText('Pomocy!',X,e.y-128); c.restore(); } }
       else { const u=e.ft, hop=Math.abs(Math.sin(u*7))*34*Math.max(0,1-u/3); c.save(); c.globalAlpha=Math.max(0,Math.min(1,(3-u)*1.5)); drawImg(IMG.elf_happy,X+u*110,e.y-hop,100,false); c.restore(); } return; }
@@ -839,7 +858,7 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
   parts.forEach(p=>{ c.globalAlpha=Math.max(0,Math.min(1,p.t/.7)); c.fillStyle=p.col; c.beginPath(); c.arc(p.x-cam,p.y,p.r,0,Math.PI*2); c.fill(); c.globalAlpha*=.35; c.beginPath(); c.arc(p.x-cam,p.y,p.r*1.8,0,Math.PI*2); c.fill(); }); c.globalAlpha=1;
   c.restore();
   // falling snow
-  c.fillStyle='rgba(255,255,255,.8)'; for(let i=0;i<60;i++){ const x=((i*197+t0*(20+i%5*8))%VW+VW)%VW, y=((i*131+t0*(40+i%7*9))%VH); c.beginPath(); c.arc(x,y,1.2+i%3,0,Math.PI*2); c.fill(); }
+  c.fillStyle='rgba(255,255,255,.8)'; if(!L.D.indoor) for(let i=0;i<60;i++){ const x=((i*197+t0*(20+i%5*8))%VW+VW)%VW, y=((i*131+t0*(40+i%7*9))%VH); c.beginPath(); c.arc(x,y,1.2+i%3,0,Math.PI*2); c.fill(); }
   if(L.D.dark){ const X=P.x-cam, Y=P.y+40, g=c.createRadialGradient(X,Y,140,X,Y,520); g.addColorStop(0,'rgba(2,8,24,0)'); g.addColorStop(1,'rgba(2,8,24,.86)'); c.fillStyle=g; c.fillRect(0,0,VW,VH); }
   // HUD
   c.font='700 30px "Baloo 2",sans-serif'; c.textBaseline='middle';
@@ -847,7 +866,7 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
   drawImg(IMG.it_vihta,40,108,40); c.fillStyle='#fff'; c.strokeStyle='rgba(0,0,0,.6)'; c.lineWidth=5; c.strokeText('× '+vihta,64,92); c.fillText('× '+vihta,64,92);
   c.textAlign='center'; c.font='700 26px "Baloo 2",sans-serif'; const nm=L.D.name; c.strokeText(nm,VW/2,34); c.fillText(nm,VW/2,34);
   // near snow in front of everything: depth
-  for(let i=0;i<22;i++){ const sp=1.5+hash(i*7)*.6, fx=((hash(i*13)*(VW+200)-cam*sp-t0*(18+hash(i)*20))%(VW+200)+VW+200)%(VW+200)-100, fy=(hash(i*5)*VH+t0*(55+hash(i*3)*45))%(VH+40)-20, rr=3+hash(i*11)*4;
+  if(!L.D.indoor) for(let i=0;i<22;i++){ const sp=1.5+hash(i*7)*.6, fx=((hash(i*13)*(VW+200)-cam*sp-t0*(18+hash(i)*20))%(VW+200)+VW+200)%(VW+200)-100, fy=(hash(i*5)*VH+t0*(55+hash(i*3)*45))%(VH+40)-20, rr=3+hash(i*11)*4;
     c.globalAlpha=.55; c.drawImage(FLAKE,fx-rr*2,fy-rr*2,rr*4,rr*4); } c.globalAlpha=1;
   if(flash>0){ flash=Math.max(0,flash-1/60); c.fillStyle=`rgba(255,255,255,${Math.min(1,flash*2)})`; c.fillRect(0,0,VW,VH); }
   // boss attacks: shockwaves along the ground and chore lists raining down
@@ -868,11 +887,11 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
 
 // ---------- flow ----------
 // between-level story cards, narrated by Jugo (audio/jugo_1..10, jugo_end)
-const JUGO=['Inez zestrzeliła nasze sanie tuż przed wioską elfów. Rudolf odpoczywa, Mikołaj pilnuje prezentów, a Kaczor musi przebić się przez wioskę, uwolnić lojalne elfy i otworzyć bramę warsztatu Mikołaja.'];
+const JUGO=['Inez zestrzeliła nasze sanie tuż przed wioską elfów. Rudolf odpoczywa, Mikołaj pilnuje prezentów, a Kaczor musi przebić się przez wioskę, uwolnić lojalne elfy i otworzyć bramę warsztatu Mikołaja.','Armatka śnieżna gotowa, ale Inez uciekła przez halę produkcyjną. Kaczor musi przebiec przez fabrykę: sprężyny, liny i taśmociągi. Na końcu czeka bobslej.'];
 const JUGO_END='I tak Kaczor dotarł do swojej sauny. Kaka? Została z listą zadań. A Kaczor? Kaczor wreszcie odpoczął. Koniec.';
 function allImgs(){ return [...Object.values(IMG),...Object.values(ENV),...Object.values(ANIM).map(a=>a.img).filter(Boolean)]; }
 function warmImages(){ c.save(); c.setTransform(1,0,0,1,0,0); c.globalAlpha=.01; for(const im of allImgs()) if(im.complete&&im.naturalWidth){ try{ c.drawImage(im,0,0,4,4,0,0,1,1); }catch(e){} } c.restore(); }
-function showIntro(i){ setTimeout(warmImages,50); preloadVoices(['kz_hit_any','kz_vac_see1','kz_note_see1','kz_inez_see1','inezb_intro','inezb_phase','inezb_rain','inezb_end','kz_inezb_end','el_free1','el_free2']); state='intro'; loadLevel(i,i>0); const D=LEVELS[i]; $('#iFace').style.backgroundImage='url(art/kaka_face.webp)'; $('#iName').textContent=D.name; $('#iNarr').textContent=JUGO[i]; $('#iTxt').textContent=`Kaczor: „${D.txt}”`; $('#intro').classList.remove('hidden'); play('jugo_'+(i+1)); }
+function showIntro(i){ setTimeout(warmImages,50); preloadVoices(['kz_hit_any','kz_vac_see1','kz_note_see1','kz_inez_see1','el_free1','el_free2'].concat(i===1?['kz_rope','kz_win2','el_end2']:['inezb_intro','inezb_phase','inezb_rain','inezb_end','kz_inezb_end'])); state='intro'; loadLevel(i,i>0); const D=LEVELS[i]; $('#iFace').style.backgroundImage='url(art/kaka_face.webp)'; $('#iName').textContent=D.name; $('#iNarr').textContent=JUGO[i]; $('#iTxt').textContent=`Kaczor: „${D.txt}”`; $('#intro').classList.remove('hidden'); play('jugo_'+(i+1)); }
 function setMusic(src){ if(!bgm.src.endsWith(src)){ bgm.src=src; bgm.loop=true; } if(!muted) bgm.play().catch(()=>{}); }
 $('#iGo').onclick=()=>{ if(resume&&resume.lvl===lvl&&resume.cp){ cp=resume.cp; lvlV=resume.lvlV||0; spawn(); toast('Wczytano zapis — ostatni punkt kontrolny ✓','#d6ffd9'); } resume=null; if(QBOSS&&lvl===(QEND?LEVELS.length-1:QBL)){ const bo=L.ent.find(e=>e.k==='boss'); if(bo){ cp=QEND?L.mar-T*9:bo.x-T*15; spawn(); if(QEND){ ents.forEach(e=>{ if(e.k==='boss'){ e.alive=false; } }); L.kakaGone=true; } } } $('#intro').classList.add('hidden'); $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); showKeys(lvl===0?18:9); state='play'; t0=0; initAudio(); setMusic('audio/music_'+(lvl+1)+'.mp3'); setAmb(AMB[lvl]); play(LEVELS[lvl].line); };
 function finishLevel(){ if(state!=='play') return; state='outro'; $('#keys').classList.add('hidden'); sfx('win'); P.towel=false; P.vx=0; P.inv=0; puff(P.x,P.y+40,'#ffffff',22); toast('Brama warsztatu otwarta! 🎁','#d6ffd9'); }
@@ -915,8 +934,7 @@ function saveGame(){ try{ localStorage.setItem('kz-save',JSON.stringify({lvl,cp,
 function loadSave(){ try{ return JSON.parse(localStorage.getItem('kz-save')||'null'); }catch(e){ return null; } }
 function nextAfterSauna(){ hideGameButtons(); try{ localStorage.removeItem('kz-save'); }catch(e){} const st=levelStars();
   if(lvl+1>best){ best=lvl+1; try{ localStorage.setItem('kz-level',best); }catch(e){} }
-  if(lvl<LEVELS.length-1) showSauna(lvl);
-  else { $('#end').classList.remove('hidden'); $('#eTxt').innerHTML=`<b style="font-size:1.4em;color:#d9a400">${starLine(st)}</b><br>Uwolnione elfy: <b>${freed} / ${L.cages||0}</b>. Generał Elfów się poddał, a brama warsztatu Mikołaja stoi otworem. Ale Inez wciąż rządzi na biegunie…`; try{ localStorage.setItem('pn-wioska','1'); if((+localStorage.getItem('pn-level')||1)<5) localStorage.setItem('pn-level',5); }catch(e){} play('kz_win',()=>setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play('el_end'); },300)); } }
+  { $('#end').classList.remove('hidden'); const FAC=lvl===1; document.querySelector('#end h2').textContent=FAC?'Hala przebiegnięta! 🛷':'Wioska uwolniona! 🎄'; $('#eTxt').innerHTML=`<b style="font-size:1.4em;color:#d9a400">${starLine(st)}</b><br>Uwolnione elfy: <b>${freed} / ${L.cages||0}</b>. `+(FAC?'Kaczor wybiegł z fabryki — przed bramą czeka bobslej z armatką śnieżną, a Inez ucieka po lodowym torze!':'Generał Elfów się poddał, a brama warsztatu Mikołaja stoi otworem. Ale Inez wciąż rządzi na biegunie…'); try{ localStorage.setItem('pn-wioska','1'); if((+localStorage.getItem('pn-level')||1)<(FAC?7:5)) localStorage.setItem('pn-level',FAC?7:5); }catch(e){} play(FAC?'kz_win2':'kz_win',()=>setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play(FAC?'el_end2':'el_end'); },300)); } }
 // retry from the last checkpoint: the level stays as it is, Kaczor gets full hearts; in the duel Kaka starts over at full strength
 function retryFromCheckpoint(){ $('#over').classList.add('hidden'); if(cur){ cur.onended=null; cur.pause(); cur=null; bgm.volume=mv(); }
   hearts=DF().hearts; phones=[]; kisses=[]; snowballs=[]; waves=[]; rain=[];
@@ -925,8 +943,8 @@ function retryFromCheckpoint(){ $('#over').classList.add('hidden'); if(cur){ cur
 $('#oGo').onclick=retryFromCheckpoint;
 $('#oRe').onclick=()=>{ $('#over').classList.add('hidden'); const keepV=vihta; loadLevel(lvl,false); vihta=keepV; saveGame(); $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); state='play'; t0=0; };
 function showCredits(){ $('#end').classList.add('hidden'); const r=$('#roll'); r.style.animation='none'; void r.offsetWidth; r.style.animation=''; $('#credits').classList.remove('hidden'); setMusic('audio/music_10.mp3'); }
-$('#eCred').onclick=()=>{ location.href='../index.html?after=wioska'; }; $('#cAgain').onclick=()=>{ $('#credits').classList.add('hidden'); vihta=0; showIntro(0); };
-$('#eAgain').onclick=()=>{ $('#end').classList.add('hidden'); vihta=0; showIntro(0); };
+$('#eCred').onclick=()=>{ location.href='../index.html?after='+(lvl===1?'fabryka':'wioska'); }; $('#cAgain').onclick=()=>{ $('#credits').classList.add('hidden'); vihta=0; showIntro(0); };
+$('#eAgain').onclick=()=>{ $('#end').classList.add('hidden'); vihta=0; showIntro(lvl); };
 function start(i){ $('#title').classList.add('hidden'); if(!muted) bgm.play().catch(()=>{}); vihta=0; showIntro(i);
   if(matchMedia('(pointer:coarse)').matches){ const d=document.documentElement,rq=d.requestFullscreen||d.webkitRequestFullscreen; try{ const p=rq&&rq.call(d); p&&p.then&&p.then(()=>screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})).catch(()=>{}); }catch(e){} } }
 const qs=new URLSearchParams(location.search), qlv=+qs.get('level');
@@ -959,7 +977,8 @@ $('#pMenu').onclick=goMenu; $('#cMenu').onclick=goMenu;
 (function(){ const t1=performance.now(); $('#play').disabled=true; const tick=()=>{ const imgs=[...Object.values(IMG),...Object.values(ENV),...Object.values(ANIM).map(a=>a.img).filter(Boolean)], n=imgs.length, ok=imgs.filter(i=>i.complete).length, f=n?ok/n:0, animIn=Object.keys(ANIM).length>0;
   $('#loadBar').style.width=(f*100).toFixed(0)+'%'; $('#loadTxt').textContent=`Ładowanie… ${(f*100).toFixed(0)}%`;
   if((f>=.98&&animIn)||performance.now()-t1>12000){ $('#load').classList.add('hidden'); $('#play').disabled=false; allImgs().forEach(im=>{ if(im.decode) im.decode().catch(()=>{}); }); setTimeout(warmImages,100); } else setTimeout(tick,150); }; tick(); })();
-loadLevel(0); // draws behind the title
+loadLevel(qlv===2?1:0); // draws behind the title
+if(qlv===2){ document.querySelector('.logo b').textContent='Hala produkcyjna'; document.title='Hala produkcyjna — Prezentowy nalot'; $('#title').style.backgroundImage='url(art/bg_factory.webp)'; }
 let last=performance.now();
 const WARP=+(qs.get('warp')||1);
 let frEma=16.7, frT=0;
