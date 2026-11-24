@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Magazyn zabawek — Prezentowy nalot</title>
-<meta name="description" content="Prezentowy nalot: Kaczor skrada się przez magazyn zabawek Inez, omija różowe kamery i elfy-strażników i szuka klucza do bramy z bobslejem.">
+<title>Magazyn zabawek — Świąteczna Przygoda Kaczorów</title>
+<meta name="description" content="Świąteczna Przygoda Kaczorów: Kaczor skrada się przez magazyn zabawek Inez, omija różowe kamery i elfy-strażników i szuka klucza do bramy z bobslejem.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Lobster&subset=latin-ext&display=swap" rel="stylesheet">
 <style>
@@ -34,7 +34,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
 <div id="stage">
   <canvas id="cv" width="1280" height="720"></canvas>
   <div id="pad" class="hidden"><button id="pU">▲</button><button id="pL">◀</button><button id="pR">▶</button><button id="pD">▼</button></div>
-  <a id="back" href="../index.html">← Prezentowy nalot</a><button id="mute" title="Dźwięk (M)">🔊</button>
+  <a id="back" href="../index.html">← Świąteczna Przygoda Kaczorów</a><button id="mute" title="Dźwięk (M)">🔊</button>
   <div id="intro" class="ov"><div class="card"><div class="face" style="background-image:url(art/face_kaczor.webp)"></div><h2>Magazyn zabawek</h2>
     <p>Za halą produkcyjną jest magazyn Inez — a za nim brama, za którą czeka bobslej z armatką śnieżną. Bramę zamyka <b>złoty klucz</b>, ukryty gdzieś między regałami.</p>
     <p>Pilnują go <b>różowe kamery</b> i <b>elfy-strażnicy</b> z latarkami. Nie wchodź w ich światło! Chowaj się za regałami albo w <b>kartonach</b> — stój w kartonie bez ruchu, a nikt cię nie zauważy. Jeśli ktoś cię dostrzeże, wyje syrena i nadlatują zabawkowe samoloty.</p>
@@ -221,7 +221,8 @@ function draw(){ c.setTransform(1,0,0,1,0,0); c.fillStyle='#000'; c.fillRect(0,0
   c.fillStyle='#ffe27a'; c.beginPath(); c.arc(mx+P.x/T*ms,my+P.y/T*ms,4,0,6.29); c.fill(); if(!hasKey){ c.fillStyle='#ffd34e'; c.fillRect(mx+KEYP.x/T*ms-3,my+KEYP.y/T*ms-3,6,6); } c.fillStyle='#7dff7a'; c.fillRect(mx+EXIT.x/T*ms-3,my+EXIT.y/T*ms-3,6,6);
   GUARDS.forEach(g=>{ c.fillStyle='#ff7070'; c.fillRect(mx+g.x/T*ms-2,my+g.y/T*ms-2,4,4); });
   toasts.forEach((t,i)=>{ c.globalAlpha=Math.min(1,t.ttl*2); txt(t.t,VW/2,VH-60-i*36,26,t.col,'center'); c.globalAlpha=1; }); }
-function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now; if(state==='play') update(dt); else t0+=dt; draw(); requestAnimationFrame(loop); }
+function drawControls(t){ c.setTransform(1,0,0,1,0,0); c.fillStyle='rgba(10,14,30,.62)'; c.fillRect(0,VH-24,VW,24); c.font='600 15px "Baloo 2",sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillStyle='rgba(255,246,220,.92)'; c.fillText(t,VW/2,VH-11.5); c.textBaseline='alphabetic'; }
+function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now; if(state==='play') update(dt); else t0+=dt; draw(); if(state==='play') drawControls(TOUCH?'Przyciski na ekranie — skradanie się':'Strzałki / WASD — skradanie · Shift — szybciej (ale głośniej) · w kartonie stój bez ruchu, żeby się ukryć · M — dźwięk'); requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
 window.__mag={get P(){return P}, get state(){return state}, get alarm(){return alarm}, get hasKey(){return hasKey}, GUARDS, CAMS, KEYP:()=>KEYP, EXIT:()=>EXIT, start, path};
 </script>

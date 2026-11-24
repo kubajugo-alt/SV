@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Wioska elfów — Prezentowy nalot</title>
+<title>Wioska elfów — Świąteczna Przygoda Kaczorów</title>
 <meta name="description" content="Platformówka z Prezentowego nalotu: Kaczor przebija się przez wioskę zbuntowanych elfów, uwalnia lojalne elfy i pokonuje Generała Elfów.">
-<meta property="og:title" content="Wioska elfów — Prezentowy nalot">
+<meta property="og:title" content="Wioska elfów — Świąteczna Przygoda Kaczorów">
 <meta property="og:description" content="Kaczor kontra zbuntowane elfy Inez.">
 <meta property="og:image" content="https://prezentowy-nalot.netlify.app/wioska/art/title.webp">
 <meta name="twitter:card" content="summary_large_image">
@@ -37,6 +37,7 @@ button{font:inherit;cursor:pointer}
 .card{background:rgba(255,248,234,.96);border-radius:1.6cqw;padding:2cqw 2.6cqw;max-width:62cqw;box-shadow:0 1cqw 3cqw rgba(0,0,0,.45)}
 .card h2{font-family:Lobster,cursive;font-weight:400;color:var(--red);font-size:4cqw;margin:0 0 .4cqw}
 .card p{margin:.4cqw 0 1.2cqw;font-size:max(14px,1.7cqw);line-height:1.35}
+#iFaceCv{position:static!important;inset:auto!important;width:100%!important;height:100%!important;border-radius:50%;display:block;transform:none!important}
 .card .face{width:9cqw;height:9cqw;border-radius:50%;margin:0 auto .8cqw;background:#f1dfc0 center/cover;border:.35cqw solid var(--red)}
 .dim{background:rgba(6,10,28,.55)}
 .card .who{font-size:max(11px,1.2cqw);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#a0522d;margin-bottom:.2cqw}
@@ -77,11 +78,11 @@ body.touch .kk.kb,body:not(.touch) .kk.tc{display:none}
 <div id="stage">
   <canvas id="cv" width="1280" height="720" aria-label="Gra: Wioska elfów"></canvas>
   <div id="touch" class="hidden"><button id="bL" aria-label="W lewo">◀</button><button id="bR" aria-label="W prawo">▶</button><button id="bT" aria-label="Uderzenie">👊</button><button id="bS" aria-label="Rzuć śnieżką">❄</button><button id="bJ" aria-label="Skok">⤒</button><button id="bW" aria-label="Zmiana postaci" style="left:auto;right:12px;top:12px;bottom:auto">⇄</button></div>
-  <a id="back" href="../index.html">← Prezentowy nalot</a><button id="mute" title="Dźwięk">🔊</button><button id="pauseBtn" class="hidden" title="Pauza (Esc)">⏸</button><button id="keysBtn" class="hidden" title="Sterowanie (H)">⌨</button>
+  <a id="back" href="../index.html">← Świąteczna Przygoda Kaczorów</a><button id="mute" title="Dźwięk">🔊</button><button id="pauseBtn" class="hidden" title="Pauza (Esc)">⏸</button><button id="keysBtn" class="hidden" title="Sterowanie (H)">⌨</button>
   <div id="keys" class="hidden"><b>Sterowanie</b><div class="kk kb"><div><kbd>◀ ▶ / A D</kbd><span>bieg</span></div><div><kbd>Spacja / ▲ / W</kbd><span>skok</span></div><div><kbd>przytrzymaj skok w powietrzu</kbd><span>paralotnia 🪂</span></div><div><kbd>X / J</kbd><span>cios 👊</span></div><div><kbd>C / K</kbd><span>śnieżka ❄</span></div><div><kbd>Esc / P</kbd><span>pauza</span></div><div><kbd>H</kbd><span>ta legenda</span></div></div><div class="kk tc"><div><kbd>◀ ▶</kbd><span>bieg</span></div><div><kbd>⤒</kbd><span>skok (przytrzymaj: paralotnia 🪂)</span></div><div><kbd>👊</kbd><span>cios</span></div><div><kbd>❄</kbd><span>śnieżka</span></div><div><kbd>⏸</kbd><span>pauza</span></div></div></div>
 
   <div id="title" class="ov">
-        <div class="logo"><small>Prezentowy nalot · biegun północny</small><b>Wioska elfów</b></div>
+        <div class="logo"><small>Świąteczna Przygoda Kaczorów · biegun północny</small><b>Wioska elfów</b></div>
     <div>
       <div class="tBtns"><button class="btn" id="play">Graj ▶</button><button class="btn alt hidden" id="fresh">Od początku</button></div>
       <div id="nameRow" class="hidden"><input id="pName" class="nameIn" maxlength="16" placeholder="Twoje imię do rankingu" autocomplete="nickname"><button class="btn alt" id="rankBtn">🏆 Ranking</button></div>
@@ -92,7 +93,7 @@ body.touch .kk.kb,body:not(.touch) .kk.tc{display:none}
     </div>
   </div>
 
-  <div id="intro" class="ov dim hidden"><div class="card"><div class="face" id="iFace"></div><div class="who">Opowiada Kaka</div><h2 id="iName"></h2><p class="narr" id="iNarr"></p><p class="kq" id="iTxt"></p><button class="btn" id="iGo">Start!</button></div></div>
+  <div id="intro" class="ov dim hidden"><div class="card"><div class="face" id="iFace"><canvas id="iFaceCv" width="256" height="256" style="width:100%;height:100%;border-radius:50%;display:block"></canvas></div><div class="who">Opowiada Kaka</div><h2 id="iName"></h2><p class="narr" id="iNarr"></p><p class="kq" id="iTxt"></p><button class="btn" id="iGo">Start!</button></div></div>
   <div id="pause" class="ov dim hidden"><div class="card"><h2>Pauza</h2>
     <div class="sets"><label>🎵 Muzyka <input type="range" id="vMus" min="0" max="100"></label><label>💥 Efekty <input type="range" id="vSfx" min="0" max="100"></label><label>🗣 Dialogi <input type="range" id="vVoc" min="0" max="100"></label></div>
     <div class="diffs" id="pDiff"></div>
@@ -948,7 +949,7 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
   if(L.boss&&L.boss.alive&&L.boss.act&&L.boss.state!=='gone'){ c.textAlign='center'; c.font='700 22px "Baloo 2",sans-serif'; c.fillStyle='#ffd1dc'; c.lineWidth=5; c.strokeStyle='rgba(0,0,0,.6)'; const BO=L.boss, mx=BO.maxhp||8, nm=BO.who&&BO.who!=='kaka'?MB[BO.who].name:'Kaka'; c.strokeText(nm,VW/2-190,128); c.fillText(nm,VW/2-190,128); c.fillStyle='rgba(0,0,0,.45)'; c.beginPath(); c.roundRect(VW/2-130,112,300,20,10); c.fill(); const sw=294/mx; for(let k=0;k<mx;k++){ c.fillStyle=k<BO.hp?(BO.hp>mx*.6?'#ff6f61':BO.hp>mx*.3?'#ff9f43':'#ff3b3b'):'rgba(255,255,255,.12)'; c.beginPath(); c.roundRect(VW/2-127+k*sw,115,sw-4,14,6); c.fill(); } if(BO.mode==='tired'){ const tt=BO.who&&BO.who!=='kaka'?MB[BO.who].tired:'Teraz! Kaka jest zmęczona'; c.fillStyle='#fff6b0'; c.font='700 18px "Baloo 2",sans-serif'; c.strokeText(tt,VW/2,158); c.fillText(tt,VW/2,158); } c.textAlign='left'; }
   if(kzSay&&state==='play'){ kzSay.ttl-=1/60; if(kzSay.ttl<=0) kzSay=null; else bubble(P.x-cam,P.y-52+camY,kzSay.t,(CHARS[WHO]||CHARS.kz).name,{kz:'#2e6da4',kaka:'#c2185b',mik:'#c0392b'}[WHO]||'#2e6da4',Math.min(1,kzSay.ttl*2)); }
   // tutorial hint banner
-  if(hint&&state==='play'){ c.save(); c.globalAlpha=Math.min(1,hint.ttl*2); c.font='700 24px "Baloo 2",sans-serif'; c.textAlign='center'; const w=c.measureText(hint.t).width+44; c.fillStyle='rgba(20,28,48,.72)'; c.beginPath(); c.roundRect(VW/2-w/2,VH-86,w,46,23); c.fill(); c.fillStyle='#fff'; c.fillText(hint.t,VW/2,VH-55); c.restore(); }
+  if(hint&&state==='play'){ c.save(); c.globalAlpha=Math.min(1,hint.ttl*2); c.font='700 24px "Baloo 2",sans-serif'; c.textAlign='center'; const w=c.measureText(hint.t).width+44; c.fillStyle='rgba(20,28,48,.72)'; c.beginPath(); c.roundRect(VW/2-w/2,VH-96,w,46,23); c.fill(); c.fillStyle='#fff'; c.fillText(hint.t,VW/2,VH-65); c.restore(); }
   // freed elves
   { const ft=`Uwolnione elfy: ${freed} / ${L.cages||0}`; c.font='700 22px "Baloo 2",sans-serif'; c.lineWidth=5; c.strokeStyle='rgba(0,0,0,.6)'; c.fillStyle='#d6ffd9'; c.strokeText(ft,VW/2+20,76); c.fillText(ft,VW/2+20,76); drawImg(IMG.elf_happy,VW/2-c.measureText(ft).width/2-8,100,46,false); }
   toasts.forEach((t,i)=>{ c.globalAlpha=Math.min(1,t.t*2); c.font='700 30px "Baloo 2",sans-serif'; c.fillStyle=t.col; c.lineWidth=6; c.strokeText(t.txt,VW/2,170+i*42); c.fillText(t.txt,VW/2,170+i*42); }); c.globalAlpha=1; c.textAlign='left';
@@ -961,9 +962,9 @@ const JUGO=['Inez zestrzeliła nasze sanie tuż przed wioską elfów. Rudolf odp
 const JUGO_END='I tak Kaczor dotarł do swojej sauny. Kaka? Została z listą zadań. A Kaczor? Kaczor wreszcie odpoczął. Koniec.';
 function allImgs(){ return [...Object.values(IMG),...Object.values(ENV),...Object.values(ANIM).map(a=>a.img).filter(Boolean)]; }
 function warmImages(){ c.save(); c.setTransform(1,0,0,1,0,0); c.globalAlpha=.01; for(const im of allImgs()) if(im.complete&&im.naturalWidth){ try{ c.drawImage(im,0,0,4,4,0,0,1,1); }catch(e){} } c.restore(); }
-function showIntro(i){ setTimeout(warmImages,50); preloadVoices(['kz_hit_any','kz_vac_see1','kz_note_see1','kz_inez_see1','el_free1','el_free2'].concat(i===2?['kz_palace','kz_queen_see','qb_intro','qb_mirror','kz_mirror','qb_phase','qb_end','kz_queen_end','qb_hit1','qb_hit2','qb_hit3']:i===1?['kz_rope','kz_win2','el_end2']:['inezb_intro','inezb_phase','inezb_rain','inezb_end','kz_inezb_end'])); state='intro'; loadLevel(i,i>0); const D=LEVELS[i]; $('#iFace').style.backgroundImage='url(art/kaka_face.webp)'; $('#iName').textContent=D.name; $('#iNarr').textContent=JUGO[i]; $('#iTxt').textContent=`Kaczor: „${D.txt}”`; $('#intro').classList.remove('hidden'); if(i<2) play('jugo_'+(i+1)); else play(D.line); }
+function showIntro(i){ setTimeout(warmImages,50); preloadVoices(['kz_hit_any','kz_vac_see1','kz_note_see1','kz_inez_see1','el_free1','el_free2'].concat(i===2?['kz_palace','kz_queen_see','qb_intro','qb_mirror','kz_mirror','qb_phase','qb_end','kz_queen_end','qb_hit1','qb_hit2','qb_hit3']:i===1?['kz_rope','kz_win2','el_end2']:['inezb_intro','inezb_phase','inezb_rain','inezb_end','kz_inezb_end'])); state='intro'; loadLevel(i,i>0); const D=LEVELS[i];  $('#iName').textContent=D.name; $('#iNarr').textContent=JUGO[i]; $('#iTxt').textContent=`Kaczor: „${D.txt}”`; $('#intro').classList.remove('hidden'); if(i<2) play('jugo_'+(i+1)); else play(D.line); }
 function setMusic(src){ if(!bgm.src.endsWith(src)){ bgm.src=src; bgm.loop=true; } if(!muted) bgm.play().catch(()=>{}); }
-$('#iGo').onclick=()=>{ if(resume&&resume.lvl===lvl&&resume.cp){ cp=resume.cp; lvlV=resume.lvlV||0; spawn(); toast('Wczytano zapis — ostatni punkt kontrolny ✓','#d6ffd9'); } resume=null; if(QBOSS&&lvl===(QEND?LEVELS.length-1:QBL)){ const bo=L.ent.find(e=>e.k==='boss'); if(bo){ cp=QEND?L.mar-T*9:bo.x-T*15; spawn(); if(QEND){ ents.forEach(e=>{ if(e.k==='boss'){ e.alive=false; } }); L.kakaGone=true; } } } $('#intro').classList.add('hidden'); $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); showKeys(lvl===0?18:9); state='play'; t0=0; initAudio(); setMusic('audio/music_'+(lvl+1)+'.mp3'); setAmb(AMB[lvl]); play(LEVELS[lvl].line); };
+$('#iGo').onclick=()=>{ if(resume&&resume.lvl===lvl&&resume.cp){ cp=resume.cp; lvlV=resume.lvlV||0; spawn(); toast('Wczytano zapis — ostatni punkt kontrolny ✓','#d6ffd9'); } resume=null; if(QBOSS&&lvl===(QEND?LEVELS.length-1:QBL)){ const bo=L.ent.find(e=>e.k==='boss'); if(bo){ cp=QEND?L.mar-T*9:bo.x-T*15; spawn(); if(QEND){ ents.forEach(e=>{ if(e.k==='boss'){ e.alive=false; } }); L.kakaGone=true; } } } $('#intro').classList.add('hidden'); $('#pauseBtn').classList.remove('hidden');  showKeys(lvl===0?18:9); state='play'; t0=0; initAudio(); setMusic('audio/music_'+(lvl+1)+'.mp3'); setAmb(AMB[lvl]); play(LEVELS[lvl].line); };
 function finishLevel(){ if(state!=='play') return; state='outro'; $('#keys').classList.add('hidden'); sfx('win'); P.towel=false; P.vx=0; P.inv=0; puff(P.x,P.y+40,'#ffffff',22); toast('Brama warsztatu otwarta! 🎁','#d6ffd9'); }
 function outro(dt){ t0+=dt; P.anim+=dt; stepSteam(dt); const door=L.goal+140; toasts.forEach(t=>t.t-=dt); toasts=toasts.filter(t=>t.t>0); parts.forEach(p=>{ p.t-=dt; p.vy+=500*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; }); parts=parts.filter(p=>p.t>0);
   if(P.joy<=0&&Math.abs(P.x-door)>6){ P.face=Math.sign(door-P.x); P.vx=P.face*140; P.x+=P.vx*dt; if(Math.abs(P.x-door)<=6) P.x=door; }
@@ -1009,9 +1010,9 @@ function nextAfterSauna(){ hideGameButtons(); try{ localStorage.removeItem('kz-s
 function retryFromCheckpoint(){ $('#over').classList.add('hidden'); if(cur){ cur.onended=null; cur.pause(); cur=null; bgm.volume=mv(); }
   hearts=DF().hearts; phones=[]; kisses=[]; snowballs=[]; waves=[]; rain=[];
   const bo=ents.find(e=>e.k==='boss'&&e.alive); if(bo&&bo.act&&bo.state!=='gone'){ bo.hp=bo.maxhp||8; bo.extraDone=false; bo.phSaid=0; bo.ph2=0; bo.ph3=0; bo.mode='idle'; bo.mt=1.5; bo.intro=1.2; bo.plan=0; bo.x=Math.max(bo.a,Math.min(bo.b,bo.x)); ents.forEach(v=>{ if(v.boss&&v!==bo) v.alive=false; }); }
-  spawn(); if(L.kakaGone){ kaka.x=P.x-5000; kaka.wait=99; } $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); state='play'; last=performance.now(); }
+  spawn(); if(L.kakaGone){ kaka.x=P.x-5000; kaka.wait=99; } $('#pauseBtn').classList.remove('hidden');  state='play'; last=performance.now(); }
 $('#oGo').onclick=retryFromCheckpoint;
-$('#oRe').onclick=()=>{ $('#over').classList.add('hidden'); const keepV=vihta; loadLevel(lvl,false); vihta=keepV; saveGame(); $('#pauseBtn').classList.remove('hidden'); $('#keysBtn').classList.remove('hidden'); state='play'; t0=0; };
+$('#oRe').onclick=()=>{ $('#over').classList.add('hidden'); const keepV=vihta; loadLevel(lvl,false); vihta=keepV; saveGame(); $('#pauseBtn').classList.remove('hidden');  state='play'; t0=0; };
 function showCredits(){ $('#end').classList.add('hidden'); const r=$('#roll'); r.style.animation='none'; void r.offsetWidth; r.style.animation=''; $('#credits').classList.remove('hidden'); setMusic('audio/music_10.mp3'); }
 $('#eCred').onclick=()=>{ location.href='../index.html?after='+(lvl===2?'palac':lvl===1?'fabryka':'wioska'); }; $('#cAgain').onclick=()=>{ $('#credits').classList.add('hidden'); vihta=0; showIntro(0); };
 $('#eAgain').onclick=()=>{ $('#end').classList.add('hidden'); vihta=0; showIntro(lvl); };
@@ -1029,8 +1030,8 @@ renderLevels(); renderDiff('tDiff'); renderDiff('pDiff');
 // ---------- pause menu: Esc / P, the ⏸ button, or the tab losing focus ----------
 function pauseGame(){ if(state!=='play') return; state='pause'; if(cur) cur.pause(); if(AC) AC.suspend(); for(const k in K) K[k]=false; ['vMus','vSfx','vVoc'].forEach((id,i)=>$('#'+id).value=VOL[['mus','sfx','voc'][i]]); $('#pause').classList.remove('hidden'); }
 function resumeGame(){ if(state!=='pause') return; $('#pause').classList.add('hidden'); state='play'; if(AC) AC.resume(); last=performance.now(); if(cur&&!muted) cur.play().catch(()=>{}); }
-let keysT=null; function showKeys(sec){ const k=$('#keys'); k.classList.remove('hidden','fade'); clearTimeout(keysT); if(sec) keysT=setTimeout(()=>k.classList.add('fade'),sec*1000); }
-function toggleKeys(){ const k=$('#keys'); if(k.classList.contains('hidden')||k.classList.contains('fade')) showKeys(0); else k.classList.add('fade'); }
+let keysT=null; function showKeys(sec){ return;  const k=$('#keys'); k.classList.remove('hidden','fade'); clearTimeout(keysT); if(sec) keysT=setTimeout(()=>k.classList.add('fade'),sec*1000); }
+function toggleKeys(){ return;  const k=$('#keys'); if(k.classList.contains('hidden')||k.classList.contains('fade')) showKeys(0); else k.classList.add('fade'); }
 $('#keysBtn').onclick=e=>{ e.stopPropagation(); toggleKeys(); };
 addEventListener('keydown',e=>{ if(e.code==='KeyH'&&state==='play'){ e.preventDefault(); toggleKeys(); } });
 if(TOUCH) document.body.classList.add('touch');
@@ -1048,14 +1049,26 @@ $('#pMenu').onclick=goMenu; $('#cMenu').onclick=goMenu;
   $('#loadBar').style.width=(f*100).toFixed(0)+'%'; $('#loadTxt').textContent=`Ładowanie… ${(f*100).toFixed(0)}%`;
   if((f>=.98&&animIn)||performance.now()-t1>12000){ $('#load').classList.add('hidden'); $('#play').disabled=false; allImgs().forEach(im=>{ if(im.decode) im.decode().catch(()=>{}); }); setTimeout(warmImages,100); } else setTimeout(tick,150); }; tick(); })();
 loadLevel(qlv===3?2:qlv===2?1:0); // draws behind the title
-if(qlv===3){ document.querySelector('.logo b').textContent='Wieża luster'; document.title='Wieża luster — Prezentowy nalot'; $('#title').style.backgroundImage='url(art/bg_palace_in.webp)'; }
-if(qlv===2){ document.querySelector('.logo b').textContent='Hala produkcyjna'; document.title='Hala produkcyjna — Prezentowy nalot'; $('#title').style.backgroundImage='url(art/bg_factory.webp)'; }
+if(qlv===3){ document.querySelector('.logo b').textContent='Wieża luster'; document.title='Wieża luster — Świąteczna Przygoda Kaczorów'; $('#title').style.backgroundImage='url(art/bg_palace_in.webp)'; }
+if(qlv===2){ document.querySelector('.logo b').textContent='Hala produkcyjna'; document.title='Hala produkcyjna — Świąteczna Przygoda Kaczorów'; $('#title').style.backgroundImage='url(art/bg_factory.webp)'; }
 let last=performance.now();
 const WARP=+(qs.get('warp')||1);
 let frEma=16.7, frT=0;
-function loop(now){ if(now-last<12.5){ requestAnimationFrame(loop); return; } frEma+=((now-last)-frEma)*.05;
+// one line along the very bottom with the keys, always there while playing (replaces the old corner box)
+function drawControls(){ c.setTransform(RES,0,0,RES,0,0); const swap=lvl<2, t=TOUCH?'◀ ▶ bieg · ⤒ skok (przytrzymaj: paralotnia) · 👊 cios · ❄ śnieżka'+(swap?' · ⇄ zmiana postaci':''):
+  '← → / A D — bieg · Spacja / ↑ / W — skok'+(WHO==='kaka'?' (drugi skok w powietrzu)':WHO==='mik'?'':' (przytrzymaj: paralotnia)')+(WHO==='kaka'?' · X / J — lista (spowolnienie)':WHO==='mik'?'':' · X / J — cios')+' · C / K — śnieżka'+(swap?' · Tab / Q — zmiana postaci':'')+' · Esc — pauza · M — dźwięk';
+  c.fillStyle='rgba(10,14,30,.62)'; c.fillRect(0,VH-24,VW,24); c.font='600 15px "Baloo 2",sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillStyle='rgba(255,246,220,.92)'; c.fillText(t,VW/2,VH-11.5); c.textBaseline='alphabetic'; }
+// Kaka's portrait on the story card: she blinks, and while her narration plays her mouth follows Rhubarb cues
+// (five mouths redrawn by Gemini on the portrait, art/mouth/kaka_face.webp; closed eyes in art/blink/)
+const FACE={im:img('kaka_face'),m:new Image(),b:new Image(),M:null,B:null,L:{}}; FACE.m.src='art/mouth/kaka_face.webp'; FACE.b.src='art/blink/kaka_face.webp';
+fetch('art/mouth/mouths.json').then(r=>r.json()).then(j=>FACE.M=j.kaka_face).catch(()=>{}); fetch('art/blink/blinks.json').then(r=>r.json()).then(j=>FACE.B=j.kaka_face).catch(()=>{}); fetch('art/lips.json').then(r=>r.json()).then(j=>FACE.L=j).catch(()=>{});
+function drawFace(){ const cv2=$('#iFaceCv'); if(!cv2||$('#intro').classList.contains('hidden')) return; const g=cv2.getContext('2d'), F=FACE, ok2=i=>i&&i.complete&&i.naturalWidth; g.clearRect(0,0,256,256); if(!ok2(F.im)) return; g.drawImage(F.im,0,0,256,256);
+  const t=performance.now()/1000, P_=4.2, bt=t%P_, ba=bt<.06?bt/.06:bt<.15?1:bt<.23?1-(bt-.15)/.08:0; if(F.B&&ok2(F.b)&&ba>0){ g.globalAlpha=ba; g.drawImage(F.b,F.B.x,F.B.y,F.B.w,F.B.h); g.globalAlpha=1; }
+  const key=cur&&cur.src&&(cur.src.match(/(jugo_\d)\.mp3/)||[])[1], cues=key&&F.L[key];
+  if(cues&&F.M&&ok2(F.m)&&!cur.paused){ let v='X'; for(const q of cues){ if(q[0]<=cur.currentTime) v=q[1]; else break; } const f={X:0,A:0,B:1,G:1,C:2,H:2,D:3,E:4,F:4}[v]||0; g.drawImage(F.m,f*F.M.fw,0,F.M.fw,F.M.fh,F.M.x,F.M.y,F.M.w,F.M.h); } }
+function loop(now){ drawFace(); if(now-last<12.5){ requestAnimationFrame(loop); return; } frEma+=((now-last)-frEma)*.05;
   if(state==='play'&&!document.hidden){ frT+=now-last; if(frT>2500&&frEma>24&&RESCAP>1){ RESCAP=Math.max(1,RES-.25); fitCanvas(); frT=0; frEma=16.7; } } else frT=0;
-  const dt=Math.min(.033,(now-last)/1000); last=now; if(state==='play'){ for(let w=0;w<WARP&&state==='play';w++) update(dt); } else if(state==='outro') outro(dt); else t0+=dt; if(L) draw(); requestAnimationFrame(loop); }
+  const dt=Math.min(.033,(now-last)/1000); last=now; if(state==='play'){ for(let w=0;w<WARP&&state==='play';w++) update(dt); } else if(state==='outro') outro(dt); else t0+=dt; if(L){ draw(); if(state==='play') drawControls(); } requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
 window.__L=(x,y)=>L?tile(x,y):' '; window.__gen=i=>genLevel(LEVELS[i],i); window.__kz={get L(){return L}, get hearts(){return hearts}, set hearts(v){hearts=v}, get P(){return P}, get kaka(){return kaka}, get state(){return state}, get lvl(){return lvl}, get ents(){return ents}, K, finishLevel:()=>finishLevel(), draw:()=>draw()};
 </script>

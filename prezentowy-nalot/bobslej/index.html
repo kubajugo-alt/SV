@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Pościg w bobslejach — Prezentowy nalot</title>
-<meta name="description" content="Prezentowy nalot: Kaczor, Kaka i mały Mikołaj gonią Inez w bobsleju po lodowej rynnie i strzelają z armatki śnieżnej.">
+<title>Pościg w bobslejach — Świąteczna Przygoda Kaczorów</title>
+<meta name="description" content="Świąteczna Przygoda Kaczorów: Kaczor, Kaka i mały Mikołaj gonią Inez w bobsleju po lodowej rynnie i strzelają z armatki śnieżnej.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Lobster&subset=latin-ext&display=swap" rel="stylesheet">
 <style>
@@ -36,7 +36,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 <div id="stage">
   <canvas id="cv" width="1280" height="720"></canvas>
   <div id="touch" class="hidden"><button id="tL">◀</button><button id="tR">▶</button><button id="tB">⏬</button><button id="tF">❄</button></div>
-  <a id="back" href="../index.html">← Prezentowy nalot</a><button id="mute" title="Dźwięk (M)">🔊</button>
+  <a id="back" href="../index.html">← Świąteczna Przygoda Kaczorów</a><button id="mute" title="Dźwięk (M)">🔊</button>
   <div id="intro" class="ov dim"><div class="card">
     <h2>Pościg w bobslejach</h2>
     <div class="faces"><i style="background-image:url(art/face_kaka.webp)"></i><i style="background-image:url(art/face_mikolaj.webp)"></i><i style="background-image:url(art/face_kaczor.webp)"></i></div>
@@ -214,7 +214,7 @@ const fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 // ---------- simulation ----------
 function burst(x,y,col,n,sp=160,z=20){ for(let k=0;k<n;k++){ const a=Math.random()*6.28; sparks.push({x,y,z:z+Math.random()*20,vx:Math.cos(a)*sp*Math.random(),vy:Math.sin(a)*sp*Math.random(),vz:80+Math.random()*120,t:.5+Math.random()*.5,col}); } }
 function spin(o,t){ o.spin=Math.max(o.spin,t); }
-function update(dt){ t0+=dt; clock+=dt; hype=Math.max(0,hype-dt); if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } shake=Math.max(0,shake-dt); flash=Math.max(0,flash-dt); if(hint){ hint.ttl-=dt; if(hint.ttl<=0) hint=null; }
+function update(dt){ t0+=dt; clock+=dt; hype=Math.max(0,hype-dt); if(sub&&!voice){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } shake=Math.max(0,shake-dt); flash=Math.max(0,flash-dt); if(hint){ hint.ttl-=dt; if(hint.ttl<=0) hint=null; }
   // --- our bobsled: ice physics, the channel walls, turbo
   const fx=Math.cos(P.a), fy=Math.sin(P.a); let vf=P.vx*fx+P.vy*fy, vl=-P.vx*fy+P.vy*fx;
   const st=(K.R?1:0)-(K.L?1:0); P.steer+=(st-P.steer)*Math.min(1,dt*7);
@@ -388,12 +388,13 @@ function snowFx(dt){ const sp=Math.hypot(P.vx,P.vy), f=Math.min(1.4,sp/VMAX), [b
   FLAKES.forEach(q=>{ q.y+=q.v*dt*(1+f*.6); q.x+=(Math.sin(t0+q.w)*14-da/dt*120*q.s/2)*dt; q.x-= (q.x-VW/2)*f*dt*.6; if(q.y>VH){ q.y=-5; q.x=Math.random()*VW; } if(q.x<-10) q.x+=VW+20; if(q.x>VW+10) q.x-=VW+20; }); }
 function drawSnow(){ SN.forEach(p=>{ const a=1-p.t/p.life; c.globalAlpha=(p.puff?.35:.95)*a; c.fillStyle=p.puff?'#ffffff':(p.r>4?'#f4fbff':'#e6f4ff'); c.beginPath(); c.arc(p.x,p.y,p.r,0,6.29); c.fill(); }); c.globalAlpha=1; }
 function drawFlakes(){ c.fillStyle='rgba(255,255,255,.8)'; FLAKES.forEach(q=>{ c.beginPath(); c.arc(q.x,q.y,q.s,0,6.29); c.fill(); }); }
+function drawControls(t){ c.setTransform(1,0,0,1,0,0); c.fillStyle='rgba(10,14,30,.62)'; c.fillRect(0,VH-24,VW,24); c.font='600 15px "Baloo 2",sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillStyle='rgba(255,246,220,.92)'; c.fillText(t,VW/2,VH-11.5); c.textBaseline='alphabetic'; }
 function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now; if(P&&state!=='intro'&&dt>0) snowFx(dt);
   if(state==='race') update(dt);
-  else if(state==='count'){ const before=Math.ceil(count-.6); count-=dt; t0+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } const after=Math.ceil(count-.6); if(after!==before) beep(after>0?440:880,.2,.12); if(count<=.6) state='race'; }
-  else if(state==='won'){ t0+=dt; P.vx*=Math.pow(.4,dt); P.vy*=Math.pow(.4,dt); P.x+=P.vx*dt; P.y+=P.vy*dt; INEZ.s+=INEZ.v*.15*dt; INEZ.v*=Math.pow(.2,dt); const it=trackAt(INEZ.s,HALF*.8); INEZ.x=it.x; INEZ.y=it.y; sparks.forEach(p=>{ p.t-=dt; p.z+=p.vz*dt; p.vz-=380*dt; }); if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } if(runG) runG.gain.value=0; }
+  else if(state==='count'){ const before=Math.ceil(count-.6); count-=dt; t0+=dt; if(sub&&!voice){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } const after=Math.ceil(count-.6); if(after!==before) beep(after>0?440:880,.2,.12); if(count<=.6) state='race'; }
+  else if(state==='won'){ t0+=dt; P.vx*=Math.pow(.4,dt); P.vy*=Math.pow(.4,dt); P.x+=P.vx*dt; P.y+=P.vy*dt; INEZ.s+=INEZ.v*.15*dt; INEZ.v*=Math.pow(.2,dt); const it=trackAt(INEZ.s,HALF*.8); INEZ.x=it.x; INEZ.y=it.y; sparks.forEach(p=>{ p.t-=dt; p.z+=p.vz*dt; p.vz-=380*dt; }); if(sub&&!voice){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } if(runG) runG.gain.value=0; }
   else t0+=dt;
-  draw(); requestAnimationFrame(loop); }
+  draw(); if(state==='race'||state==='count') drawControls(TOUCH?'Przyciski na ekranie — skręt, hamulec, armatka':'← → / A D — skręt · ↓ / S — hamulec · Spacja / X — armatka śnieżna · M — dźwięk'); requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
 window.__bob={get P(){return P}, get INEZ(){return INEZ}, get state(){return state}, K, start, LAP, trackAt, nearest};
 </script>
