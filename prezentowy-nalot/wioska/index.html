@@ -914,7 +914,12 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
   // Kaczor
   { const pulse=P.inv>0?.55+.45*Math.cos(P.inv*14):1; c.save(); c.globalAlpha=pulse; const X=P.x-cam, Y=P.y+P.h+2;
     const fl=P.face<0;
-    if(WHO!=='kz'){ const pre=WHO==='kaka'?'ka':'mk', base=WHO==='kaka'?146:82; let done=false;
+    // swinging on a rope: a dedicated hanging animation, fists on the rope, body turned with the rope's angle
+    const sw=P.rope&&ANIM[{kz:'kz',kaka:'ka',mik:'mk'}[WHO]+'_swing'];
+    if(sw&&sw.img.complete&&sw.img.naturalWidth){ const r=P.rope, gx=r.x+Math.sin(r.a)*P.ropeD-cam, gy=r.y+Math.cos(r.a)*P.ropeD, Hh={kz:160,kaka:150,mik:84}[WHO]*CHAR, sc=Hh/sw.h;
+      const f=Math.floor((t0*(.6+Math.min(1.4,Math.abs(r.w)*.5)))*sw.fps)%sw.n; c.translate(gx,gy); c.rotate(-r.a); if(fl) c.scale(-1,1);
+      c.drawImage(sw.img,f*sw.w,0,sw.w,sw.h,-sw.ax*sc,-sw.ay*sc,sw.w*sc,sw.h*sc); c.restore(); }
+    else if(WHO!=='kz'){ const pre=WHO==='kaka'?'ka':'mk', base=WHO==='kaka'?146:82; let done=false;
       if(P.on) done=Math.abs(P.vx)>30?drawAnim(pre+'_run',X,Y,P.runT,fl):drawAnim(pre+'_idle',X,Y,t0,fl);
       if(!done){ const im=!P.on?IMG[pre+'_jump']:Math.abs(P.vx)>30?IMG[pre+(Math.floor(P.anim*8)%2?'_run1':'_run2')]:IMG[pre+'_idle']; drawImg(im,X,Y,base*(im.naturalHeight||300)/300,fl); } c.restore(); }
     else { const an=P.glide?drawAnim('kz_glide',X,Y+20,t0,fl):P.towel?drawAnim(P.joy>0?'kzt_joy':'kzt_walk',X,Y,Math.abs(P.vx)>20||P.joy>0?t0:0,fl)
