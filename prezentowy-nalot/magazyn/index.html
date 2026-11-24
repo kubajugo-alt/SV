@@ -146,6 +146,9 @@ function update(dt){ t0+=dt; sh=Math.max(0,(sh||0)-dt); P.inv=Math.max(0,P.inv-d
   if(mv){ P.step+=dt*(K.F?9:6); if(Math.floor(P.step)!==Math.floor(P.step-dt*(K.F?9:6))&&K.F) sfx('step_wood',.15); }
   if(KEYP&&!hasKey&&Math.hypot(P.x-KEYP.x,P.y-KEYP.y)<40){ hasKey=true; cp={x:KEYP.x,y:KEYP.y}; sfx('pick',.6); toast('Złoty klucz! Teraz do bramy 🔑','#ffe27a'); }
   if(Math.hypot(P.x-EXIT.x,P.y-EXIT.y)<56){ if(hasKey){ finish(true); return; } else if(!msgSeen.lock){ msgSeen.lock=1; toast('Zamknięte na kłódkę — potrzebny złoty klucz 🔒','#ffe27a'); } } else msgSeen.lock=0;
+  // first meetings: a short explanation the first time a camera or an elf guard is close
+  if(!msgSeen.cam&&CAMS.some(k=>Math.hypot(k.x-P.x,k.y-P.y)<420)){ msgSeen.cam=1; toast('📷 Różowy stożek to pole widzenia kamery — nie wchodź w niego!','#ffd1ec'); }
+  if(!msgSeen.elf&&GUARDS.some(g=>Math.hypot(g.x-P.x,g.y-P.y)<420)){ msgSeen.elf=1; toast('🔦 Żółte światło to latarka elfa. Omijaj je, a w kartonie stój bez ruchu','#ffe27a'); }
   // cameras sweep; once they catch a glimpse they lock on and follow Kaczor, and a full sighting calls the nearest elves over
   CAMS.forEach(k=>{ const s=sees(k); if(s){ k.lock=1.2; const ta=Math.atan2(P.y-k.y,P.x-k.x); k.a+=Math.atan2(Math.sin(ta-k.a),Math.cos(ta-k.a))*Math.min(1,dt*5); k.ph=Math.asin(Math.max(-1,Math.min(1,(k.a-k.a0)/k.sw)))-t0*.9; }
     else if(k.lock>0) k.lock-=dt; else k.a=k.a0+Math.sin(t0*.9+k.ph)*k.sw;

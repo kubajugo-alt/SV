@@ -89,7 +89,7 @@ body.touch .kk.kb,body:not(.touch) .kk.tc{display:none}
       <div class="diffs" id="tDiff"></div>
       <div class="lvls hidden" id="lvls"></div>
       <div id="load"><div id="loadBar"></div><span id="loadTxt">Ładowanie… 0%</span></div>
-      <p class="help">◀ ▶ / A D — bieg · Spacja / ▲ — skok (przytrzymaj w powietrzu: <b>paralotnia</b>) · X / J — uderzenie · C / K — śnieżka<br>Przebij się przez wioskę zbuntowanych elfów, uwolnij lojalne elfy z klatek 🔓 i pokonaj Generała Elfów!</p>
+      <p class="help">◀ ▶ / A D — bieg · Spacja / ▲ — skok (przytrzymaj w powietrzu: <b>paralotnia</b>) · X / J — uderzenie · C / K — śnieżka · Tab — zmiana postaci<br><span id="helpGoal">Przebij się przez wioskę zbuntowanych elfów, uwolnij lojalne elfy z klatek 🔓 i pokonaj Generała Elfów!</span></p>
     </div>
   </div>
 
@@ -282,7 +282,7 @@ function genLevel(D,i){ const r=rng(1234+i*7919), W=D.len, b=build(W), L=b.L, d=
   // nothing hostile right next to a checkpoint
   L.ent=L.ent.filter(e=>!['inez','gay','vac','note'].includes(e.k)||!L.cps.some(c=>Math.abs(c-e.x)<T*4));
   if(ARENA){ L.ent=L.ent.filter(e=>!['inez','gay','vac','note'].includes(e.k)||e.x<(W-66)*T); L.spikes=L.spikes.filter(([a])=>a<(W-66)*T); } // a clean, flat arena for the duel with Kaka
-  if(i===2||i===4){ const f=k=>L.ent.find(e=>e.k===k); hints.push({x:T*2,t:TOUCH?'◀ ▶ bieg · ⤒ skok — przebij się przez wioskę elfów!':'◀ ▶ bieg · Spacja skok — przebij się przez wioskę elfów!'});
+  if(i===2||i===4){ const f=k=>L.ent.find(e=>e.k===k); const goal=/Hala/.test(D.name)?'przebiegnij przez halę do bobsleja!':/Wieża/.test(D.name)?'wespnij się na szczyt wieży luster!':'przebij się przez wioskę elfów!'; hints.push({x:T*2,t:(TOUCH?'◀ ▶ bieg · ⤒ skok — ':'◀ ▶ bieg · Spacja skok — ')+goal});
     [['inez',TOUCH?'Zbuntowany elf! 👊 cios, ❄ śnieżka albo skok na głowę':'Zbuntowany elf! X — cios, C — śnieżka albo skok na głowę'],['cage','Klatka z lojalnym elfem — dotknij jej albo uderz, żeby go uwolnić 🔓'],['vac','Nakręcany żołnierzyk! Wskocz mu na głowę 🪖'],['note','Samoloty-zabawki — strąć je śnieżką ❄']].forEach(([k,t])=>{ const e=f(k); if(e) hints.push({x:e.x-T*9,t}); });
     if(L.cps[0]) hints.push({x:L.cps[0]-T*4,t:'Latarnia na lasce cukrowej to punkt kontrolny ✓'}); hints.sort((a,b)=>a.x-b.x); }
   // Maryańska, Kaczor's hippie mentor, waits by the middle checkpoint (in the last level: right before the sauna)
@@ -391,8 +391,8 @@ function miniBoss(e,dt,punching,hx0,hx1,hy0,hy1){ const C=MB[e.who]; L.boss=e; c
   else if(e.mode==='mirror'){
     // Inez splits into five reflections; the fakes shimmer, the real one does not. Hitting a fake shatters it; hitting the real Inez breaks the spell and leaves her dizzy.
     if(!e.fired){ e.fired=true; const n=5, slots=[]; for(let k=0;k<n;k++) slots.push(e.a-120+(e.b-e.a+120)*k/(n-1)); const real=Math.floor(Math.random()*n);
-      e.clones=slots.map((x,k)=>({x,dir:Math.sign(P.x-x)||-1,ph:Math.random()*6,real:k===real,alive:k!==real,cool:1+Math.random()*1.5})).filter(q=>!q.real); e.broken=[]; e.x=slots[real]; flash=.5; sfx('phone',.5);
-      for(const x of slots) puff(x,gy-120,'#ffd1ec',14); if(!e.toldMirror){ e.toldMirror=1; toast('Inez w lustrach! Prawdziwa stoi przed lustrem 🪞','#ffd1ec'); } if(!cur) play('qb_mirror'); }
+      e.clones=slots.map((x,k)=>({x,dir:Math.sign(P.x-x)||-1,ph:Math.random()*6,real:k===real,alive:k!==real,cool:1+Math.random()*1.5})).filter(q=>!q.real); e.broken=[]; e.realIn=ph===1; e.x=slots[real]; flash=.5; sfx('phone',.5);
+      for(const x of slots) puff(x,gy-120,'#ffd1ec',14); if(!e.toldMirror){ e.toldMirror=1; toast('Inez w lustrach! Prawdziwa stoi przed lustrem 🪞','#ffd1ec'); } if(e.realIn&&!e.toldMirror2){ e.toldMirror2=1; toast('Teraz prawdziwa też jest w lustrze — szukaj tej, która nie migocze! 🪞','#ffd1ec'); } if(!cur) play('qb_mirror'); }
     face(); e.clones.forEach(q=>{ q.dir=Math.sign(P.x-q.x)||-1; q.cool-=dt; if(q.cool<=0&&Math.abs(P.x-q.x)<900){ q.cool=1.8+Math.random()*1.6; for(let k=0;k<2;k++) kisses.push({x:q.x+q.dir*30,y:gy-120-k*40,vx:q.dir*(200+k*40),t:3.5,ph:k}); } });
     const hitQ=q=>{ const top2=gy-185, sb2=snowballs.find(b=>b.t>0&&Math.abs(b.x-q.x)<46&&b.y>top2&&b.y<gy), pun=punching&&q.x>hx0-40&&q.x<hx1+40&&top2<hy1&&gy>hy0, st2=Math.abs(P.x-q.x)<50&&P.vy>0&&P.y+P.h>top2&&P.y+P.h<top2+42; if(sb2) sb2.t=0; if(st2) P.vy=-620; return sb2||pun||st2; };
     e.clones.forEach(q=>{ if(!q.alive||!hitQ(q)) return; q.alive=false; (e.broken=e.broken||[]).push({x:q.x,t:0}); for(let k=0;k<22;k++) parts.push({x:q.x+(Math.random()-.5)*90,y:gy-110-Math.random()*200,vx:(Math.random()-.5)*420,vy:-Math.random()*380,t:.8,col:k%2?'#ffffff':'#bfe6ff',r:2+Math.random()*4}); sfx('splat',.5); shake=.12;
@@ -424,6 +424,7 @@ function drawMiniBoss(e,X){ const C=MB[e.who], fl=e.dir<0, sc=.6, Y=e.y+2;
       c.globalCompositeOperation='lighter'; c.globalAlpha=.22; c.fillStyle='#9fd4ff'; c.fillRect(g.x-g.rx,g.y-g.ry,g.rx*2,g.ry*2);
       c.globalAlpha=.35; c.translate(g.x,g.y); c.rotate(-.5); const sh=((t0*90+q.ph*50)%(g.ry*3))-g.ry*1.5; c.fillStyle='#ffffff'; c.fillRect(-g.rx*2,sh,g.rx*4,9); c.fillRect(-g.rx*2,sh+18,g.rx*4,4); c.restore();
       if(Math.random()<.25) parts.push({x:g.x+cam+(Math.random()-.5)*g.rx*2,y:g.y+(Math.random()-.5)*g.ry*2,vx:0,vy:-30,t:.5,col:'#ffffff',r:1.5+Math.random()*2}); }); }
+  if(e.mode==='mirror'&&e.clones&&e.realIn){ const k=.75, FH=480*k, gx=e.x-cam, gy2=Y-FH+215*k; c.save(); c.beginPath(); c.ellipse(gx,gy2,66*k-3,148*k-3,0,0,Math.PI*2); c.clip(); drawAnim(C.an.mirror[0],gx,gy2+148*k-8,e.t*.5,e.dir<0,null,sc*.9); c.globalCompositeOperation='lighter'; c.globalAlpha=.12; c.fillStyle='#9fd4ff'; c.fillRect(gx-60,gy2-120,120,240); c.restore(); return; }
   if(e.state==='gone'){ c.globalAlpha=Math.max(0,Math.min(1,e.st)); drawAnim(C.an.gone[0],X,Y,t0,false,null,sc); c.globalAlpha=1; return; }
   if(e.mode==='hurt'&&Math.floor(e.mt*16)%2) return;
   if(e.mode==='tired'&&!C.daze[e.tfrom]){ c.save(); c.globalAlpha=.6+.3*Math.sin(t0*8); c.font='800 26px "Baloo 2",sans-serif'; c.textAlign='center'; c.fillText('💫',X,Y-200); c.restore(); }
@@ -958,8 +959,7 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
 
 // ---------- flow ----------
 // between-level story cards, narrated by Jugo (audio/jugo_1..10, jugo_end)
-const JUGO=['Inez zestrzeliła nasze sanie tuż przed wioską elfów. Rudolf odpoczywa, Mikołaj pilnuje prezentów, a Kaczor musi przebić się przez wioskę, uwolnić lojalne elfy i otworzyć bramę warsztatu Mikołaja.','Armatka śnieżna gotowa, ale Inez uciekła przez halę produkcyjną. Kaczor musi przebiec przez fabrykę: sprężyny, liny i taśmociągi. Na końcu czeka bobslej.','Różowy Renifer uciekł, a Inez schowała się w swoim Różowym Pałacu. Kaczor wchodzi sam: lodowe schody, kryształowe żyrandole i sala luster, a na samej górze — Inez i worek prezentów Papiego.'];
-const JUGO_END='I tak Kaczor dotarł do swojej sauny. Kaka? Została z listą zadań. A Kaczor? Kaczor wreszcie odpoczął. Koniec.';
+const JUGO=['Inez zestrzeliła nasze sanie tuż przed wioską elfów. Rudolf odpoczywa, a my we trójkę musimy przebić się przez wioskę, uwolnić lojalne elfy i otworzyć bramę warsztatu Mikołaja.','Armatka śnieżna gotowa, ale Inez uciekła przez halę produkcyjną. Musimy przebiec przez fabrykę: sprężyny, liny i taśmociągi. Na końcu czeka bobslej!','Różowy Renifer uciekł, a Inez schowała się w swoim Różowym Pałacu. Kaczor wchodzi sam: lodowe schody, kryształowe żyrandole i sala luster, a na samej górze — Inez i worek prezentów Papiego.'];
 function allImgs(){ return [...Object.values(IMG),...Object.values(ENV),...Object.values(ANIM).map(a=>a.img).filter(Boolean)]; }
 function warmImages(){ c.save(); c.setTransform(1,0,0,1,0,0); c.globalAlpha=.01; for(const im of allImgs()) if(im.complete&&im.naturalWidth){ try{ c.drawImage(im,0,0,4,4,0,0,1,1); }catch(e){} } c.restore(); }
 function showIntro(i){ setTimeout(warmImages,50); preloadVoices(['kz_hit_any','kz_vac_see1','kz_note_see1','kz_inez_see1','el_free1','el_free2'].concat(i===2?['kz_palace','kz_queen_see','qb_intro','qb_mirror','kz_mirror','qb_phase','qb_end','kz_queen_end','qb_hit1','qb_hit2','qb_hit3']:i===1?['kz_rope','kz_win2','el_end2']:['inezb_intro','inezb_phase','inezb_rain','inezb_end','kz_inezb_end'])); state='intro'; loadLevel(i,i>0); const D=LEVELS[i];  $('#iName').textContent=D.name; $('#iNarr').textContent=JUGO[i]; $('#iTxt').textContent=`Kaczor: „${D.txt}”`; $('#intro').classList.remove('hidden'); if(i<2) play('jugo_'+(i+1)); else play(D.line); }
@@ -1049,8 +1049,8 @@ $('#pMenu').onclick=goMenu; $('#cMenu').onclick=goMenu;
   $('#loadBar').style.width=(f*100).toFixed(0)+'%'; $('#loadTxt').textContent=`Ładowanie… ${(f*100).toFixed(0)}%`;
   if((f>=.98&&animIn)||performance.now()-t1>12000){ $('#load').classList.add('hidden'); $('#play').disabled=false; allImgs().forEach(im=>{ if(im.decode) im.decode().catch(()=>{}); }); setTimeout(warmImages,100); } else setTimeout(tick,150); }; tick(); })();
 loadLevel(qlv===3?2:qlv===2?1:0); // draws behind the title
-if(qlv===3){ document.querySelector('.logo b').textContent='Wieża luster'; document.title='Wieża luster — Świąteczna Przygoda Kaczorów'; $('#title').style.backgroundImage='url(art/bg_palace_in.webp)'; }
-if(qlv===2){ document.querySelector('.logo b').textContent='Hala produkcyjna'; document.title='Hala produkcyjna — Świąteczna Przygoda Kaczorów'; $('#title').style.backgroundImage='url(art/bg_factory.webp)'; }
+if(qlv===3){ document.querySelector('.logo b').textContent='Wieża luster'; document.title='Wieża luster — Świąteczna Przygoda Kaczorów'; $('#title').style.backgroundImage='url(art/bg_palace_in.webp)'; $('#helpGoal').textContent='Wespnij się po lodowych schodach Różowego Pałacu, uwolnij elfy z klatek 🔓 i pokonaj Inez w sali luster!'; }
+if(qlv===2){ document.querySelector('.logo b').textContent='Hala produkcyjna'; document.title='Hala produkcyjna — Świąteczna Przygoda Kaczorów'; $('#title').style.backgroundImage='url(art/bg_factory.webp)'; $('#helpGoal').textContent='Przebiegnij przez halę produkcyjną: sprężyny, liny i taśmociągi — za nią czeka magazyn i bobslej!'; }
 let last=performance.now();
 const WARP=+(qs.get('warp')||1);
 let frEma=16.7, frT=0;
