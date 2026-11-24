@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Magazyn zabawek — Świąteczna Przygoda Kaczorów</title>
-<meta name="description" content="Świąteczna Przygoda Kaczorów: Kaczor skrada się przez magazyn zabawek Inez, omija różowe kamery i elfy-strażników i szuka klucza do bramy z bobslejem.">
+<meta name="description" content="Świąteczna Przygoda Kaczorów: mały Mikołaj skrada się przez magazyn zabawek Inez, omija różowe kamery i elfy-strażników i szuka klucza do bramy z bobslejem.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Lobster&subset=latin-ext&display=swap" rel="stylesheet">
 <style>
@@ -35,8 +35,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
   <canvas id="cv" width="1280" height="720"></canvas>
   <div id="pad" class="hidden"><button id="pU">▲</button><button id="pL">◀</button><button id="pR">▶</button><button id="pD">▼</button></div>
   <a id="back" href="../index.html">← Świąteczna Przygoda Kaczorów</a><button id="mute" title="Dźwięk (M)">🔊</button>
-  <div id="intro" class="ov"><div class="card"><div class="face" style="background-image:url(art/face_kaczor.webp)"></div><h2>Magazyn zabawek</h2>
-    <p>Za halą produkcyjną jest magazyn Inez — a za nim brama, za którą czeka bobslej z armatką śnieżną. Bramę zamyka <b>złoty klucz</b>, ukryty gdzieś między regałami.</p>
+  <div id="intro" class="ov"><div class="card"><div class="face" style="background-image:url(../wioska/art/mik_face.webp)"></div><h2>Magazyn zabawek</h2>
+    <p>Za halą produkcyjną jest magazyn Inez. Kaczor jest za duży, żeby przemknąć między regałami, więc na zwiad idzie <b>mały Mikołaj</b>!</p><p>Za magazynem — a za nim brama, za którą czeka bobslej z armatką śnieżną. Bramę zamyka <b>złoty klucz</b>, ukryty gdzieś między regałami.</p>
     <p>Pilnują go <b>różowe kamery</b> i <b>elfy-strażnicy</b> z latarkami. Nie wchodź w ich światło! Chowaj się za regałami albo w <b>kartonach</b> — stój w kartonie bez ruchu, a nikt cię nie zauważy. Jeśli ktoś cię dostrzeże, wyje syrena i nadlatują zabawkowe samoloty.</p>
     <p class="help">Strzałki / WASD — skradanie · Shift — szybszy krok (ale głośniej) · M — dźwięk</p>
     <button class="btn" id="bGo">Na palcach… 🤫</button></div></div>
@@ -128,15 +128,15 @@ $('bGo').onclick=start;
 function finish(win){ state='end'; for(const k in K) K[k]=false; const row=$('eRow'); row.innerHTML=''; bgm.volume=.12;
   if(win){ $('eH').textContent='Magazyn przejęty! 🔑'; $('eTxt').innerHTML='Brama otwarta — a za nią czeka bobslej z armatką śnieżną. Inez właśnie odpycha się kijkami po lodowym torze!'; sfx('win',.6); setTimeout(()=>kz('win'),700); if(window.RANK) RANK.award('mag',3000+hearts*600-Math.min(1500,Math.round(t0*6)),hearts,$('eTxt'));
     const b=document.createElement('button'); b.className='btn'; b.textContent='Do pościgu ➜'; b.onclick=()=>{ location.href='../bobslej/'; }; row.append(b); }
-  else { $('eH').textContent='Złapany!'; $('eTxt').innerHTML='Elfy Inez wyprowadziły Kaczora z magazynu. Skradaj się wolniej, chowaj się w kartonach i patrz, dokąd świecą latarki.'; }
+  else { $('eH').textContent='Złapany!'; $('eTxt').innerHTML='Elfy Inez wyprowadziły Mikołaja z magazynu. Skradaj się wolniej, chowaj się w kartonach i patrz, dokąd świecą latarki.'; }
   const b2=document.createElement('button'); b2.className='btn'+(win?' alt':''); b2.textContent='Jeszcze raz'; b2.onclick=start; row.append(b2); $('end').classList.remove('hidden'); }
 
 // ---------- simulation ----------
 function moveWithWalls(o,dx,dy,r){ o.x+=dx; if(solidAt(o.x+r*Math.sign(dx||1),o.y-r*.6)||solidAt(o.x+r*Math.sign(dx||1),o.y+r*.6)) o.x-=dx; o.y+=dy; if(solidAt(o.x-r*.6,o.y+r*Math.sign(dy||1))||solidAt(o.x+r*.6,o.y+r*Math.sign(dy||1))) o.y-=dy; }
 function inBox(x,y){ return BOXES.find(b=>Math.abs(b.x-x)<26&&Math.abs(b.y-y)<26); }
-function hurt(why){ if(P.inv>0) return; hearts--; sfx('kz_hurt1',.6); sfx('splat',.4); if(hearts>0) setTimeout(()=>kz('caught'),400); sh=.4; toast(why,'#ffb0b0'); if(hearts<=0){ finish(false); return; } respawn(); }
+function hurt(why){ if(P.inv>0) return; hearts--; sfx('mk_hurt1',.6); sfx('splat',.4); if(hearts>0) setTimeout(()=>kz('caught'),400); sh=.4; toast(why,'#ffb0b0'); if(hearts<=0){ finish(false); return; } respawn(); }
 function sees(w){ if(P.hidden) return 0; const dx=P.x-w.x, dy=P.y-w.y, d=Math.hypot(dx,dy); if(d>w.len) return 0; let da=Math.atan2(dy,dx)-w.a; da=Math.atan2(Math.sin(da),Math.cos(da)); if(Math.abs(da)>w.half) return 0; if(!los(w.x,w.y,P.x,P.y)) return 0; return 1-d/w.len*.6; }
-const ELV=['Hm? Kto tam?','Coś się rusza…','Halo?','Słyszałem coś…','Co to za kroki?','Kto tu tupie?','Tam jest!','Mam cię, Kaczorze!','Stój! Alarm!','Gdzie on się podział?','Zniknął!','Szukać go!','Pewnie mi się zdawało.','Wracam na obchód.','Myszy w magazynie…','Aha! W kartonie!'].concat(['Kamera go widzi! Biegnę!']);
+const ELV=['Hm? Kto tam?','Coś się rusza…','Halo?','Słyszałem coś…','Co to za kroki?','Kto tu tupie?','Tam jest!','Mam cię, maluchu!','Stój! Alarm!','Gdzie on się podział?','Zniknął!','Szukać go!','Pewnie mi się zdawało.','Wracam na obchód.','Myszy w magazynie…','Aha! W kartonie!'].concat(['Kamera go widzi! Biegnę!']);
 let elfVoiceT=0; const KZT={start:1,key:2,box:3,alarm:4,caught:5,win:6}; let kzVoice=null;
 function voiceAt(src,v){ if(muted) return null; const a=new Audio(src); a.volume=Math.max(0,Math.min(1,v)); a.play().catch(()=>{}); return a; }
 function kz(k){ if(kzVoice&&!kzVoice.ended&&k!=='caught'&&k!=='win') return; kzVoice=voiceAt('audio/mz_'+KZT[k]+'.mp3',.9); }
@@ -163,7 +163,7 @@ function update(dt){ t0+=dt; sh=Math.max(0,(sh||0)-dt); P.inv=Math.max(0,P.inv-d
   GUARDS.forEach(g=>{ g.t+=dt; g.cd=(g.cd||0)-dt; g.bt=(g.bt||0)-dt; const s=sees(g), d=Math.hypot(P.x-g.x,P.y-g.y), heard=mv&&d<(K.F?300:110)&&!P.hidden;
     const was=g.sus; g.sus=s?Math.min(1.2,g.sus+dt*(1.6+s)):heard?Math.min(.9,g.sus+dt*(K.F?1.2:.5)):Math.max(0,g.sus-dt*(g.st==='chase'?.15:.35));
     if(s||heard){ g.lx=P.x; g.ly=P.y; }
-    if(s&&g.sus>=1&&g.st!=='chase'){ g.st='chase'; g.lost=0; say(g,['Tam jest!','Mam cię, Kaczorze!','Stój! Alarm!'][Math.floor(Math.random()*3)]); raiseAlarm(); }
+    if(s&&g.sus>=1&&g.st!=='chase'){ g.st='chase'; g.lost=0; say(g,['Tam jest!','Mam cię, maluchu!','Stój! Alarm!'][Math.floor(Math.random()*3)]); raiseAlarm(); }
     else if((s||heard)&&was<.3&&g.sus>=.3&&(!g.st||g.st==='patrol'||g.st==='back')){ g.st='sus'; g.wait=.7; say(g,heard&&!s?['Słyszałem coś…','Co to za kroki?','Kto tu tupie?'][Math.floor(Math.random()*3)]:['Hm? Kto tam?','Coś się rusza…','Halo?'][Math.floor(Math.random()*3)]); beep(520,.12,.04,'triangle'); }
     let spd=110, goal=null;
     if(g.st==='chase'){ spd=190; if(s){ g.lost=0; if(d<380&&g.cd<=0){ g.cd=1.1; const a=Math.atan2(P.y-g.y,P.x-g.x); balls.push({x:g.x,y:g.y-10,vx:Math.cos(a)*430,vy:Math.sin(a)*430,t:1.4}); sfx('throw',.3); } } else g.lost+=dt;
@@ -210,11 +210,11 @@ function draw(){ c.setTransform(1,0,0,1,0,0); c.fillStyle='#000'; c.fillRect(0,0
   GUARDS.forEach(g=>cone(g,g.st==='chase'||g.sus>.4?'rgba(255,60,60,A)':'rgba(255,240,150,A)'));
   // sprites, sorted by y
   const L=[]; BOXES.forEach(b=>L.push({y:b.y+20,f:()=>drawImg(IMG.box,b.x,b.y+26,62)}));
-  GUARDS.forEach(g=>L.push({y:g.y,f:()=>{ if(!(g.mv?drawStrip('elf_walk',g.x,g.y+30,64,g.t*(g.st==='chase'?1.7:1),Math.cos(g.a)<0):false)) drawImg(IMG.elf,g.x,g.y+30,64,Math.cos(g.a)<0); const ic=g.st==='chase'?'!':g.st==='sus'||g.st==='inv'||g.st==='search'||g.sus>.05?'?':''; if(ic) txt(ic,g.x,g.y-58+Math.sin(t0*8)*3,ic==='!'?36:30,ic==='!'?'#ff5050':'#ffe27a','center');
+  GUARDS.forEach(g=>L.push({y:g.y,f:()=>{ if(!(g.mv?drawStrip('elf_walk',g.x,g.y+30,72,g.t*(g.st==='chase'?1.7:1),Math.cos(g.a)<0):false)) drawImg(IMG.elf,g.x,g.y+30,72,Math.cos(g.a)<0); const ic=g.st==='chase'?'!':g.st==='sus'||g.st==='inv'||g.st==='search'||g.sus>.05?'?':''; if(ic) txt(ic,g.x,g.y-58+Math.sin(t0*8)*3,ic==='!'?36:30,ic==='!'?'#ff5050':'#ffe27a','center');
     if(g.say){ c.globalAlpha=Math.min(1,g.say.ttl*3); c.font='800 18px "Baloo 2",sans-serif'; const w=c.measureText(g.say.t).width+20; c.fillStyle='rgba(255,255,255,.92)'; c.beginPath(); c.roundRect(g.x-w/2,g.y-112,w,30,10); c.fill(); c.beginPath(); c.moveTo(g.x-6,g.y-82); c.lineTo(g.x+6,g.y-82); c.lineTo(g.x,g.y-72); c.fill(); c.fillStyle='#5a1a2a'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(g.say.t,g.x,g.y-97); c.globalAlpha=1; } }}));
   balls.forEach(o=>L.push({y:o.y,f:()=>{ c.fillStyle='rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(o.x,o.y+22,8,4,0,0,6.29); c.fill(); c.fillStyle='#fff'; c.beginPath(); c.arc(o.x,o.y,9,0,6.29); c.fill(); c.strokeStyle='#b8d4ee'; c.lineWidth=2; c.stroke(); }}));
   L.push({y:P.y+(P.hidden?40:0),f:()=>{ if(P.hidden){ drawImg(IMG.box,P.x,P.y+26,62); c.fillStyle='#fff'; c.beginPath(); c.arc(P.x-7,P.y-10,4,0,6.29); c.arc(P.x+7,P.y-10,4,0,6.29); c.fill(); c.fillStyle='#222'; c.beginPath(); c.arc(P.x-7+Math.sin(t0*2)*1.5,P.y-10,2,0,6.29); c.arc(P.x+7+Math.sin(t0*2)*1.5,P.y-10,2,0,6.29); c.fill(); return; }
-    if(P.inv>0&&Math.floor(P.inv*10)%2) return; const moving=Math.hypot(P.vx,P.vy)>30; if(!(moving&&drawStrip('kz_walk',P.x,P.y+30,86,P.step/6*(K.F?1.5:1),P.face<0))) drawImg(IMG.kaczor,P.x,P.y+30,86,P.face<0); }});
+    if(P.inv>0&&Math.floor(P.inv*10)%2) return; const moving=Math.hypot(P.vx,P.vy)>30; if(!(moving&&drawStrip('kz_walk',P.x,P.y+30,74,P.step/6*(K.F?1.5:1),P.face<0))) drawImg(IMG.kaczor,P.x,P.y+30,74,P.face<0); }});
   L.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
   CAMS.forEach(k=>{ drawImg(IMG.cam,k.x,k.y+18,40,false,k.a); c.fillStyle=Math.sin(t0*8)>0?'#ff3040':'#801020'; c.beginPath(); c.arc(k.x,k.y-6,4,0,6.29); c.fill(); if(k.sus>.05&&alarm<=0) txt(k.sus>.6?'!':'?',k.x,k.y-40,28,k.sus>.6?'#ff5050':'#ffe27a','center'); });
   planes.forEach(p=>drawImg(IMG.plane,p.x,p.y+20,54,false,p.a));
