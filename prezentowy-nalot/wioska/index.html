@@ -203,7 +203,7 @@ function rng(seed){ return ()=>{ seed=(seed*16807)%2147483647; return seed/21474
 const CH={
   trio:(b,x,h,r,d)=>{
     b.ground(x,x+21,h);
-    const door=b.block('door',Array.from({length:h},(_,y)=>[x+5,y])); b.plat(x,h-5,4); b.lever(x+2,h-5,door); b.mark(x,'Zamknięta brama, a dźwignia wysoko! Kaka zrobi podwójny skok — Tab ⇄');
+    const door=b.block('door',Array.from({length:h},(_,y)=>[x+5,y])); b.plat(x,h-5,4); b.lever(x+2,h-5,door); b.mark(x,'Zamknięta brama, a dźwignia wysoko! Przełącz na Kakę (Tab) i skocz dwa razy w powietrzu ⤒⤒');
     for(let tx=x+9;tx<=x+11;tx++) for(let y=0;y<=h-2;y++) b.L.g[y][tx]='#'; b.mark(x+6,'Mysia dziura! Zmieści się tylko mały Mikołaj — Tab ⇄'); b.v(x+9,h-1,3);
     for(let y=0;y<=h-4;y++) b.L.g[y][x+16]='#'; b.block('ice',[[x+16,h-3],[x+16,h-2],[x+16,h-1]]); b.mark(x+12,'Lodowy mur! Kaczor rozbije go pięścią (X) — Tab ⇄');
     return [x+22,h]; },
@@ -516,7 +516,7 @@ function update(dt){
   // jump: coyote time + buffer + variable height; hold in the air while falling = paraglider
   if(K.WHit) swapChar(); if(P.on) P.dj=true;
   P.coyote=P.on?.1:P.coyote-dt; if(K.JHit){ P.buf=.13; } else P.buf-=dt;
-  if(WHO==='kaka'&&K.JHit&&!P.on&&P.coyote<=0&&P.dj&&!P.rope){ P.dj=false; P.buf=0; P.vy=-780; puff(P.x,P.y+P.h,'rgba(255,255,255,.9)',10); grunt('jump',.4); }
+  if(WHO==='kaka'&&K.JHit&&!P.on&&P.coyote<=0&&P.dj&&!P.rope){ P.dj=false; P.buf=0; P.vy=-940; puff(P.x,P.y+P.h,'rgba(255,255,255,.9)',10); grunt('jump',.4); }
   if(P.buf>0&&P.coyote>0){ P.vy=WHO==='mik'?-720:-830; P.on=false; P.coyote=0; P.buf=0; grunt('jump',.75); P.boosted=false; }
   if(P.vy>=0) P.sprung=false;
   if(!K.J&&P.vy<-300&&!P.sprung) P.vy=-300;
