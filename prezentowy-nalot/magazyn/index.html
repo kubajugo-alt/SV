@@ -42,6 +42,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
     <button class="btn" id="bGo">Na palcach… 🤫</button></div></div>
   <div id="end" class="ov hidden"><div class="card"><h2 id="eH"></h2><p id="eTxt"></p><div class="row" id="eRow"></div></div></div>
 </div>
+<script src="../rank.js"></script>
 <script>
 // =====================================================================================
 //  Magazyn zabawek — a top-down stealth maze: vision cones cast against the shelves,
@@ -122,10 +123,10 @@ addEventListener('keyup',e=>{ const k=MAPK[e.code]; if(k) K[k]=false; });
 if(TOUCH) $('pad').classList.remove('hidden');
 [['pU','U'],['pD','D'],['pL','L'],['pR','R']].forEach(([id,k])=>{ const b=$(id); b.addEventListener('pointerdown',e=>{ e.preventDefault(); K[k]=true; }); ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>K[k]=false)); });
 
-function start(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); }catch(e){} $('intro').classList.add('hidden'); $('end').classList.add('hidden'); resetRun(); state='play'; if(!muted){ bgm.currentTime=0; bgm.play().catch(()=>{}); } toast('Znajdź złoty klucz 🔑 i dojdź do bramy','#ffe27a'); }
+function start(){ t0=0; try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); }catch(e){} $('intro').classList.add('hidden'); $('end').classList.add('hidden'); resetRun(); state='play'; if(!muted){ bgm.currentTime=0; bgm.play().catch(()=>{}); } toast('Znajdź złoty klucz 🔑 i dojdź do bramy','#ffe27a'); }
 $('bGo').onclick=start;
 function finish(win){ state='end'; for(const k in K) K[k]=false; const row=$('eRow'); row.innerHTML=''; bgm.volume=.12;
-  if(win){ $('eH').textContent='Magazyn przejęty! 🔑'; $('eTxt').innerHTML='Brama otwarta — a za nią czeka bobslej z armatką śnieżną. Inez właśnie odpycha się kijkami po lodowym torze!'; sfx('win',.6);
+  if(win){ $('eH').textContent='Magazyn przejęty! 🔑'; $('eTxt').innerHTML='Brama otwarta — a za nią czeka bobslej z armatką śnieżną. Inez właśnie odpycha się kijkami po lodowym torze!'; sfx('win',.6); if(window.RANK) RANK.award('mag',3000+hearts*600-Math.min(1500,Math.round(t0*6)),hearts,$('eTxt'));
     const b=document.createElement('button'); b.className='btn'; b.textContent='Do pościgu ➜'; b.onclick=()=>{ location.href='../bobslej/'; }; row.append(b); }
   else { $('eH').textContent='Złapany!'; $('eTxt').innerHTML='Elfy Inez wyprowadziły Kaczora z magazynu. Skradaj się wolniej, chowaj się w kartonach i patrz, dokąd świecą latarki.'; }
   const b2=document.createElement('button'); b2.className='btn'+(win?' alt':''); b2.textContent='Jeszcze raz'; b2.onclick=start; row.append(b2); $('end').classList.remove('hidden'); }

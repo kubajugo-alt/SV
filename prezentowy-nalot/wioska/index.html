@@ -112,6 +112,7 @@ body.touch .kk.kb,body:not(.touch) .kk.tc{display:none}
   <div id="end" class="ov hidden"><div class="card"><h2>Wioska uwolniona! 🎄</h2><p id="eTxt"></p><div class="tBtns"><button class="btn" id="eCred">Dalej ➜</button> <button class="btn alt" id="eAgain">Zagraj jeszcze raz</button></div></div></div>
 </div>
 </div>
+<script src="../rank.js"></script>
 <script>
 // ---------- phone held upright: turn the whole game sideways (same trick as the main game) ----------
 (function(){ const root=document.documentElement, coarse=matchMedia('(pointer:coarse)');
@@ -1003,7 +1004,7 @@ function levelStars(){ const st=1+(L.vTot&&lvlV>=L.vTot*.7?1:0)+(L.gold?1:0); if
 function starLine(st){ return `${'★'.repeat(st)}${'☆'.repeat(3-st)}  ·  laski ${lvlV}/${L.vTot||0}${L.gold?' · złota gwiazda ✨':''}`; }
 function saveGame(){ try{ localStorage.setItem('kz-save',JSON.stringify({lvl,cp,vihta,lvlV})); }catch(e){} }
 function loadSave(){ try{ return JSON.parse(localStorage.getItem('kz-save')||'null'); }catch(e){ return null; } }
-function nextAfterSauna(){ hideGameButtons(); try{ localStorage.removeItem('kz-save'); }catch(e){} const st=levelStars();
+function nextAfterSauna(){ hideGameButtons(); try{ localStorage.removeItem('kz-save'); }catch(e){} const st=levelStars(); setTimeout(()=>{ if(window.RANK) RANK.award('w'+(lvl+1),1500+freed*150+lvlV*25+st*500,st,$('#eTxt')); },0);
   if(lvl+1>best){ best=lvl+1; try{ localStorage.setItem('kz-level',best); }catch(e){} }
   { $('#end').classList.remove('hidden'); const FAC=lvl===1, PAL=lvl===2; document.querySelector('#end h2').textContent=PAL?'Wieża zdobyta! 🏰':FAC?'Hala przebiegnięta! 🛷':'Wioska uwolniona! 🎄'; try{ if(PAL&&(+localStorage.getItem('pn-level')||1)<10) localStorage.setItem('pn-level',10); }catch(e){} $('#eTxt').innerHTML=`<b style="font-size:1.4em;color:#d9a400">${starLine(st)}</b><br>Uwolnione elfy: <b>${freed} / ${L.cages||0}</b>. `+(PAL?'Lustra rozbite! Inez ledwo łapie oddech i zaprasza Kaczora do sali tronowej. Worek prezentów Papiego leży tuż obok jej tronu…':FAC?'Kaczor wybiegł z hali — przed nim magazyn zabawek pełen kamer i elfów-strażników Inez, a za jego bramą czeka bobslej z armatką śnieżną!':'Generał Elfów się poddał, a brama warsztatu Mikołaja stoi otworem. Ale Inez wciąż rządzi na biegunie…'); try{ localStorage.setItem('pn-wioska','1'); const nl=PAL?10:FAC?7:5; if((+localStorage.getItem('pn-level')||1)<nl) localStorage.setItem('pn-level',nl); }catch(e){} $('#end').style.backgroundImage=PAL?'url(art/bg_palace_in.webp)':''; if(PAL) return; play(FAC?'kz_win2':'kz_win',()=>setTimeout(()=>{ if(!$('#end').classList.contains('hidden')) play(FAC?'el_end2':'el_end'); },300)); } }
 // retry from the last checkpoint: the level stays as it is, Kaczor gets full hearts; in the duel Kaka starts over at full strength
@@ -1022,7 +1023,7 @@ const qs=new URLSearchParams(location.search), qlv=+qs.get('level');
 const SAVE=loadSave(); let resume=null;
 if(SAVE&&SAVE.cp&&!qlv&&!qs.has('boss')&&!qs.has('ending')){ $('#play').textContent=`Graj dalej — poziom ${SAVE.lvl+1}, punkt kontrolny ▶`; $('#fresh').classList.remove('hidden'); }
 else if(false){ $('#play').textContent=`Graj dalej — poziom ${best+1} ▶`; $('#fresh').classList.remove('hidden'); }
-const QBOSS=qs.has('boss')||qs.has('ending'), QEND=qs.has('ending'), QBL=0; // ?ending: Kaka already beaten, straight to the finale // ?boss: jump straight to the final duel with Kaka
+const QBOSS=qs.has('boss')||qs.has('ending'), QEND=qs.has('ending'), QBL=qlv?Math.min(qlv,LEVELS.length)-1:0; // ?level=N&boss: straight to that level's boss // ?ending: Kaka already beaten, straight to the finale // ?boss: jump straight to the final duel with Kaka
 $('#play').onclick=()=>{ if(SAVE&&SAVE.cp&&!qlv&&!QBOSS){ resume=SAVE; start(SAVE.lvl); vihta=SAVE.vihta||0; return; } start(QBOSS?(QEND?LEVELS.length-1:QBL):qlv?Math.min(qlv,LEVELS.length)-1:(0)); };
 $('#fresh').onclick=()=>{ try{ localStorage.removeItem('kz-save'); }catch(e){} resume=null; start(0); };
 function renderLevels(){ $('#lvls').innerHTML=''; LEVELS.forEach((D,i)=>{ const bt=document.createElement('button'); const st=STARS[i]||0; bt.textContent=`${i+1}. ${D.name}${st?' '+'★'.repeat(st):''}`; bt.disabled=i>Math.min(best,LEVELS.length-1); bt.onclick=()=>start(i); $('#lvls').append(bt); }); }

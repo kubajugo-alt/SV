@@ -49,7 +49,7 @@ body.touch.playing #touch{ display:flex; }
   <div id="title" class="ov">
     <div class="logo"><small>Świąteczna trylogia · część 3</small><b>Świąteczna Przygoda Kaczorów</b></div>
     <div>
-      <button class="btn" id="bPlay" disabled>Ładowanie…</button> <button class="btn alt" id="bLvl2" style="display:none">Poziom 2: Las ▶</button> <button class="btn alt" id="bLvl3" style="display:none">Poziom 3: Biegun ▶</button> <button class="btn alt" id="bVil" style="display:none">Wioska elfów ▶</button> <button class="btn alt" id="bFab" style="display:none">Fabryka zabawek ▶</button> <button class="btn alt" id="bHall" style="display:none">Hala produkcyjna ▶</button> <button class="btn alt" id="bMag" style="display:none">Magazyn ▶</button> <button class="btn alt" id="bBob" style="display:none">Pościg ▶</button> <button class="btn alt" id="bPal" style="display:none">Poziom 4: Pałac ▶</button> <button class="btn alt" id="bTower" style="display:none">Wieża luster ▶</button> <button class="btn alt" id="bThrone" style="display:none">Sala tronowa ▶</button>
+      <button class="btn" id="bPlay" disabled>Ładowanie…</button> <button class="btn alt" id="bRank">🏆 Ranking</button> <button class="btn alt" id="bLvl2" style="display:none">Poziom 2: Las ▶</button> <button class="btn alt" id="bLvl3" style="display:none">Poziom 3: Biegun ▶</button> <button class="btn alt" id="bVil" style="display:none">Wioska elfów ▶</button> <button class="btn alt" id="bFab" style="display:none">Fabryka zabawek ▶</button> <button class="btn alt" id="bHall" style="display:none">Hala produkcyjna ▶</button> <button class="btn alt" id="bMag" style="display:none">Magazyn ▶</button> <button class="btn alt" id="bBob" style="display:none">Pościg ▶</button> <button class="btn alt" id="bPal" style="display:none">Poziom 4: Pałac ▶</button> <button class="btn alt" id="bTower" style="display:none">Wieża luster ▶</button> <button class="btn alt" id="bThrone" style="display:none">Sala tronowa ▶</button>
       <p class="help" id="helpTouch" style="display:none">Przesuwaj palcem po ekranie, żeby sterować saniami · ❄ śnieżka Kaczora · 🎁 prezent od Mikołaja · 🦌 fala światła z nosa Rudolfa (czyści niebo)<br>Zrzucaj prezenty, gdy komin świeci na złoto, i nie daj się zatrzymać krukom, goblinom Grincha i elfom Inez!</p>
       <p class="help" id="helpKeys">◀ ▶ ▲ ▼ / WASD — lot sań · <b>Spacja</b> / J — śnieżka Kaczora · <b>X</b> / K — prezent od Mikołaja · <b>C</b> / L — fala światła z nosa Rudolfa (czyści niebo, 2 na poziom)<br>Zrzucaj prezenty prosto do kominów i nie daj się zatrzymać krukom, goblinom Grincha i elfom Inez! · P — pauza · M — dźwięk</p>
     </div>
@@ -76,6 +76,7 @@ body.touch.playing #touch{ display:flex; }
   <div id="win" class="ov dim hidden"><div class="card"><h2>Poziom 1 ukończony!</h2><div class="stars" id="wStars"></div><p id="wTxt"></p><p id="wNext"></p><div class="row"><button class="btn" id="bNext">Dalej ➜</button><button class="btn alt" id="bAgain">Zagraj jeszcze raz</button><button class="btn alt" id="bMenu3">Menu</button></div></div></div>
 </div>
 
+<script src="rank.js"></script>
 <script>
 // ---------- stage, scaling ----------
 const VW=1280, VH=720, GROUND=700;
@@ -654,7 +655,7 @@ function gameClick(x,y){ const g=G; if(g.won) return;
         else { g.msg='Nie ta kolejność — Maryańska pokaże jeszcze raz'; blip(200,120,.2,.05,'square'); g.strung.splice(g.strung.length-g.input.length,g.input.length); g.input=[]; g.phase='wait'; setTimeout(()=>{ if(G===g){ g.phase='show'; g.t=-.4; } },700); } return; } } return; }
   if(g.id==='gt'){ const lane=x<580?0:x<700?1:2; if(y>200) strum(lane); } }
 function updateTent(dt){ t0+=dt; TENT.t+=dt; if(sub&&!voice){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; }
-  if(!G){ if(!TENT.end&&TENT.done.ck&&TENT.done.dc&&TENT.done.gt&&!voice){ TENT.end=true; say('mar_all',()=>setTimeout(leaveTent,600),true); $('bSkip').textContent='Lecimy dalej ✨'; } return; }
+  if(!G){ if(!TENT.end&&TENT.done.ck&&TENT.done.dc&&TENT.done.gt&&!voice){ TENT.end=true; if(window.RANK) RANK.award('tent',1500,3); say('mar_all',()=>setTimeout(leaveTent,600),true); $('bSkip').textContent='Lecimy dalej ✨'; } return; }
   const g=G; if(g.won!=null){ g.won-=dt; if(g.won<=0){ G=null; } return; } g.t+=dt;
   if(g.id==='ck'&&g.stage==='bake'&&!g.lock){ g.needle+=g.dir*g.speed*dt; if(g.needle>1){ g.needle=1; g.dir=-1; } if(g.needle<0){ g.needle=0; g.dir=1; } }
   if(g.id==='dc'&&g.phase==='show'){ const step=.75, i=Math.floor(g.t/step); if(g.t>=0&&i<g.seq.length&&Math.floor((g.t-dt)/step)!==i) blip(500+g.seq[i]*80,700+g.seq[i]*80,.12,.05,'sine'); if(i>=g.seq.length){ g.phase='input'; g.msg='Twoja kolej! Kliknij w tej samej kolejności ('+g.seq.length+')'; } }
@@ -839,7 +840,7 @@ function cotGameClick(x,y){ const g=CG; if(g.won!=null) return;
   if(g.id==='fd'){ if(y<580&&y>200) throwFood(x,y); return; }
   if(g.id==='dn'){ ARR.forEach((a,i)=>{ if(Math.hypot(x-a.x,y-a.y)<52) danceKey(i); }); } }
 function updateCot(dt){ t0+=dt; COT.t+=dt; if(sub&&!voice){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } if(COT.fin) return;
-  if(!CG){ if(!COT.end&&COT.done.kc&&COT.done.fd&&COT.done.dn&&!voice){ COT.end=true; COT.story=true; $('bSkip').textContent='Lecimy na biegun ✨';
+  if(!CG){ if(!COT.end&&COT.done.kc&&COT.done.fd&&COT.done.dn&&!voice){ COT.end=true; if(window.RANK) RANK.award('cot',1500,3); COT.story=true; $('bSkip').textContent='Lecimy na biegun ✨';
       const chain=['nk_why','santa_s1','santa_s2','nz_inez2','nk_ravens','santa_s3','gz_wink','nk_hey','santa_s4','nm_pole','jugo_bye']; const next=i=>{ if(state!=='cot'||COT.fin) return; if(i>=chain.length){ setTimeout(leaveCot,700); return; } say(chain[i],()=>setTimeout(()=>next(i+1),250),true); }; next(0); } return; }
   const g=CG; if(g.won!=null){ g.won-=dt; if(g.id==='kc') kcUpdate(g,dt); if(g.won<=0) CG=null; return; }
   if(g.id==='kc'){ g.t+=dt; kcUpdate(g,dt); } if(g.id==='fd') fdUpdate(g,dt); if(g.id==='dn') dnUpdate(g,dt); }
@@ -942,7 +943,7 @@ function fabGameClick(x,y){ const G=FG; if(G.won!=null) return;
     for(let k=0;k<4;k++){ const sx=520+k*60; if(Math.hypot(x-sx,y-505)<24&&k<G.cur.length){ G.cur.splice(k,1); } }
     if(G.cur.length===4&&x>780&&x<900&&y>486&&y<524) codeCheck(G); } }
 function updateFab(dt){ t0+=dt; FAB.t+=dt; if(sub&&!voice){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } if(FAB.fin) return;
-  if(!FG){ if(!FAB.end&&FAB.done.p1&&FAB.done.p2&&FAB.done.p3&&!voice){ FAB.end=true; FAB.build=0; sfx('win',.6); $('bSkip').textContent='Do hali produkcyjnej ▶';
+  if(!FG){ if(!FAB.end&&FAB.done.p1&&FAB.done.p2&&FAB.done.p3&&!voice){ FAB.end=true; if(window.RANK) RANK.award('fab',1500,3); FAB.build=0; sfx('win',.6); $('bSkip').textContent='Do hali produkcyjnej ▶';
       say('mar_cannon',()=>setTimeout(()=>say('nz_cannon',()=>setTimeout(leaveFab,900)),300),true); }
     if(FAB.end) FAB.build+=dt; return; }
   const G=FG; if(G.won!=null){ G.won-=dt; if(G.won<=0) FG=null; } }
@@ -989,10 +990,10 @@ function drawFabGame(){ const G=FG; c.fillStyle='rgba(10,6,4,.5)'; c.fillRect(0,
     txt(`Próby: ${G.hist.length} / ${G.max}`,300,505,18,'#ffe27a','left'); } }
 // ---------- flow ----------
 function showIntro(i){ lvl=i; L=LEVELS[i]; reset(); $('iTitle').textContent=`Poziom ${i+1}: ${L.name}`; $('iText').innerHTML=L.intro; ['title','win','over','pause'].forEach(id=>$(id).classList.add('hidden')); $('intro').classList.remove('hidden'); state='intro'; if(i>0) setMusic(L.music); }
-function startLevel(){ document.body.classList.add('playing'); reset(); state='play'; ['intro','over','win','pause','title'].forEach(id=>$(id).classList.add('hidden')); setMusic(L.music); bgm.volume=bgmVol; last=performance.now(); sleighBells(); if((QDEER&&lvl===3)||JUMPBOSS===lvl){ const cp=JUMPBOSS===lvl?BOSSCP:null; JUMPBOSS=-1; lvlT=(L.len||LEVEL_LEN)+5; waveIdx=L.waves.length; foes=[]; if(cp){ delivered=cp.delivered; houseCount=cp.houseCount; score=cp.score; P.shield=4; } return; } const st=L.start; if(st) say(st[0],()=>setTimeout(()=>{ if(st[1]&&state==='play') say(st[1]); },200),true); }
+function startLevel(){ document.body.classList.add('playing'); reset(); state='play'; ['intro','over','win','pause','title'].forEach(id=>$(id).classList.add('hidden')); setMusic(L.music); bgm.volume=bgmVol; last=performance.now(); sleighBells(); if((QDEER&&lvl===3)||(QBOSSL&&lvl===QBOSSL-1)||JUMPBOSS===lvl){ const cp=JUMPBOSS===lvl?BOSSCP:null; JUMPBOSS=-1; lvlT=(L.len||LEVEL_LEN)+5; waveIdx=L.waves.length; foes=[]; if(cp){ delivered=cp.delivered; houseCount=cp.houseCount; score=cp.score; P.shield=4; } return; } const st=L.start; if(st) say(st[0],()=>setTimeout(()=>{ if(st[1]&&state==='play') say(st[1]); },200),true); }
 function gameOver(){ state='over'; const atBoss=BOSSCP&&BOSSCP.lvl===lvl; $('bRetry').textContent=atBoss?'Od początku walki z bossem ↺':'Jeszcze raz'; $('oTxt').textContent=(L.over||'')+(atBoss?' Zaczniecie od razu od walki — z pełnymi serduszkami.':''); $('over').classList.remove('hidden'); if(voice){ voice.pause(); voice=null; } bgm.volume=bgmVol*.5; }
 function levelDone(){ state='win'; const pct=delivered/Math.max(1,houseCount), st=1+(pct>=.5?1:0)+(pct>=.75?1:0); $('wStars').textContent='★'.repeat(st)+'☆'.repeat(3-st);
-  $('wTxt').innerHTML=`${L.got||'Prezenty w kominach'}: <b>${delivered} / ${houseCount}</b> · Punkty: <b>${score}</b><br>${L.winTxt}`;
+  $('wTxt').innerHTML=`${L.got||'Prezenty w kominach'}: <b>${delivered} / ${houseCount}</b> · Punkty: <b>${score}</b><br>${L.winTxt}`; if(window.RANK) RANK.award('l'+(lvl+1),score+st*500,st,$('wTxt'));
   document.querySelector('#win h2').textContent=`Poziom ${lvl+1} ukończony!`; $('wNext').innerHTML=L.next; $('bNext').style.display=lvl<=3?'':'none';
   try{ const best=+localStorage.getItem('pn-best'+(lvl+1))||0; if(score>best) localStorage.setItem('pn-best'+(lvl+1),score); if((+localStorage.getItem('pn-level')||1)<lvl+2) localStorage.setItem('pn-level',lvl+2); }catch(e){} showLvlBtn();
   $('win').classList.remove('hidden'); sfx('win',.6); if(L.win.length) say(L.win[0],()=>{ if(L.win[1]) setTimeout(()=>say(L.win[1]),300); },true); }
@@ -1004,9 +1005,9 @@ function setMute(m){ muted=m; try{ localStorage.setItem('pn-mute',m?'1':'0'); }c
 $('bPlay').onclick=()=>{ ac(); startCut('home'); };
 const QS0=new URLSearchParams(location.search);
 // test links: ?tent opens Maryańska's tent, ?cut the landing cutscene (the button gives the browser the click it needs for sound)
-const QS=new URLSearchParams(location.search); const QTENT=QS.has('tent'), QCUT=QS.has('cut'), QCOT=QS.has('cottage'), QVIL=QS.has('village'), QPOLE=QS.has('pole'), QFAB=QS.has('fab'), QHOME=QS.has('home'), QWAKE=QS.has('wake'), QTHRONE=QS.has('throne'), QFIN=QS.has('finale'), QDEER=QS.has('deer');
-if(QTENT||QCUT||QCOT||QVIL||QPOLE||QFAB||QWAKE||QTHRONE||QFIN||QDEER){ $('bPlay').onclick=()=>{ ac(); if(QDEER){ showIntro(3); return; } QTENT?startTent():QCOT?startCot():QVIL?startCut('jugo'):QPOLE?startCut('finale'):QFAB?startFab():QWAKE?startCut('wake'):QTHRONE?startCut('throne'):QFIN?startCut('finale'):startCut(); }; }
-$('bLvl2').onclick=()=>{ ac(); showIntro(1); }; $('bLvl3').onclick=()=>{ ac(); showIntro(2); }; $('bVil').onclick=()=>{ location.href='wioska/'; }; $('bFab').onclick=()=>{ ac(); startFab(); }; $('bHall').onclick=()=>{ location.href='wioska/?level=2'; }; $('bBob').onclick=()=>{ location.href='bobslej/'; }; $('bMag').onclick=()=>{ location.href='magazyn/'; }; $('bPal').onclick=()=>{ ac(); showIntro(3); }; $('bTower').onclick=()=>{ location.href='wioska/?level=3'; }; $('bThrone').onclick=()=>{ ac(); startCut('throne'); };
+const QS=new URLSearchParams(location.search); const QTENT=QS.has('tent'), QCUT=QS.has('cut'), QCOT=QS.has('cottage'), QVIL=QS.has('village'), QPOLE=QS.has('pole'), QFAB=QS.has('fab'), QHOME=QS.has('home'), QWAKE=QS.has('wake'), QTHRONE=QS.has('throne'), QFIN=QS.has('finale'), QDEER=QS.has('deer'), QBOSSL=Math.max(0,Math.min(4,+QS.get('boss')||0)), QPLAY=Math.max(0,Math.min(4,+QS.get('play')||0)); // ?play=1..4: start that shoot 'em up level // ?boss=1..4: straight to that shoot 'em up level's boss
+if(QTENT||QCUT||QCOT||QVIL||QPOLE||QFAB||QWAKE||QTHRONE||QFIN||QDEER||QBOSSL||QPLAY){ $('bPlay').onclick=()=>{ ac(); if(QPLAY){ showIntro(QPLAY-1); return; } if(QDEER||QBOSSL){ showIntro(QBOSSL?QBOSSL-1:3); return; } QTENT?startTent():QCOT?startCot():QVIL?startCut('jugo'):QPOLE?startCut('finale'):QFAB?startFab():QWAKE?startCut('wake'):QTHRONE?startCut('throne'):QFIN?startCut('finale'):startCut(); }; }
+$('bRank').onclick=()=>RANK.show(); $('bLvl2').onclick=()=>{ ac(); showIntro(1); }; $('bLvl3').onclick=()=>{ ac(); showIntro(2); }; $('bVil').onclick=()=>{ location.href='wioska/'; }; $('bFab').onclick=()=>{ ac(); startFab(); }; $('bHall').onclick=()=>{ location.href='wioska/?level=2'; }; $('bBob').onclick=()=>{ location.href='bobslej/'; }; $('bMag').onclick=()=>{ location.href='magazyn/'; }; $('bPal').onclick=()=>{ ac(); showIntro(3); }; $('bTower').onclick=()=>{ location.href='wioska/?level=3'; }; $('bThrone').onclick=()=>{ ac(); startCut('throne'); };
 $('bNext').onclick=()=>{ ac(); if(lvl===2){ location.href='wioska/'; return; } if(lvl===3){ try{ if((+localStorage.getItem('pn-level')||1)<9) localStorage.setItem('pn-level',9); }catch(e){} location.href='wioska/?level=3'; return; } startCut(['mar','jugo'][lvl]); }; showLvlBtn();
 $('bGo').onclick=()=>{ BOSSCP=null; startLevel(); }; $('bRetry').onclick=()=>{ if(BOSSCP&&BOSSCP.lvl===lvl) JUMPBOSS=lvl; else BOSSCP=null; startLevel(); }; $('bAgain').onclick=startLevel; $('bRestart').onclick=startLevel;
 $('bResume').onclick=resumeGame; ['bMenu','bMenu2','bMenu3','bMenu4','bMenu5','bMenu6'].forEach(id=>$(id).onclick=toMenu); $('bVilAgain').onclick=()=>{ location.href='wioska/'; };
@@ -1039,7 +1040,7 @@ function loop(now){ if(now-last<14){ requestAnimationFrame(loop); return; } frEm
   else if(state==='fab') updateFab(dt);
   else if(state==='win'||state==='over'){ t0+=dt; parts.forEach(p=>{ p.t-=dt; }); }
   if(state==='cut') drawCut(); else if(state==='tent') drawTent(); else if(state==='cot') drawCot(); else if(state==='fab') drawFab(); else if(P) draw(); drawControls(); requestAnimationFrame(loop); }
-ready.then(()=>Promise.all(['bg_night','sleigh','house1','plane_inez'].map(n=>IMG[n].decode?IMG[n].decode().catch(()=>{}):0))).then(()=>{ reset(); $('bPlay').disabled=false; $('bPlay').textContent=QTENT?'Do namiotu Maryańskiej ▶':QCUT?'Lądowanie u Maryańskiej ▶':QCOT?'Do chatki Jugo ▶':QVIL?'Lądowanie u Jugo ▶':QPOLE?'Finał ▶':QFAB?'Do fabryki zabawek ▶':QWAKE?'Przebudzenie ▶':QTHRONE?'Sala tronowa ▶':QFIN?'Finał ▶':QDEER?'Walka z Inez na reniferze ▶':'Graj ▶'; requestAnimationFrame(loop); });
+ready.then(()=>Promise.all(['bg_night','sleigh','house1','plane_inez'].map(n=>IMG[n].decode?IMG[n].decode().catch(()=>{}):0))).then(()=>{ reset(); $('bPlay').disabled=false; $('bPlay').textContent=QTENT?'Do namiotu Maryańskiej ▶':QCUT?'Lądowanie u Maryańskiej ▶':QCOT?'Do chatki Jugo ▶':QVIL?'Lądowanie u Jugo ▶':QPOLE?'Finał ▶':QFAB?'Do fabryki zabawek ▶':QWAKE?'Przebudzenie ▶':QTHRONE?'Sala tronowa ▶':QFIN?'Finał ▶':QDEER?'Walka z Inez na reniferze ▶':QPLAY?`Poziom ${QPLAY}: ${LEVELS[QPLAY-1].name} ▶`:QBOSSL?['Walka z Wielkim Krukiem ▶','Walka z Grinchem ▶','Inez nad biegunem ▶','Walka z Inez na reniferze ▶'][QBOSSL-1]:'Graj ▶'; requestAnimationFrame(loop); });
 </script>
 </body>
 </html>
