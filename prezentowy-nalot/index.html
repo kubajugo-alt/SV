@@ -481,7 +481,7 @@ function drawThrone(){ const H=CUT, bg=IMG.throne; if(ok(bg)){ const sc=Math.max
   if(H.ask&&!sub) txt('Co wybiera Kaczor?',VW/2,VH-150,30,'#ffe27a','center');
   txt('Sala tronowa Inez',VW/2,40,30,'#ffcfe8','center'); drawSub(); }
 // ---------- the finale: Papi comes back for his sack, crowns Kaka, hands the sleigh to little Mikołaj and takes Kaczor to the sauna ----------
-const FIN=[{bg:'throne',lines:['fp_papi1','fp_papi2'],title:'Sala tronowa'},{bg:'fin_throne',lines:['fp_kaka1'],title:'Królowa Świata'},{bg:'fin_santa',lines:['fp_papi3','fp_mik1'],title:'Nowy Święty Mikołaj'},{bg:'fin_sauna',lines:['fp_papi4','fp_kz1','fp_kaka2'],title:'Do sauny!'}];
+const FIN=[{bg:'throne',lines:['fp_papi1','fp_papi2'],title:'Sala tronowa'},{bg:'fin_throne',lines:['fp_kaka1'],title:'Królowa Świata'},{bg:'fin_santa',lines:['fp_papi3','fp_mik1'],title:'Nowy Święty Mikołaj'},{bg:'fin_sauna',lines:['fp_papi4','fp_kz1','fp_kaka2'],title:'W saunie'}];
 function updateFinale(dt){ const H=CUT; if(H.panel==null){ H.panel=0; H.pt=0; } H.pt+=dt;
   if(!H.said&&H.t>1.2){ H.said=true; const play=i=>{ if(state!=='cut'||CUT.kind!=='finale'||H.done) return; if(i>=FIN.length){ setTimeout(endCut,1200); return; } H.panel=i; H.pt=0; if(i===2) jingle(.06);
       throneChainAny(0,FIN[i].lines,()=>setTimeout(()=>play(i+1),700)); }; play(0); } }
