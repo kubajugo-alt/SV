@@ -92,7 +92,7 @@ const ART=['house5','house6','house7','house8','lodge2','lodge3','lodge4','ws4',
 ART.forEach(img);
 let ANIM={}, HOUSES={}, TREES={};
 const ready=Promise.all([fetch('art/anim/anim.json').then(r=>r.json()).then(j=>{ ANIM=j; for(const k in j) ANIM[k].img=img('anim/'+k); }).catch(()=>{}),
-  fetch('art/houses.json').then(r=>r.json()).then(j=>{ HOUSES=j; }), fetch('art/trees.json').then(r=>r.json()).then(j=>{ TREES=j; })]);
+  fetch('art/houses.json').then(r=>r.json()).then(j=>{ HOUSES=j; }), fetch('art/lips.json').then(r=>r.json()).then(j=>{ LIPS=j; }).catch(()=>{}), fetch('art/trees.json').then(r=>r.json()).then(j=>{ TREES=j; })]);
 const ok=i=>i&&i.complete&&i.naturalWidth;
 function drawImg(n,x,y,w,rot,alpha){ const i=IMG[n]; if(!ok(i)) return; const h=w*i.naturalHeight/i.naturalWidth; c.save(); c.translate(x,y); if(rot) c.rotate(rot); if(alpha!=null) c.globalAlpha*=alpha; c.drawImage(i,-w/2,-h/2,w,h); c.restore(); }
 // animated strip (falls back to the still image); w = drawn width of the subject
@@ -147,7 +147,7 @@ const SUBS={fp_papi1:['Papi','Ho ho ho! Rodzinko, uratowaliście święta! Mój 
   ni3_cameo:['Inez','Kaczorku, na mój biegun nie wlecisz! Moje elfy już na was czekają. Pa, pa!'],nz_crash:['Kaczor','Trafiła nas! Trzymajcie się, lądujemy awaryjnie!'],nk_crash:['Kaka','Wszyscy cali? To teraz pieszo, przez wioskę elfów!']};
 const WHO_COL={Kaka:'#ffd1dc',Kaczor:'#cfe6ff',Mikołaj:'#fff1a8',Inez:'#ff9ccf',Maryańska:'#ffcf8a',Goblin:'#b6f08a',Grinch:'#b6f08a',Bóbr:'#e8c49a',Borsuk:'#e0e0e0',Jugo:'#9fe6c8',Gayzilla:'#e0b0ff',Papi:'#ff9a8a','Wielki Kruk':'#c8b6ff',Elf:'#b6f08a','Zbuntowany elf':'#ff9ccf'};
 let voice=null, sub=null;
-function say(key,onend,force){ if(voice&&!force){ if(onend) onend(); return false; } if(voice){ voice.onended=null; voice.pause(); }
+function say(key,onend,force){ if(voice&&!force){ if(onend) onend(); return false; } if(voice){ voice.onended=null; voice.pause(); } sayKey=key; sayT0=performance.now();
   sub={who:SUBS[key][0],t:SUBS[key][1],ttl:4}; if(muted){ voice=null; setTimeout(()=>{ if(onend) onend(); },1200); return true; }
   const a=aud(key); try{ a.currentTime=0; }catch(e){} a.volume=1; voice=a; bgm.volume=bgmVol*.35;
   const done=()=>{ if(voice===a){ voice=null; bgm.volume=bgmVol; sub&&(sub.ttl=Math.min(sub.ttl,.6)); } if(onend) onend(); };
@@ -663,8 +663,32 @@ function beadAt(b,x,y,r){ if(b.img) drawImg(b.img,x,y,r*2.2); else { c.fillStyle
 // ---------- Jugo's gingerbread cottage: Gayzilla cooks, Papi (Santa) is spoiled rotten, three mini-games ----------
 let COT=null, CG=null; const CKEY={};
 const COT_HOT={kc:{x:205,y:330,w:265,h:250,label:'🧪 Kociołek Gayzilli',voice:'gz_g1',done:'gz_g1done'},dn:{x:560,y:58,w:160,h:200,label:'🪩 Taniec z Papim',voice:'gz_g3',done:'santa_g3done'},fd:{x:880,y:300,w:400,h:420,label:'🥟 Karmienie Papiego',voice:'jugo_g2',done:'santa_g2done'}};
-function drawStand(n,x,yF,h,talk,flip,rot){ const i=IMG[n]; if(!ok(i)) return; const w=h*i.naturalWidth/i.naturalHeight, s=talk?.03*Math.sin(t0*13):.012*Math.sin(t0*2.2+x);
-  c.save(); c.translate(x,yF); if(rot) c.rotate(rot); c.scale((flip?-1:1)*(1-s*.5),1+s); c.drawImage(i,-w/2,-h,w,h); c.restore(); }
+function drawStand(n,x,yF,h,talk,flip,rot){ const i=IMG[n]; if(!ok(i)) return; const w=h*i.naturalWidth/i.naturalHeight, s=.012*Math.sin(t0*2.2+x);
+  c.save(); c.translate(x,yF); if(rot) c.rotate(rot); c.scale((flip?-1:1)*(1-s*.5),1+s); c.drawImage(i,-w/2,-h,w,h); if(talk) drawMouth(n,i,w,h); c.restore(); }
+// ---------- lip sync: Rhubarb mouth cues (art/lips.json, one list of [time, shape] per voice line) drive a painted mouth blended onto the sprite's face ----------
+let LIPS={}, sayKey=null, sayT0=0;
+const MOUTH={inez_stand:{x:169,y:108,w:16,lip:'#d65a78',skin:'rgb(238,184,150)'},santa_stand:{x:146,y:98,w:25,lip:'#b8665c',skin:'rgb(236,230,224)'},jugo:{x:100,y:102,w:22,lip:'#b06a58',skin:'rgb(205,146,104)'},gay_cook:{x:116,y:80,w:22,lip:'#b8705e',skin:'rgb(214,156,120)'},santa:{x:274,y:118,w:30,lip:'#b8665c',skin:'rgb(238,228,216)'}};
+function viseme(){ const cues=LIPS[sayKey]; if(voice&&cues){ const t=voice.currentTime; let v='X'; for(const q of cues){ if(q[0]<=t) v=q[1]; else break; } return v; }
+  // muted or no cues: a simple chatter so the mouth still moves while the subtitle is up
+  return 'BCADCEBF'[Math.floor((performance.now()-sayT0)/110)%8]; }
+const VIS={X:[0,1],A:[0,1],B:[.22,1,1],C:[.5,1],D:[.85,1.12],E:[.55,.78],F:[.32,.55],G:[.18,1,1],H:[.45,1,0,1]};
+function skinOf(n,im,M){ if(M.skin) return M.skin; try{ const o=document.createElement('canvas'); o.width=im.naturalWidth; o.height=im.naturalHeight; const g=o.getContext('2d'); g.drawImage(im,0,0);
+    let r=0,gg=0,b=0,k=0; for(const [dx,dy] of [[-1.05,-.15],[1.05,-.15],[-.9,.35],[.9,.35],[0,.95]]){ const d=g.getImageData(Math.round(M.x+dx*M.w),Math.round(M.y+dy*M.w),1,1).data; if(d[3]>200){ r+=d[0]; gg+=d[1]; b+=d[2]; k++; } }
+    M.skin=k?`rgb(${r/k|0},${gg/k|0},${b/k|0})`:'#e9b89a'; }catch(e){ M.skin='#e9b89a'; } return M.skin; }
+function drawMouth(n,im,w,h){ const M=MOUTH[n]; if(!M) return; const k=h/im.naturalHeight, mx=-w/2+M.x*k, my=-h+M.y*k, mw=M.w*k, [o,wf,teeth,tongue]=VIS[viseme()]||VIS.X, sk=skinOf(n,im,M);
+  c.save();
+  // paint the drawn mouth away with the face's own colour, soft at the edges
+  const g=c.createRadialGradient(mx,my,mw*.15,mx,my,mw*.8); g.addColorStop(0,sk); g.addColorStop(.62,sk); g.addColorStop(1,sk.replace('rgb','rgba').replace(')',',0)')); c.fillStyle=g; c.save(); c.scale(1,.62); c.beginPath(); c.arc(mx,my/.62,mw*.8,0,6.29); c.fill(); c.restore();
+  const hw=mw*.5*wf, oh=Math.max(.06,o)*mw*.48;
+  // lips
+  if(o>.05){ c.fillStyle=M.lip; c.beginPath(); c.ellipse(mx,my,hw+mw*.06,oh+mw*.08,0,0,6.29); c.fill(); }
+  if(o>.05){ c.fillStyle='#3a0f16'; c.beginPath(); c.ellipse(mx,my+oh*.05,hw,oh,0,0,6.29); c.fill();
+    c.save(); c.beginPath(); c.ellipse(mx,my+oh*.05,hw,oh,0,0,6.29); c.clip();
+    if(teeth||o>.3){ c.fillStyle='#fbf5ea'; c.fillRect(mx-hw,my-oh,hw*2,oh*(teeth?.75:.42)); }
+    if(tongue||o>.45){ c.fillStyle='#d4646c'; c.beginPath(); c.ellipse(mx,my+oh*.85,hw*.65,oh*.55,0,0,6.29); c.fill(); }
+    c.restore(); }
+  else { c.strokeStyle='rgba(80,25,25,.85)'; c.lineWidth=Math.max(1,mw*.07); c.lineCap='round'; c.beginPath(); c.moveTo(mx-hw,my-mw*.02); c.quadraticCurveTo(mx,my+mw*.08,mx+hw,my-mw*.02); c.stroke(); }
+  c.restore(); }
 function heart(x,y,r,col,a){ c.save(); c.globalAlpha=a; c.fillStyle=col; c.beginPath(); c.moveTo(x,y+r*.9); c.bezierCurveTo(x-r*1.6,y-r*.2,x-r*.7,y-r*1.4,x,y-r*.5); c.bezierCurveTo(x+r*.7,y-r*1.4,x+r*1.6,y-r*.2,x,y+r*.9); c.fill(); c.restore(); }
 function hearts(x,y,t,n=4){ for(let k=0;k<n;k++){ const ph=(t*.5+k/n)%1; heart(x+Math.sin(k*2.3+t*2)*26,y-ph*110,10+k%2*4,k%2?'#ff7aa8':'#ff4d7d',Math.sin(ph*Math.PI)); } }
 function startCot(){ ['win','over','pause','intro','title','tbc'].forEach(id=>$(id).classList.add('hidden')); document.body.classList.remove('playing'); state='cot'; CG=null; COT={done:{},t:0,end:false,fin:false}; sub=null; setMusic('music_title.mp3'); bgm.volume=bgmVol*.5;
