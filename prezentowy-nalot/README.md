@@ -55,7 +55,7 @@ The elf village is played on foot with the engine of *Kaczor do sauny!* (copied 
 After the village (`?after=wioska`) the family walks into the toy factory, where Maryańska turns out to be part of the elf resistance against Inez. Three logic puzzles in the workshop each give a part of the weapon, a **snow cannon**:
 - **Rury z parą** (pipes on the left wall): rotate pipe tiles until steam flows from the boiler to the compressor (random solvable layout every time) → the steam boiler.
 - **Panel celownika** (lamp panel): Lights Out on a 4×4 grid — a press toggles a lamp and its neighbours, light all sixteen → the brass sight.
-- **Szyfr do magazynu** (storage door): a Mastermind lock with four different coloured baubles out of six, ten tries, ● right place / ○ right colour → the snowball hopper.
+- **Szyfr do magazynu** (storage door): a Mastermind lock with four different coloured baubles out of six, ten tries, four feedback holes per try (● right place, ○ right colour in the wrong place, empty = colour not in the code) → the snowball hopper. A "💡 Podpowiedź" button lets Maryańska reveal one bauble in its place (up to three). Every one of the 360 codes can be cracked in at most 6 tries by always guessing a combination consistent with the earlier feedback.
 In the corner stands an optional pink arcade machine: clicking it opens *Inez na łowach* (Inez's maze-chase game, copied into `arcade/` from `inez-na-lowach/`) in an overlay, and "✕ Wróć do fabryki" returns to the room with the puzzles as they were. The parts land on the workbench and the cannon appears; Maryańska sends Kaczor through the production hall while the others get the bobsled ready. Test link: `?fab`.
 
 ## Hala produkcyjna (platformer, `wioska/?level=2`)

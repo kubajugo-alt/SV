@@ -941,14 +941,16 @@ function lightsNew(){ const g=Array(LN*LN).fill(1); const tog=i=>{ const x=i%LN,
 const BC=['#e03b3b','#f2b51d','#3fae4a','#3a7be0','#a54ee0','#f4f4f4'];
 function codeNew(){ const pool=[0,1,2,3,4,5].sort(()=>Math.random()-.5); return {id:'p3',code:pool.slice(0,4),cur:[],hist:[],max:10,msg:'Szyfr to 4 różne bombki. Po próbie: ● dobra bombka na dobrym miejscu, ○ dobra bombka w złym miejscu, pusty dołek = tej bombki nie ma w szyfrze.'}; }
 function codeCheck(G){ let b=0,w=0; G.cur.forEach((c,i)=>{ if(G.code[i]===c) b++; else if(G.code.includes(c)) w++; }); G.hist.push({g:G.cur.slice(),b,w}); G.cur=[];
-  if(b===4){ G.msg='Zamek otwarty!'; fabWon(); } else if(G.hist.length>=G.max){ G.msg='Zamek się zresetował — nowy szyfr, spróbuj jeszcze raz!'; const n=codeNew(); G.code=n.code; G.hist=[]; } else G.msg=`● Dobre miejsce: ${b} · ○ dobry kolor, złe miejsce: ${w} · pusto: ${4-b-w}`; blip(400+b*120,700+b*120,.12,.05,'sine'); }
+  if(b===4){ G.msg='Zamek otwarty!'; fabWon(); } else if(G.hist.length>=G.max){ G.msg='Zamek się zresetował — nowy szyfr, spróbuj jeszcze raz!'; const n=codeNew(); G.code=n.code; G.hist=[]; G.hints=[]; } else G.msg=`● Dobre miejsce: ${b} · ○ dobry kolor, złe miejsce: ${w} · pusto: ${4-b-w}`; blip(400+b*120,700+b*120,.12,.05,'sine'); }
 function fabGameClick(x,y){ const G=FG; if(G.won!=null) return;
   if(G.id==='p1'){ const cx=Math.floor((x-PX)/PS), cy=Math.floor((y-PY)/PS); if(cx>=0&&cy>=0&&cx<PC&&cy<PR){ G.g[cy][cx]=ROT(G.g[cy][cx]); blip(300,420,.06,.05,'triangle'); pipesFlow(G); if(G.ok){ G.msg='Para płynie!'; fabWon(); } } return; }
   if(G.id==='p2'){ const cx=Math.floor((x-LX)/LS), cy=Math.floor((y-LY)/LS); if(cx>=0&&cy>=0&&cx<LN&&cy<LN){ G.tog(cy*LN+cx); G.moves++; blip(600,900,.05,.04,'square'); if(G.g.every(v=>v)){ G.msg='Wszystkie lampki świecą!'; fabWon(); } }
     if(x>540&&x<740&&y>580&&y<616){ G.g=G.start.slice(); G.moves=0; } return; }
   if(G.id==='p3'){ BC.forEach((col,i)=>{ const bx=640-(BC.length-1)*36+i*72; if(Math.hypot(x-bx,y-570)<28&&G.cur.length<4&&!G.cur.includes(i)){ G.cur.push(i); blip(500+i*60,700+i*60,.06,.04,'sine'); } });
     for(let k=0;k<4;k++){ const sx=520+k*60; if(Math.hypot(x-sx,y-505)<24&&k<G.cur.length){ G.cur.splice(k,1); } }
-    if(G.cur.length===4&&x>780&&x<900&&y>486&&y<524) codeCheck(G); } }
+    if(G.cur.length===4&&x>780&&x<900&&y>486&&y<524) codeCheck(G);
+    // hint: Maryańska reveals one bauble in its right place (up to three)
+    if(x>780&&x<900&&y>440&&y<474){ G.hints=G.hints||[]; if(G.hints.length<3){ const left=[0,1,2,3].filter(k=>!G.hints.includes(k)); const k=left[Math.floor(Math.random()*left.length)]; G.hints.push(k); G.msg=`Maryańska szepcze: na ${k+1}. miejscu jest ta bombka ⬆`; blip(660,990,.1,.05,'sine'); } else G.msg='Więcej nie zdradzę, kochani — ostatnią zgadnijcie sami! ✌'; } } }
 function updateFab(dt){ t0+=dt; FAB.t+=dt; if(sub&&!voice){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } if(FAB.fin) return;
   if(!FG){ if(!FAB.end&&FAB.done.p1&&FAB.done.p2&&FAB.done.p3&&!voice){ FAB.end=true; if(window.RANK) RANK.award('fab',1500,3); FAB.build=0; sfx('win',.6); $('bSkip').textContent='Do hali produkcyjnej ▶';
       say('mar_cannon',()=>setTimeout(()=>say('nz_cannon',()=>setTimeout(leaveFab,900)),300),true); }
@@ -992,7 +994,9 @@ function drawFabGame(){ const G=FG; c.fillStyle='rgba(10,6,4,.5)'; c.fillRect(0,
     txt(`Ruchy: ${G.moves}`,LX+LN*LS+60,LY+30,20,'#ffe27a','left'); c.fillStyle='rgba(255,255,255,.15)'; c.beginPath(); c.roundRect(540,580,200,36,18); c.fill(); txt('↺ Od nowa',640,598,19,'#fff','center'); }
   if(G.id==='p3'){ G.hist.forEach((h,r)=>{ const y=232+r*25; h.g.forEach((ci,k)=>drawBauble(560+k*30,y,9,BC[ci])); for(let k=0;k<4;k++){ const e=k>=h.b+h.w; c.fillStyle=e?'rgba(0,0,0,.25)':k<h.b?'#111':'#fff'; c.strokeStyle=e?'rgba(255,255,255,.35)':'#888'; c.lineWidth=1; c.beginPath(); c.arc(700+k*16,y,5,0,6.29); c.fill(); c.stroke(); } });
     for(let k=0;k<4;k++){ const sx=520+k*60; c.strokeStyle='rgba(255,231,122,.7)'; c.lineWidth=3; c.beginPath(); c.arc(sx,505,22,0,6.29); c.stroke(); if(k<G.cur.length) drawBauble(sx,505,18,BC[G.cur[k]]); }
+    (G.hints||[]).forEach(k=>{ const sx=520+k*60; c.fillStyle='rgba(255,231,122,.25)'; c.beginPath(); c.arc(sx,457,15,0,6.29); c.fill(); drawBauble(sx,457,11,BC[G.code[k]]); });
     c.fillStyle=G.cur.length===4?'#c0392b':'rgba(255,255,255,.12)'; c.beginPath(); c.roundRect(780,486,120,38,19); c.fill(); txt('Sprawdź',840,505,19,'#fff','center');
+    c.fillStyle=(G.hints||[]).length<3?'#2e7d4f':'rgba(255,255,255,.12)'; c.beginPath(); c.roundRect(780,440,120,32,16); c.fill(); txt('💡 Podpowiedź',840,456,15,'#fff','center');
     BC.forEach((col,i)=>{ const bx=640-(BC.length-1)*36+i*72; c.globalAlpha=G.cur.includes(i)?.3:1; drawBauble(bx,570,22,col); c.globalAlpha=1; });
     txt(`Próby: ${G.hist.length} / ${G.max}`,300,505,18,'#ffe27a','left'); } }
 // ---------- flow ----------
