@@ -525,7 +525,7 @@ function cotPointer(x,y){ if(!COT||COT.fin) return; if(CG){ cotGameClick(x,y); r
   for(const id in COT_HOT){ const h=COT_HOT[id]; if(!COT.done[id]&&x>h.x&&x<h.x+h.w&&y>h.y&&y<h.y+h.h){ openCot(id); return; } } }
 addEventListener('keydown',e=>{ if(state!=='cot') return; CKEY[e.code]=true; if(!CG) return; if(e.code==='Escape'){ CG=null; sub=null; return; }
   if(CG.id==='dn'&&!e.repeat){ const d={ArrowLeft:0,KeyA:0,ArrowUp:1,KeyW:1,ArrowRight:2,KeyD:2,ArrowDown:3,KeyS:3}[e.code]; if(d!=null){ e.preventDefault(); danceKey(d); } }
-  if(CG.id==='fd'&&(e.code==='Space'||e.code==='Enter')&&!e.repeat){ e.preventDefault(); throwFood(CG.sx-11,263); } });
+  if(CG.id==='fd'&&(e.code==='Space'||e.code==='Enter')&&!e.repeat){ e.preventDefault(); { const m=fdMouth(CG); throwFood(m.x,m.y); } } });
 addEventListener('keyup',e=>{ CKEY[e.code]=false; });
 function openCot(id){ blip(500,900,.12,.05,'sine'); say(COT_HOT[id].voice,null,true);
   if(id==='kc') CG={id,px:640,mx:MOUSE.x,items:[],good:0,need:10,bad:0,spawn:.8,t:0,splash:[],msg:'Łap do kociołka grzyby, buraki i pierniki — omijaj jajka i skarpety!'};
@@ -551,7 +551,7 @@ function drawPot(x,y,w,glow){ // a witchy cauldron with bubbling green soup
   for(let k=0;k<5;k++){ const ph=(t0*1.4+k*.37)%1; c.fillStyle=`rgba(150,255,120,${1-ph})`; c.beginPath(); c.arc(x-w*.3+k*w*.15,y-w*.26-ph*(glow?60:26),4+ph*6,0,6.29); c.fill(); } }
 // --- 2) feeding Papi: throw pierogi and makowiec into his mouth while he sways in the armchair
 const FD_FOOD=['f_pierog','f_cake'], LAUNCH={x:640,y:592};
-function fdMouth(g){ return {x:g.sx-11,y:263}; }
+function fdMouth(g){ return {x:g.sx-2,y:263}; } // Papi's mouth in santa.webp at (0.49, 0.20), drawn 300 wide from y=200
 function throwFood(x,y){ const g=CG; if(!g||g.id!=='fd'||g.won||g.cd>0||g.time<=0) return; g.cd=.45; g.shots.push({tx:x,ty:y,t:0,img:FD_FOOD[g.n++%2]}); blip(300,500,.1,.05,'triangle'); }
 function fdUpdate(g,dt){ g.t+=dt; if(!g.won) g.time-=dt; g.cd-=dt; g.chew=Math.max(0,g.chew-dt);
   const sp=120+g.hits*18; g.sx+=g.sdir*sp*dt; if(g.sx>860){ g.sx=860; g.sdir=-1; } if(g.sx<420){ g.sx=420; g.sdir=1; }
@@ -613,7 +613,7 @@ function drawCotGame(){ const g=CG; c.fillStyle='rgba(10,6,4,.45)'; c.fillRect(0
     const bx=330, bw=300; c.fillStyle='rgba(0,0,0,.45)'; c.fillRect(bx,226,bw,14); c.fillStyle='#7dff7a'; c.fillRect(bx,226,bw*g.good/g.need,14); txt(`Przepis ${g.good} / ${g.need}`,bx+bw+12,233,18,'#9be38c');
     for(let k=0;k<3;k++) txt(k<g.bad?'🤢':'·',900+k*30,233,22,'#fff','center'); }
   if(g.id==='fd'){ const i=IMG.santa; if(ok(i)){ const w=300, h=w*i.naturalHeight/i.naturalWidth, sq=g.chew>0?Math.sin(g.chew*30)*.04:0; c.save(); c.beginPath(); c.roundRect(270,110,740,520,24); c.clip(); c.translate(g.sx,200); c.scale(1-sq,1+sq); c.drawImage(i,-w/2,0,w,h); c.restore(); }
-    if(g.chew>0) hearts(g.sx-11,240,t0,3);
+    if(g.chew>0) hearts(g.sx-2,240,t0,3);
     g.shots.forEach(s=>{ if(s.done&&s.t>1) return; const u=Math.min(1,s.t), x=LAUNCH.x+(s.tx-LAUNCH.x)*u, y=LAUNCH.y+(s.ty-LAUNCH.y)*u-Math.sin(u*Math.PI)*120, sz=70-u*24; if(!s.done) drawImg(s.img,x,y,sz,u*8); });
     if(g.cd<=0) drawImg(FD_FOOD[g.n%2],LAUNCH.x,LAUNCH.y,70); c.strokeStyle='rgba(255,231,122,.5)'; c.lineWidth=2; c.setLineDash([5,7]); c.beginPath(); c.moveTo(LAUNCH.x,LAUNCH.y-30); c.lineTo(MOUSE.x,MOUSE.y); c.stroke(); c.setLineDash([]);
     g.pops.forEach(p=>{ c.globalAlpha=Math.min(1,p.t*2); txt(p.txt,p.x,p.y,26,'#ffe27a','center'); }); c.globalAlpha=1;
