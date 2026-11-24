@@ -10,6 +10,9 @@ Part 3 of the Christmas trilogy (after the Kaka living-room game in `kaka/` and 
 - Shot-down planes sometimes drop power-ups: candy cane (triple snowballs), cookie with milk (+1 heart), star (shield).
 - Stars at the end of a level: 1 for finishing, 2 for ≥50% of the chimneys, 3 for ≥75%.
 
+## Prologue: Wigilia wieczorem
+Part 3 is Kaczor's dream on Christmas Eve. "Graj" first opens the Kaczors' living room from part 2 (`kaka/`, its room, sofa, tree and sprites reused) at 21:00: Kaka, done with all the preparations, gives Kaczor one single job — put the presents under the tree at midnight — Kaczor promises to "just close his eyes for a moment", little Mikołaj asks whether Santa will make it before midnight, and Kaczor mumbles "Rudolf… sleigh…" and falls asleep. The room dissolves into white ("…i Kaczorowi śni się Wigilijna noc") and level 1 starts. "Pomiń" skips it.
+
 ## Level 1: Nad osiedlem
 About 2.5 minutes of houses with flocks of ravens in pink scarves that throw stolen Christmas baubles (sine waves, dives with bauble volleys, lines), then a boss fight with the Great Raven (crown, pink boa, a sack of stolen baubles): bauble fans, homing streams, a dash at the sleigh and, once angry, a rain of baubles. As he flees he promises to tell "the boss" everything.
 
@@ -58,7 +61,7 @@ The finale with Inez, on its own Mode 7 engine: a closed ice-channel course (Cat
 - Snow: the runners throw a constant spray that grows with speed, flies out of the outer side in turns, and gets heavier when braking, sliding, on turbo, landing a jump or ploughing through a drift; soft snow puffs drift behind; Inez's sled kicks up snow too, and snowflakes fall over the whole track.
 - Physics: the sled slides a little sideways on the ice, bounces off the channel walls (which slow it and turn the nose away), yellow chevrons give turbo, ▼ brakes for tighter turns.
 - Snow cannon: Space / X / ❄ fires arcing snowballs that the brass sight curves towards Inez; ammo is limited (crates on the track give +4).
-- Inez: rubber-band racing line, swerves away from snowballs, drops gift boxes and throws hearts back down the track (both spin you out; snowballs pop them). After four hits she speeds up and attacks more often. Eight hits before she finishes three laps win; then `../?after=bobslej` leads to the ending at Santa's workshop (`?pole`) and the "Wesołych Świąt" card.
+- Inez: rubber-band racing line, swerves away from snowballs, drops gift boxes and throws hearts back down the track (both spin you out; snowballs pop them). After four hits she speeds up and attacks more often. Eight hits before she finishes three laps win; then `../?after=bobslej` leads to the ending at Santa's workshop (`?pole`) and then to the awakening: the dream fades into the living room at 23:58, Kaka shakes Kaczor awake ("Inez! Bobslej! Armatka śnieżna… To był tylko sen?"), the presents land under the tree just as the clock chimes midnight — with a toy snow cannon among them, exactly like in the dream — Kaka is proud of him, sleepy Mikołaj asks whether Santa came, and the "Wesołych Świąt" card closes the trilogy. Test links: `?wake` (awakening).
 - The ground is rendered into a buffer with a margin for the camera roll (not stretched), so every billboard — houses, trees, gates, spectators — stands exactly on its spot of the floor.
 - HUD: Inez's hearts, ammo, speed, her lap, distance, timer, minimap; 3-2-1 countdown; synthesised runner noise.
 
