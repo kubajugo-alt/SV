@@ -451,6 +451,7 @@ function draw(){
   drawBlizzard();
   popups.forEach(p=>{ c.globalAlpha=Math.min(1,p.t*2); txt(p.txt,p.x,p.y,24,p.col,'center'); c.globalAlpha=1; });
   drawHud(); }
+function txtWrap(s,x,y,size,col,maxW){ c.font=`800 ${size}px "Baloo 2",sans-serif`; const L=[]; let ln=''; s.split(' ').forEach(w=>{ const t=ln?ln+' '+w:w; if(ln&&c.measureText(t).width>maxW){ L.push(ln); ln=w; } else ln=t; }); L.push(ln); const sz=L.length>1?size-2:size, lh=sz*1.15; L.forEach((l,i)=>txt(l,x,y-(L.length>1?6:0)+i*lh,sz,col,'center')); }
 function txt(s,x,y,size,col,al){ c.font=`800 ${size}px "Baloo 2",sans-serif`; c.textAlign=al||'left'; c.textBaseline='middle'; c.lineWidth=Math.max(3,size/5); c.strokeStyle='rgba(10,10,30,.7)'; c.strokeText(s,x,y); c.fillStyle=col; c.fillText(s,x,y); }
 function drawSub(){ if(!sub) return; c.globalAlpha=Math.min(1,sub.ttl*2); c.font='700 24px "Baloo 2",sans-serif'; const head=sub.who+': ', hw=c.measureText(head).width;
   let lines=[sub.t]; if(hw+c.measureText(sub.t).width>1100){ const words=sub.t.split(' '); let a='', i=0; while(i<words.length&&c.measureText(a+words[i]).width<(c.measureText(sub.t).width)/2){ a+=words[i]+' '; i++; } lines=[a.trim(),words.slice(i).join(' ')]; }
@@ -977,7 +978,7 @@ function drawFab(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.fab_in; if(ok(
     const n=Object.keys(D).length; txt(FAB.end?'Armatka śnieżna gotowa! ❄':`Części armatki: ${n} / 3 — kliknij czerwoną kropkę`,VW/2,78,22,'#fff','center'); }
   else drawFabGame();
   drawSub(); }
-function drawFabGame(){ const G=FG; c.fillStyle='rgba(10,6,4,.5)'; c.fillRect(0,0,VW,VH); panel(250,110,780,520); txt(FAB_HOT[G.id].label,VW/2,150,30,'#ffcf8a','center'); txt(G.msg,VW/2,186,19,'#fff','center'); 
+function drawFabGame(){ const G=FG; c.fillStyle='rgba(10,6,4,.5)'; c.fillRect(0,0,VW,VH); panel(250,110,780,520); txt(FAB_HOT[G.id].label,VW/2,150,30,'#ffcf8a','center'); txtWrap(G.msg,VW/2,186,19,'#fff',720); 
   if(G.id==='p1'){ // boiler, pipes, compressor
     c.fillStyle='#b8862b'; c.beginPath(); c.roundRect(PX-70,PY+G.sr*PS+14,60,PS-28,10); c.fill(); txt('♨',PX-40,PY+G.sr*PS+PS/2,28,'#fff','center');
     c.fillStyle=G.ok?'#7dff7a':'#8a8a96'; c.beginPath(); c.roundRect(PX+PC*PS+10,PY+G.er*PS+14,60,PS-28,10); c.fill(); txt('⚙',PX+PC*PS+40,PY+G.er*PS+PS/2,26,'#fff','center');
