@@ -53,6 +53,9 @@ addEventListener('resize',fit); fit();
 const TOUCH=matchMedia('(pointer:coarse)').matches;
 const IMG={}; ['kaczor','elf','cam','plane','box','key','gate','shelf'].forEach(n=>{ const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; });
 const ok=i=>i&&i.complete&&i.naturalWidth;
+// walking strips (Ludo.ai animations, 16 frames each)
+const STRIP={}; fetch('art/anim.json').then(r=>r.json()).then(j=>{ for(const k in j){ const i=new Image(); i.src='art/'+k+'.webp'; STRIP[k]={...j[k],img:i}; } }).catch(()=>{});
+function drawStrip(k,x,y,h,t,flip){ const a=STRIP[k]; if(!a||!ok(a.img)) return false; const f=Math.floor(t*a.fps)%a.n, w=h*a.w/a.h; c.save(); c.translate(x,y); if(flip) c.scale(-1,1); c.drawImage(a.img,f*a.w,0,a.w,a.h,-w/2,-h,w,h); c.restore(); return true; }
 
 // ---------- audio ----------
 let muted=false; try{ muted=localStorage.getItem('pn-mute')==='1'; }catch(e){}
@@ -177,9 +180,9 @@ function draw(){ c.setTransform(1,0,0,1,0,0); c.fillStyle='#000'; c.fillRect(0,0
   GUARDS.forEach(g=>cone(g,g.sus>.4||alarm>0?'rgba(255,60,60,A)':'rgba(255,240,150,A)'));
   // sprites, sorted by y
   const L=[]; BOXES.forEach(b=>L.push({y:b.y+20,f:()=>drawImg(IMG.box,b.x,b.y+26,62)}));
-  GUARDS.forEach(g=>L.push({y:g.y,f:()=>{ drawImg(IMG.elf,g.x,g.y+30,74,Math.cos(g.a)<0); if(g.sus>.05&&alarm<=0) txt(g.sus>.6?'!':'?',g.x,g.y-56,30,g.sus>.6?'#ff5050':'#ffe27a','center'); }}));
+  GUARDS.forEach(g=>L.push({y:g.y,f:()=>{ if(!(g.look>0?false:drawStrip('elf_walk',g.x,g.y+30,74,g.t,Math.cos(g.a)<0))) drawImg(IMG.elf,g.x,g.y+30,74,Math.cos(g.a)<0); if(g.sus>.05&&alarm<=0) txt(g.sus>.6?'!':'?',g.x,g.y-56,30,g.sus>.6?'#ff5050':'#ffe27a','center'); }}));
   L.push({y:P.y+(P.hidden?40:0),f:()=>{ if(P.hidden){ drawImg(IMG.box,P.x,P.y+26,62); c.fillStyle='#fff'; c.beginPath(); c.arc(P.x-7,P.y-10,4,0,6.29); c.arc(P.x+7,P.y-10,4,0,6.29); c.fill(); c.fillStyle='#222'; c.beginPath(); c.arc(P.x-7+Math.sin(t0*2)*1.5,P.y-10,2,0,6.29); c.arc(P.x+7+Math.sin(t0*2)*1.5,P.y-10,2,0,6.29); c.fill(); return; }
-    if(P.inv>0&&Math.floor(P.inv*10)%2) return; const bob=Math.abs(Math.sin(P.step*Math.PI))*4; drawImg(IMG.kaczor,P.x,P.y+30-bob,72,P.face<0); }});
+    if(P.inv>0&&Math.floor(P.inv*10)%2) return; const moving=Math.hypot(P.vx,P.vy)>30; if(!(moving&&drawStrip('kz_walk',P.x,P.y+30,72,P.step/6*(K.F?1.5:1),P.face<0))) drawImg(IMG.kaczor,P.x,P.y+30,72,P.face<0); }});
   L.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
   CAMS.forEach(k=>{ drawImg(IMG.cam,k.x,k.y+18,40,false,k.a); c.fillStyle=Math.sin(t0*8)>0?'#ff3040':'#801020'; c.beginPath(); c.arc(k.x,k.y-6,4,0,6.29); c.fill(); if(k.sus>.05&&alarm<=0) txt(k.sus>.6?'!':'?',k.x,k.y-40,28,k.sus>.6?'#ff5050':'#ffe27a','center'); });
   planes.forEach(p=>drawImg(IMG.plane,p.x,p.y+20,54,false,p.a));
