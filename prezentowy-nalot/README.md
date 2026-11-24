@@ -11,12 +11,18 @@ Part 3 of the Christmas trilogy (after the Kaka living-room game in `kaka/` and 
 - Stars at the end of a level: 1 for finishing, 2 for ≥50% of the chimneys, 3 for ≥75%.
 
 ## Level 1: Nad osiedlem
-About 2.5 minutes of houses with waves of Inez's pink biplanes (sine waves, dives with kiss volleys, lines), then a boss fight with Inez in a big biplane: kiss fans, homing kiss streams, a dash at the sleigh and, once angry, a rain of kisses. Levels 2 (Gayzilla) and 3 (Grinch) are next; their planes, voice lines and animations are already in `art/` and `audio/`.
+About 2.5 minutes of houses with waves of Inez's pink biplanes (sine waves, dives with kiss volleys, lines), then a boss fight with Inez in a big biplane: kiss fans, homing kiss streams, a dash at the sleigh and, once angry, a rain of kisses.
+
+## Cutscene: Skraj lasu
+After Inez escapes, "Dalej" lands the sleigh on a clearing at the edge of the forest. Maryańska (the hippie mentor from *Kaczor do sauny!*, her Ludo animations and voice) waits by her tent and campfire and sends the family into the forest; Kaczor, Kaka and Mikołaj answer. "Pomiń" skips it.
+
+## Level 2: Leśne gobliny
+A night forest. Presents go to beaver lodges (stick chimney) and badger setts (stone chimney pipe); a delivered home's animal pops out hugging its present and thanks the family. Tall snowy trees stand between the homes: their crowns hurt the sleigh (crown shapes in `art/trees.json`), so the sleigh flies high and dives between trees to drop presents. Green goblins in rusty planes throw lumps of coal, some of them in arcs; the boss is the Grinch in his patched plane, throwing coal. Level 2 can also be picked on the title screen once unlocked (or with `?level=2`).
 
 ## Assets
 - Art by Gemini (`art/`): sleigh with the family and Rudolf in strict side view (Kaczor flies bare-headed), the three pilots on parachutes, three enemy planes, four houses with chimney positions in `houses.json`, a seamless night panorama, presents, power-ups and title art. The Grinch is an original grumpy green goblin design.
 - Animations by Ludo.ai (`art/anim/`): flying loops for the sleigh and each plane.
-- Voices by ElevenLabs (`audio/`): Kaka (KateCosm), Kaczor (Maks), Inez (Magda) and Gayzilla (kAImil) as in the other games; Mikołaj and the Grinch use fictional-character voices from the ElevenLabs library: "Teddy Twinkle – Cute Cartoon Boy" and "Nib – Mischievous Goblin" (both English-language voices speaking Polish).
+- Voices by ElevenLabs (`audio/`): Maryańska (Anita) as in *Kaczor do sauny!*; the beaver and the badger use the library character voices "Snippy Bamboozle – Friendly Beaver" and "Edgar – Gentle Cartoon Character"; Kaka (KateCosm), Kaczor (Maks), Inez (Magda) and Gayzilla (kAImil) as in the other games; Mikołaj and the Grinch use fictional-character voices from the ElevenLabs library: "Teddy Twinkle – Cute Cartoon Boy" and "Nib – Mischievous Goblin" (both English-language voices speaking Polish).
 - Music and most sound effects come from *Kaczor do sauny!*; sleigh bells and small blips are synthesised with Web Audio.
 
 Single static `index.html`, no build. Best score per level is kept in `localStorage`.

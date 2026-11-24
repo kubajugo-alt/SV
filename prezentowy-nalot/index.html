@@ -49,25 +49,25 @@ body.touch.playing #touch{ display:flex; }
   <div id="title" class="ov">
     <div class="logo"><small>Świąteczna trylogia · część 3</small><b>Prezentowy nalot</b></div>
     <div>
-      <button class="btn" id="bPlay" disabled>Ładowanie…</button>
+      <button class="btn" id="bPlay" disabled>Ładowanie…</button> <button class="btn alt" id="bLvl2" style="display:none">Poziom 2: Las ▶</button>
       <p class="help" id="helpTouch" style="display:none">Przesuwaj palcem po ekranie, żeby sterować saniami · ❄ śnieżka Kaczora · 🎁 prezent od Mikołaja · 🦌 fala światła z nosa Rudolfa (czyści niebo)<br>Zrzucaj prezenty, gdy komin świeci na złoto, i nie daj się zatrzymać Inez, Gayzilli i Grinchowi!</p>
       <p class="help" id="helpKeys">◀ ▶ ▲ ▼ / WASD — lot sań · <b>Spacja</b> / J — śnieżka Kaczora · <b>X</b> / K — prezent od Mikołaja · <b>C</b> / L — fala światła z nosa Rudolfa (czyści niebo, 2 na poziom)<br>Zrzucaj prezenty prosto do kominów i nie daj się zatrzymać Inez, Gayzilli i Grinchowi! · P — pauza · M — dźwięk</p>
     </div>
   </div>
 
   <div id="intro" class="ov dim hidden"><div class="card">
-    <h2>Poziom 1: Nad osiedlem</h2>
+    <h2 id="iTitle">Poziom 1: Nad osiedlem</h2>
     <div class="faces"><i style="background-image:url(art/face_kaka.webp)"></i><i style="background-image:url(art/face_mikolaj.webp)"></i><i style="background-image:url(art/face_kaczor.webp)"></i></div>
-    <p>Wigilia. Kaka ma listę wszystkich domów, Kaczor trzyma lejce, a mały Mikołaj pilnuje worka z prezentami. Rudolf rusza w noc!</p>
-    <p>Ale nad osiedlem krąży różowy samolot… <b>Inez</b> nie odpuści Kaczorowi nawet w Wigilię.</p>
+    <div id="iText"></div>
     <button class="btn" id="bGo">Lecimy! ✨</button>
   </div></div>
 
+  <button id="bSkip" class="btn alt" style="position:absolute;right:2cqw;bottom:3cqh;z-index:7;display:none;font-size:2.4cqh">Pomiń ▶</button>
   <div id="pause" class="ov dim hidden"><div class="card"><h2>Pauza</h2><p>Rudolf łapie oddech.</p><div class="row"><button class="btn" id="bResume">Wznów</button><button class="btn alt" id="bRestart">Od nowa</button><button class="btn alt" id="bMenu">Menu</button></div></div></div>
 
   <div id="over" class="ov dim hidden"><div class="card"><h2>Sanie na ziemi!</h2><p id="oTxt">Inez zatrzymała sanie. Kaka już poprawia listę — spróbujcie jeszcze raz!</p><div class="row"><button class="btn" id="bRetry">Jeszcze raz</button><button class="btn alt" id="bMenu2">Menu</button></div></div></div>
 
-  <div id="win" class="ov dim hidden"><div class="card"><h2>Poziom 1 ukończony!</h2><div class="stars" id="wStars"></div><p id="wTxt"></p><p><b>Wkrótce:</b> poziom 2 — Gayzilla i jego tęczowy samolot 📸, a potem poziom 3 — Grinch 💚😈</p><div class="row"><button class="btn" id="bAgain">Zagraj jeszcze raz</button><button class="btn alt" id="bMenu3">Menu</button></div></div></div>
+  <div id="win" class="ov dim hidden"><div class="card"><h2>Poziom 1 ukończony!</h2><div class="stars" id="wStars"></div><p id="wTxt"></p><p id="wNext"></p><div class="row"><button class="btn" id="bNext">Dalej ➜</button><button class="btn alt" id="bAgain">Zagraj jeszcze raz</button><button class="btn alt" id="bMenu3">Menu</button></div></div></div>
 </div>
 
 <script>
@@ -82,28 +82,36 @@ const TOUCH=matchMedia('(pointer:coarse)').matches; if(TOUCH){ document.body.cla
 
 // ---------- assets ----------
 const IMG={}, img=n=>{ if(IMG[n]) return IMG[n]; const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; return i; };
-const ART=['bg_night','sleigh','plane_inez','plane_gay','plane_grinch','house1','house2','house3','house4','gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold','candy','cookie','star','coal','kiss','phone','para_inez','para_gay','para_grinch','face_kaka','face_kaczor','face_mikolaj','face_inez'];
+const ART=['bg_night','sleigh','plane_inez','plane_gay','plane_grinch','house1','house2','house3','house4','gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold','candy','cookie','star','coal','kiss','phone','para_inez','para_gay','para_grinch','face_kaka','face_kaczor','face_mikolaj','face_inez','bg_forest','tree1','tree2','tree3','lodge','sett','beaver','badger','plane_goblin','landing','mar_idle'];
 ART.forEach(img);
-let ANIM={}, HOUSES={};
+let ANIM={}, HOUSES={}, TREES={};
 const ready=Promise.all([fetch('art/anim/anim.json').then(r=>r.json()).then(j=>{ ANIM=j; for(const k in j) ANIM[k].img=img('anim/'+k); }).catch(()=>{}),
-  fetch('art/houses.json').then(r=>r.json()).then(j=>{ HOUSES=j; })]);
+  fetch('art/houses.json').then(r=>r.json()).then(j=>{ HOUSES=j; }), fetch('art/trees.json').then(r=>r.json()).then(j=>{ TREES=j; })]);
 const ok=i=>i&&i.complete&&i.naturalWidth;
 function drawImg(n,x,y,w,rot,alpha){ const i=IMG[n]; if(!ok(i)) return; const h=w*i.naturalHeight/i.naturalWidth; c.save(); c.translate(x,y); if(rot) c.rotate(rot); if(alpha!=null) c.globalAlpha*=alpha; c.drawImage(i,-w/2,-h/2,w,h); c.restore(); }
 // animated strip (falls back to the still image); w = drawn width of the subject
 function drawAnim(name,still,x,y,w,t,rot){ const a=ANIM[name]; if(!a||!ok(a.img)) return drawImg(still,x,y,w,rot);
   const f=Math.floor(t*a.fps)%a.n, s=w/a.bw, dw=a.w*s, dh=a.h*s; c.save(); c.translate(x,y); if(rot) c.rotate(rot); c.drawImage(a.img,f*a.w,0,a.w,a.h,-dw/2+a.ox*s,-dh/2+a.oy*s,dw,dh); c.restore(); }
 
+// a character strip anchored at its feet (Maryańska's strips from Kaczor do sauny)
+function drawFeet(name,still,x,yFeet,h,t){ const a=ANIM[name]; if(!a||!ok(a.img)){ const i=IMG[still]; if(ok(i)){ const w=h*i.naturalWidth/i.naturalHeight; c.drawImage(i,x-w/2,yFeet-h,w,h); } return; }
+  const f=Math.floor(t*a.fps)%a.n, s=h/a.fy; c.drawImage(a.img,f*a.w,0,a.w,a.h,x-a.ax*s,yFeet-a.fy*s,a.w*s,a.h*s); }
 // ---------- audio ----------
 let muted=false; try{ muted=localStorage.getItem('pn-mute')==='1'; }catch(e){}
 const bgm=new Audio(); bgm.loop=true; let bgmVol=.32;
 function setMusic(src){ if(bgm.src.endsWith(src)) return; bgm.src='audio/'+src; bgm.volume=bgmVol; if(!muted) bgm.play().catch(()=>{}); }
 const AUD={}, aud=n=>{ if(!AUD[n]){ const a=new Audio('audio/'+n+'.mp3'); a.preload='auto'; AUD[n]=a; } return AUD[n]; };
-const VOICES=['nk_start','nk_hit','nm_glow','nk_win','nz_start','nz_inez','nz_hit','nz_boss','nz_win','nm_drop','nm_good','nm_miss','ni_intro','ni_boss','ni_down'];
+const VOICES=['nk_start','nk_hit','nm_glow','nk_win','nz_start','nz_inez','nz_hit','nz_boss','nz_win','nm_drop','nm_good','nm_miss','ni_intro','ni_boss','ni_down','mar_l2','nz_mar','nk_mar','nm_mar','nz_goblin','nk_tree','gb_taunt','gr_intro','gr_down','nz_boss2','an_beaver','an_badger','nk_win2'];
 const SUBS={nk_start:['Kaka','Lista prezentów sprawdzona, renifer nakarmiony. Lecimy, rodzinko!'],nk_hit:['Kaka','Uważaj, Kaczor! Prawie wypadł mi notes!'],nm_glow:['Mikołaj','Rudolf, zaświeć noskiem!'],nk_win:['Kaka','Wszystkie kominy odhaczone! Brawo, drużyno!'],
   nz_start:['Kaczor','Trzymajcie się mocno, Rudolf dziś szaleje!'],nz_inez:['Kaczor','Inez w samolocie? No pięknie…'],nz_hit:['Kaczor','Au! To był całus czy pocisk?'],nz_boss:['Kaczor','Dobra, Inez, pora na lądowanie!'],nz_win:['Kaczor','Ani jednego komina nie przegapiliśmy. Prawie.'],
   nm_drop:['Mikołaj','Prezent poleciał!'],nm_good:['Mikołaj','Trafiłem w komin! Hurra!'],nm_miss:['Mikołaj','Ups… na dach.'],
-  ni_intro:['Inez','Kaczorku, nie uciekniesz mi nawet w saniach!'],ni_boss:['Inez','Koniec zabawy! Teraz lecę ja, kochanie!'],ni_down:['Inez','Moje skrzydełka! To jeszcze nie koniec!']};
-const WHO_COL={Kaka:'#ffd1dc',Kaczor:'#cfe6ff',Mikołaj:'#fff1a8',Inez:'#ff9ccf'};
+  ni_intro:['Inez','Kaczorku, nie uciekniesz mi nawet w saniach!'],ni_boss:['Inez','Koniec zabawy! Teraz lecę ja, kochanie!'],ni_down:['Inez','Moje skrzydełka! To jeszcze nie koniec!'],
+  mar_l2:['Maryańska','Witajcie, kochani! Za tym lasem grasują gobliny Grincha, a bobry i borsuki czekają na prezenty. Uważajcie na korony drzew! Peace!'],
+  nz_mar:['Kaczor','Maryańska? Co ty robisz w środku lasu?'],nk_mar:['Kaka','Dobrze. Bobry i borsuki, dopisane do listy!'],nm_mar:['Mikołaj','Bobry dostaną prezenty? Juhu!'],
+  nz_goblin:['Kaczor','Gobliny?! Kaka, tego nie było w planie!'],nk_tree:['Kaka','Kaczor, drzewo! Wyżej!'],gb_taunt:['Goblin','Hehe! Węgiel zamiast prezentów!'],
+  gr_intro:['Grinch','Święta? Nie w moim niebie! Wszystkie prezenty będą moje!'],gr_down:['Grinch','Mój samolot! Jeszcze się spotkamy!'],nz_boss2:['Kaczor','Grinch, oddawaj święta!'],
+  an_beaver:['Bóbr','Dziękujemy! Wesołych Świąt!'],an_badger:['Borsuk','Och, prezent dla borsuka! Dziękuję!'],nk_win2:['Kaka','Las odhaczony! Gobliny rozgonione!']};
+const WHO_COL={Kaka:'#ffd1dc',Kaczor:'#cfe6ff',Mikołaj:'#fff1a8',Inez:'#ff9ccf',Maryańska:'#ffcf8a',Goblin:'#b6f08a',Grinch:'#b6f08a',Bóbr:'#e8c49a',Borsuk:'#e0e0e0'};
 let voice=null, sub=null;
 function say(key,onend,force){ if(voice&&!force){ if(onend) onend(); return false; } if(voice){ voice.onended=null; voice.pause(); }
   sub={who:SUBS[key][0],t:SUBS[key][1],ttl:4}; if(muted){ voice=null; setTimeout(()=>{ if(onend) onend(); },1200); return true; }
@@ -137,21 +145,40 @@ let P, shots, gifts, foes, ebullets, items, parts, popups, houses, scroll, lvlT,
 const SPEED=175; // ground scroll, px/s
 const LEVEL_LEN=150; // seconds of houses before the boss
 function mulberry(a){ return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
-// enemy schedule for level 1: [time, pattern, count, y]
+// enemy schedules: [time, pattern, count, y]
 const WAVES=[[7,'wave',1,180],[12,'wave',2,260],[18,'dive',1,140],[24,'wave',3,200],[31,'dive',2,180],[38,'wave',2,120],[44,'line',4,0],[52,'dive',2,240],[58,'wave',3,300],[66,'dive',3,160],[74,'line',5,0],[82,'wave',3,180],[90,'dive',2,120],[96,'wave',4,260],[104,'line',5,0],[112,'dive',3,200],[120,'wave',4,150],[128,'dive',3,260],[136,'line',6,0]];
-let waveIdx=0;
+const WAVES2=[[8,'wave',1,160],[13,'dive',1,140],[19,'wave',2,200],[25,'lob',2,120],[32,'dive',2,160],[39,'wave',3,130],[46,'lob',3,110],[53,'line',4,0],[60,'dive',2,200],[67,'lob',3,120],[74,'wave',3,150],[81,'dive',3,140],[88,'line',5,0],[95,'lob',4,110],[103,'wave',4,170],[111,'dive',3,130],[118,'lob',4,120],[126,'line',6,0],[134,'dive',3,150]];
+const LEVELS=[
+  {name:'Nad osiedlem',bg:'bg_night',music:'music_1.mp3',targets:['house1','house2','house3','house4'],trees:false,waves:WAVES,
+   foe:{kind:'inez',anim:'nl_inez',img:'plane_inez',shot:'kiss',w:170},start:['nk_start','nz_start'],meet:['ni_intro','nz_inez'],win:['nk_win','nz_win'],
+   boss:{name:'Inez',anim:'nl_inez',img:'plane_inez',para:'para_inez',hp:90,bar:'#ff6fae',col:'#ff9ccf',intro:['ni_boss','nz_boss'],down:'ni_down',angry:'Inez się wścieka! 💢',shot:'kiss'},
+   hint:'komin świeci na złoto',intro:`<p>Wigilia. Kaka ma listę wszystkich domów, Kaczor trzyma lejce, a mały Mikołaj pilnuje worka z prezentami. Rudolf rusza w noc!</p><p>Ale nad osiedlem krąży różowy samolot… <b>Inez</b> nie odpuści Kaczorowi nawet w Wigilię.</p>`,
+   faces:['face_kaka','face_mikolaj','face_kaczor'],winTxt:'Inez odfrunęła na spadochronie, a rodzinka leci dalej!',next:'Na skraju lasu czeka ktoś znajomy…'},
+  {name:'Leśne gobliny',bg:'bg_forest',music:'music_2.mp3',targets:['lodge','sett'],trees:true,waves:WAVES2,
+   foe:{kind:'goblin',anim:'nl_goblin',img:'plane_goblin',shot:'coal',w:170,para:'para_grinch'},start:null,meet:['gb_taunt','nz_goblin'],win:['nk_win2'],
+   boss:{name:'Grinch',anim:'nl_grinch',img:'plane_grinch',para:'para_grinch',hp:110,bar:'#7ac74f',col:'#b6f08a',intro:['gr_intro','nz_boss2'],down:'gr_down',angry:'Grinch się wścieka! 💢',shot:'coal'},
+   hint:'nora świeci na złoto',intro:`<p>Maryańska wskazała drogę: za lasem bobry i borsuki czekają na prezenty, a w koronach drzew czają się <b>gobliny Grincha</b> z workami węgla.</p><p>Lećcie nisko, żeby trafić do kominków w żeremiach i norach, ale <b>uważajcie na korony drzew!</b></p>`,
+   faces:['face_kaka','face_mikolaj','face_kaczor'],winTxt:'Grinch odfrunął na spadochronie, a las świętuje z bobrami i borsukami!',next:'<b>Wkrótce:</b> poziom 3 — Gayzilla i jego tęczowy samolot 📸'}];
+let lvl=0, L=LEVELS[0], waveIdx=0, trees=[], nextTreeX=0, pops=[], saidTree=0, saidAnimal={};
 function reset(){
   P={x:260,y:220,vx:0,vy:0,hp:3,inv:2,shotCd:0,giftCd:0,triple:0,shield:0,anim:0,tilt:0};
   shots=[]; gifts=[]; foes=[]; ebullets=[]; items=[]; parts=[]; popups=[]; houses=[]; flyers=[]; waves=[]; dusts=[];
-  scroll=0; lvlT=0; score=0; delivered=0; glows=2; boss=null; bossPhase=0; waveIdx=0; rng=mulberry(1225); nextHouseX=VW+80; houseCount=0; sub=null;
+  scroll=0; lvlT=0; score=0; delivered=0; glows=2; boss=null; bossPhase=0; waveIdx=0; rng=mulberry(1225+lvl*77); nextHouseX=VW+80; houseCount=0; sub=null;
+  trees=[]; pops=[]; nextTreeX=VW+200; saidTree=0; saidAnimal={};
   // the first houses are already on screen so there is something to aim at right away
   let hx=520; while(hx<VW+80) hx=spawnHouse(hx); nextHouseX=hx; // keep spawning right after the last starting house
   saidInez=false; saidDrop=0; hitSay=0; }
 let saidInez=false, saidDrop=0, hitSay=0;
-function spawnHouse(x){ const types=['house1','house2','house3','house4']; const type=types[Math.floor(rng()*4)], m=HOUSES[type]||{w:500,h:520,cx:250,cy:0,cw:60};
-  const s=(type==='house2'?.5:.43)*(0.92+rng()*.16), w=m.w*s, h=m.h*s;
-  houses.push({type,x,s,w,h,top:GROUND-h,cx:x+m.cx*s,cy:GROUND-h+m.cy*s,cw:Math.max(26,m.cw*s),done:false,glow:0,smoke:rng()*2}); houseCount++;
-  return x+w+90+rng()*240; }
+function spawnHouse(x){ const types=L.targets; const type=types[Math.floor(rng()*types.length)], m=HOUSES[type]||{w:500,h:520,cx:250,cy:0,cw:60};
+  const base=type==='house2'?.5:type==='lodge'?.5:type==='sett'?.58:.43, s=base*(0.92+rng()*.16), w=m.w*s, h=m.h*s;
+  houses.push({type,x,s,w,h,top:GROUND-h,cx:x+m.cx*s,cy:GROUND-h+m.cy*s,cw:Math.max(26,m.cw*s),done:false,glow:0,smoke:rng()*2,animal:type==='lodge'?'beaver':type==='sett'?'badger':null}); houseCount++;
+  if(!L.trees) return x+w+90+rng()*240;
+  // forest: one tall tree in the gap after each animal home, never covering a home
+  const tx=spawnTree(x+w+50+rng()*60); return tx+50+rng()*120; }
+// forest level: tall trees whose snowy crowns reach into the sky lanes
+function spawnTree(x){ const type=['tree1','tree2','tree3'][Math.floor(rng()*3)], m=TREES[type]; if(!m) return x+400;
+  const topY=250+rng()*130, H=GROUND+30-topY, s=H/m.h; trees.push({type,x,s,w:m.w*s,h:H,top:topY,rows:m.rows,hit:0}); return x+m.w*s; }
+function treeHit(cx,cy,R){ for(const t of trees){ if(cx+R<t.x||cx-R>t.x+t.w) continue; for(const r of t.rows){ const y=t.top+r[0]*t.s; if(Math.abs(y-cy)>R) continue; if(cx+R*.8>t.x+r[1]*t.s&&cx-R*.8<t.x+r[2]*t.s) return t; } } return null; }
 
 // ---------- update ----------
 function update(dt){
@@ -176,22 +203,27 @@ function update(dt){
   // houses scroll; new ones appear while the level lasts
   houses.forEach(h=>{ h.x-=dx; h.cx-=dx; h.glow=Math.max(0,h.glow-dt); h.smoke+=dt; }); houses=houses.filter(h=>h.x+h.w>-50);
   nextHouseX-=dx; if(nextHouseX<VW+40&&lvlT<LEVEL_LEN) nextHouseX=spawnHouse(nextHouseX);
+  if(L.trees){ trees.forEach(t=>{ t.x-=dx; t.hit=Math.max(0,t.hit-dt); }); trees=trees.filter(t=>t.x+t.w>-40);
+    const t=treeHit(P.x-40,P.y+10,56)||treeHit(P.x+105,P.y-10,32); if(t&&P.inv<=0&&state==='play'){ t.hit=.4; puff(P.x+40,P.y,'#ffffff',22); hurt(true); if(saidTree<2){ saidTree++; say('nk_tree',null,true); } } }
+  pops.forEach(q=>q.t+=dt); pops=pops.filter(q=>q.t<2.2); pops.forEach(q=>{ q.x-=dx; });
   // presents
   gifts.forEach(g=>{ g.t+=dt; if(g.state==='fall'){ g.vy+=850*dt; g.x+=g.vx*dt; g.y+=g.vy*dt; g.rot+=g.vr*dt;
-      for(const h of houses){ if(g.x>h.x&&g.x<h.x+h.w){ if(!h.done&&Math.abs(g.x-h.cx)<h.cw*.55&&g.y>h.cy-6&&g.y<h.cy+26){ g.state='in'; g.t=0; h.done=true; h.glow=1.5; delivered++; const pts=100+(Math.abs(g.x-h.cx)<h.cw*.2?50:0); score+=pts; popups.push({x:h.cx,y:h.cy-30,txt:pts>100?'Idealnie! +'+pts:'+'+pts,t:1.3,col:'#ffe27a'}); sfx('cp',.55); burst(h.cx,h.cy,'#ffe27a',18); if(!voice&&(delivered<=2||Math.random()<.18)) say('nm_good'); break; }
-          if(g.y>h.top+h.h*.32){ g.state='bounce'; g.vy=-260; g.vx=-SPEED*.2-60; sfx('splat',.3); if(!voice&&Math.random()<.3) say('nm_miss'); break; } } }
+      for(const h of houses){ if(g.x>h.x&&g.x<h.x+h.w){ if(!h.done&&Math.abs(g.x-h.cx)<h.cw*.55&&g.y>h.cy-6&&g.y<h.cy+26){ g.state='in'; g.t=0; h.done=true; h.glow=1.5; delivered++; const pts=100+(Math.abs(g.x-h.cx)<h.cw*.2?50:0); score+=pts; popups.push({x:h.cx,y:h.cy-30,txt:pts>100?'Idealnie! +'+pts:'+'+pts,t:1.3,col:'#ffe27a'}); sfx('cp',.55); burst(h.cx,h.cy,'#ffe27a',18);
+            if(h.animal){ pops.push({x:h.cx,y:h.cy,img:h.animal,t:0}); if(!saidAnimal[h.animal]||(!voice&&Math.random()<.2)){ saidAnimal[h.animal]=1; say(h.animal==='beaver'?'an_beaver':'an_badger',null,true); } }
+            else if(!voice&&(delivered<=2||Math.random()<.18)) say('nm_good'); break; }
+          if(g.y>h.top+h.h*(h.animal?.45:.32)){ g.state='bounce'; g.vy=-260; g.vx=-SPEED*.2-60; sfx('splat',.3); if(!voice&&Math.random()<.3) say('nm_miss'); break; } } }
       if(g.y>GROUND-10&&g.state==='fall'){ g.state='bounce'; g.vy=-180; } }
     else if(g.state==='bounce'){ g.vy+=850*dt; g.x+=(g.vx-SPEED)*dt; g.y+=g.vy*dt; g.rot+=6*dt; }
     else if(g.state==='in'){ g.x-=dx; g.y+=60*dt; } });
   gifts=gifts.filter(g=>g.state==='fall'?g.y<VH+60:g.state==='in'?g.t<.4:g.t<1.6&&g.y<VH+60);
   // enemy waves
-  while(waveIdx<WAVES.length&&lvlT>=WAVES[waveIdx][0]){ spawnWave(WAVES[waveIdx]); waveIdx++; }
+  while(waveIdx<L.waves.length&&lvlT>=L.waves[waveIdx][0]){ spawnWave(L.waves[waveIdx]); waveIdx++; }
   if(!boss&&lvlT>LEVEL_LEN+5&&!foes.length) startBoss();
   foes.forEach(f=>updateFoe(f,dt)); foes=foes.filter(f=>f.alive);
   if(boss) updateBoss(dt);
   // enemy shots
   ebullets.forEach(b=>{ b.t-=dt; if(b.home>0){ b.home-=dt; const a=Math.atan2(P.y-b.y,P.x-b.x), sp=Math.hypot(b.vx,b.vy), ca=Math.atan2(b.vy,b.vx); let d=a-ca; d=Math.atan2(Math.sin(d),Math.cos(d)); const na=ca+Math.max(-2*dt,Math.min(2*dt,d)); b.vx=Math.cos(na)*sp; b.vy=Math.sin(na)*sp; }
-    b.x+=b.vx*dt; b.y+=b.vy*dt; b.rot=(b.rot||0)+dt*3; if(hitsPlayer(b.x,b.y,18)){ b.t=0; hurt(); } });
+    b.vy+=(b.g||0)*dt; b.x+=b.vx*dt; b.y+=b.vy*dt; b.rot=(b.rot||0)+dt*3; if(hitsPlayer(b.x,b.y,18)){ b.t=0; hurt(); } });
   ebullets=ebullets.filter(b=>b.t>0&&b.x>-60&&b.x<VW+80&&b.y>-60&&b.y<VH+40);
   // snowballs vs planes and enemy shots
   shots.forEach(s=>{ s.t-=dt; s.x+=s.vx*dt; s.y+=s.vy*dt;
@@ -213,29 +245,31 @@ function update(dt){
   parts.forEach(p=>{ p.t-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=(p.g||0)*dt; }); parts=parts.filter(p=>p.t>0);
   popups.forEach(p=>{ p.t-=dt; p.y-=30*dt; }); popups=popups.filter(p=>p.t>0);
   // story beats
-  if(!saidInez&&foes.some(f=>f.x<VW-60)){ saidInez=true; say('ni_intro',()=>setTimeout(()=>say('nz_inez'),300),true); }
+  if(!saidInez&&foes.some(f=>f.x<VW-60)){ saidInez=true; say(L.meet[0],()=>setTimeout(()=>say(L.meet[1]),300),true); }
 }
 // where a present dropped right now would cross this chimney's height
 function dropWindow(h){ const vx=-SPEED*.85+P.vx*.25, d=Math.max(0,h.cy-(P.y+30)), v0=60, tt=(-v0+Math.sqrt(v0*v0+2*850*d))/850, gx=P.x-40+vx*tt, cx=h.cx-SPEED*tt; return Math.abs(gx-cx)<h.cw*.4; }
 function hitsPlayer(x,y,r){ // two circles: sleigh with family, and Rudolf in front
   return Math.hypot(x-(P.x-40),y-(P.y+5))<70+r||Math.hypot(x-(P.x+105),y-(P.y-10))<42+r; }
-function hurt(){ if(P.inv>0||state!=='play') return; if(P.shield>0){ P.shield=0; P.inv=1; puff(P.x,P.y,'#ffe27a',20); sfx('pick',.4); return; }
+function hurt(quiet){ if(P.inv>0||state!=='play') return; if(P.shield>0){ P.shield=0; P.inv=1; puff(P.x,P.y,'#ffe27a',20); sfx('pick',.4); return; }
   P.hp--; P.inv=1.8; shake=.35; sfx('hurt',.6); burst(P.x,P.y,'#ff9ccf',14);
-  if(P.hp<=0){ gameOver(); return; } hitSay++; if(hitSay%2===1) say(hitSay%4===1?'nz_hit':'nk_hit'); }
+  if(P.hp<=0){ gameOver(); return; } if(quiet) return; hitSay++; if(hitSay%2===1) say(hitSay%4===1?'nz_hit':'nk_hit'); }
 function spawnWave([t,pat,n,y]){
-  for(let k=0;k<n;k++){ const f={kind:'inez',x:VW+80+k*(pat==='line'?120:150),y:pat==='line'?120+k*(250/Math.max(1,n-1)):y+(k%2?60:-20)+Math.random()*30,hp:3,r:70,t:-k*.3,pat,alive:true,fire:1.2+Math.random()*1.2,base:0,hit:0};
-    f.base=f.y; if(pat==='dive'){ f.tx=760+Math.random()*260; } foes.push(f); } }
+  for(let k=0;k<n;k++){ const f={kind:L.foe.kind,x:VW+80+k*(pat==='line'?120:150),y:pat==='line'?120+k*(250/Math.max(1,n-1)):y+(k%2?60:-20)+Math.random()*30,hp:3,r:70,t:-k*.3,pat,alive:true,fire:1.2+Math.random()*1.2,base:0,hit:0};
+    f.base=f.y; if(pat==='dive'||pat==='lob'){ f.tx=760+Math.random()*260; } foes.push(f); } }
 function updateFoe(f,dt){ f.t+=dt; f.hit=Math.max(0,f.hit-dt);
   if(f.pat==='wave'){ f.x-=240*dt; f.y=f.base+Math.sin(f.t*2.2)*70; }
   else if(f.pat==='line'){ f.x-=300*dt; f.y=f.base+Math.sin(f.t*3)*14; }
-  else if(f.pat==='dive'){ if(!f.left){ f.x+=(f.tx-f.x)*Math.min(1,dt*2.2); f.y=f.base+Math.sin(f.t*1.6)*40; if(f.t>4.2){ f.left=true; } } else { f.x-=360*dt; f.y-=120*dt; } }
+  else if(f.pat==='dive'||f.pat==='lob'){ if(!f.left){ f.x+=(f.tx-f.x)*Math.min(1,dt*2.2); f.y=f.base+Math.sin(f.t*1.6)*40; if(f.t>4.2){ f.left=true; } } else { f.x-=360*dt; f.y-=120*dt; } }
   f.fire-=dt; if(f.fire<=0&&f.x<VW-40&&f.x>P.x+120){ f.fire=f.pat==='dive'?1.3:2.6+Math.random(); const a=Math.atan2(P.y-f.y,P.x-f.x);
-    if(f.pat==='dive'){ for(let k=-1;k<=1;k++) ebullets.push({x:f.x-60,y:f.y,vx:Math.cos(a+k*.22)*260,vy:Math.sin(a+k*.22)*260,t:6,img:'kiss',home:0}); }
-    else ebullets.push({x:f.x-60,y:f.y,vx:Math.cos(a)*240,vy:Math.sin(a)*240,t:7,img:'kiss',home:.8}); blip(900,1300,.08,.025,'sine'); }
+    const sh=L.foe.shot;
+    if(f.pat==='lob'){ const dxp=P.x-f.x; for(let k=0;k<2;k++) ebullets.push({x:f.x-50,y:f.y,vx:dxp/1.6+(k-.5)*60,vy:-260-k*60,g:420,t:6,img:sh,home:0}); f.fire=1.6; }
+    else if(f.pat==='dive'){ for(let k=-1;k<=1;k++) ebullets.push({x:f.x-60,y:f.y,vx:Math.cos(a+k*.22)*260,vy:Math.sin(a+k*.22)*260,t:6,img:sh,home:0}); }
+    else ebullets.push({x:f.x-60,y:f.y,vx:Math.cos(a)*240,vy:Math.sin(a)*240,t:7,img:sh,home:sh==='kiss'?.8:.4}); blip(900,1300,.08,.025,'sine'); }
   if(hitsPlayer(f.x,f.y,40)){ damageFoe(f,9); hurt(); }
   if(f.x<-200||f.y<-200) f.alive=false; }
-function damageFoe(f,d){ f.hp-=d; f.hit=.12; puff(f.x,f.y,'#ffffff',4); if(f.hp<=0){ f.alive=false; score+=150; popups.push({x:f.x,y:f.y-50,txt:'+150',t:1,col:'#fff'}); sfx('defeat',.5); burst(f.x,f.y,'#ff9ccf',16);
-    dust(f.x,f.y,1); flyers.push({img:'para_'+f.kind,x:f.x,y:f.y-20,vy:-40,t:0,w:120});
+function damageFoe(f,d){ f.hp-=d; f.hit=.12; puff(f.x,f.y,'#ffffff',4); if(f.hp<=0){ f.alive=false; score+=150; popups.push({x:f.x,y:f.y-50,txt:'+150',t:1,col:'#fff'}); sfx('defeat',.5); burst(f.x,f.y,f.kind==='inez'?'#ff9ccf':'#b6f08a',16);
+    dust(f.x,f.y,1); flyers.push({img:L.foe.para||'para_'+f.kind,x:f.x,y:f.y-20,vy:-40,t:0,w:120});
     if(Math.random()<.22){ const r=Math.random(); items.push({kind:r<.4?'candy':r<.75?'cookie':'star',x:f.x,y:f.y,vx:-90,t:0}); } } }
 function collect(it){ sfx('pick',.5); if(it.kind==='candy'){ P.triple=10; popups.push({x:P.x,y:P.y-90,txt:'Laska cukrowa: potrójne śnieżki!',t:1.6,col:'#ffd1dc'}); }
   else if(it.kind==='cookie'){ P.hp=Math.min(5,P.hp+1); popups.push({x:P.x,y:P.y-90,txt:'Ciasteczko z mlekiem: +1 ❤',t:1.6,col:'#ffe27a'}); }
@@ -244,20 +278,20 @@ function useGlow(){ say('nm_glow',null,true); sfx('glide',.6); blip(220,880,.5,.
   const nx=P.x+158, ny=P.y-36; for(let k=0;k<3;k++) waves.push({x:nx,y:ny,r:-k*90,t:0,hit:new Set(),boss:false}); burst(nx,ny,'#ffb0a0',18); }
 
 // ---------- boss: Inez in her big pink biplane ----------
-function startBoss(){ boss={x:VW+260,y:240,hp:90,max:90,in:false,mode:'enter',mt:0,t:0,hit:0,dir:1}; bossPhase=1;
-  say('ni_boss',()=>setTimeout(()=>say('nz_boss'),250),true); setMusic('music_1.mp3'); }
+function startBoss(){ const B=L.boss; boss={x:VW+260,y:240,hp:B.hp,max:B.hp,in:false,mode:'enter',mt:0,t:0,hit:0,dir:1}; bossPhase=1;
+  say(B.intro[0],()=>setTimeout(()=>say(B.intro[1]),250),true); }
 function updateBoss(dt){ const b=boss; b.t+=dt; b.mt-=dt; b.hit=Math.max(0,b.hit-dt); if(b.hp<=0){ b.dead=(b.dead||0)+dt; if(b.dead>4&&state==='play') levelDone(); return; }
   const angry=b.hp<b.max/2;
   if(b.mode==='enter'){ b.x+=(1010-b.x)*Math.min(1,dt*1.5); b.y=240+Math.sin(b.t)*30; if(b.x<1030){ b.in=true; b.mode='float'; b.mt=1.5; } return; }
   if(b.mode==='float'){ b.y=230+Math.sin(b.t*1.3)*120; b.x=1010+Math.sin(b.t*.7)*40; if(b.mt<=0){ const opts=angry?['fan','stream','dash','rain']:['fan','stream','fan','dash']; b.mode=opts[Math.floor(Math.random()*opts.length)]; b.mt=b.mode==='stream'?2.2:b.mode==='dash'?2.6:b.mode==='rain'?2:0.6; b.shot=0; } }
-  else if(b.mode==='fan'){ if(b.mt<=0){ const n=angry?9:7; for(let k=0;k<n;k++){ const a=Math.PI+(k-(n-1)/2)*.17; ebullets.push({x:b.x-110,y:b.y+10,vx:Math.cos(a)*270,vy:Math.sin(a)*270,t:7,img:'kiss',home:0}); } blip(800,1400,.15,.04,'sine'); b.mode='float'; b.mt=angry?1:1.5; } }
-  else if(b.mode==='stream'){ b.shot-=dt; b.y+=(P.y-b.y)*Math.min(1,dt*1.2); if(b.shot<=0){ b.shot=angry?.22:.3; const a=Math.atan2(P.y-b.y,P.x-b.x); ebullets.push({x:b.x-110,y:b.y+10,vx:Math.cos(a)*330,vy:Math.sin(a)*330,t:6,img:'kiss',home:.3}); } if(b.mt<=0){ b.mode='float'; b.mt=1.2; } }
+  else if(b.mode==='fan'){ if(b.mt<=0){ const n=angry?9:7; for(let k=0;k<n;k++){ const a=Math.PI+(k-(n-1)/2)*.17; ebullets.push({x:b.x-110,y:b.y+10,vx:Math.cos(a)*270,vy:Math.sin(a)*270,t:7,img:L.boss.shot,home:0}); } blip(800,1400,.15,.04,'sine'); b.mode='float'; b.mt=angry?1:1.5; } }
+  else if(b.mode==='stream'){ b.shot-=dt; b.y+=(P.y-b.y)*Math.min(1,dt*1.2); if(b.shot<=0){ b.shot=angry?.22:.3; const a=Math.atan2(P.y-b.y,P.x-b.x); ebullets.push({x:b.x-110,y:b.y+10,vx:Math.cos(a)*330,vy:Math.sin(a)*330,t:6,img:L.boss.shot,home:.3}); } if(b.mt<=0){ b.mode='float'; b.mt=1.2; } }
   else if(b.mode==='dash'){ const p=1-b.mt/2.6; if(p<.25){ b.y+=(P.y-b.y)*Math.min(1,dt*3); b.x+=8*Math.sin(b.t*40); } else if(p<.65){ b.x-=900*dt; } else { b.x+=(1010-b.x)*Math.min(1,dt*2.5); } if(b.mt<=0){ b.mode='float'; b.mt=1.2; } }
-  else if(b.mode==='rain'){ b.shot=(b.shot||0)-dt; if(b.shot<=0){ b.shot=.16; ebullets.push({x:200+Math.random()*900,y:-30,vx:-40,vy:220+Math.random()*80,t:5,img:'kiss',home:0}); } if(b.mt<=0){ b.mode='float'; b.mt=1.2; } }
+  else if(b.mode==='rain'){ b.shot=(b.shot||0)-dt; if(b.shot<=0){ b.shot=.16; ebullets.push({x:200+Math.random()*900,y:-30,vx:-40,vy:220+Math.random()*80,t:5,img:L.boss.shot,home:0}); } if(b.mt<=0){ b.mode='float'; b.mt=1.2; } }
   if(Math.abs(b.x-P.x)<170&&Math.abs(b.y-P.y)<90) hurt(); }
 function damageBoss(d){ const b=boss; if(b.hp<=0) return; b.hp-=d; b.hit=.1; score+=10; puff(b.x-40+Math.random()*80,b.y-30+Math.random()*60,'#ffffff',3);
-  if(b.hp<=b.max/2&&bossPhase===1){ bossPhase=2; popups.push({x:b.x,y:Math.max(140,b.y-120),txt:'Inez się wścieka! 💢',t:1.6,col:'#ff9ccf'}); }
-  if(b.hp<=0){ b.hp=0; score+=2000; sfx('defeat',.8); dust(b.x,b.y,2.2); burst(b.x,b.y,'#ff9ccf',30); shake=.6; ebullets=[]; flyers.push({img:'para_inez',x:b.x,y:b.y-30,vy:-60,t:0,w:210}); say('ni_down',null,true); } }
+  if(b.hp<=b.max/2&&bossPhase===1){ bossPhase=2; popups.push({x:b.x,y:Math.max(140,b.y-120),txt:L.boss.angry,t:1.6,col:L.boss.col}); }
+  if(b.hp<=0){ b.hp=0; score+=2000; sfx('defeat',.8); dust(b.x,b.y,2.2); burst(b.x,b.y,L.boss.col,30); shake=.6; ebullets=[]; flyers.push({img:L.boss.para,x:b.x,y:b.y-30,vy:-60,t:0,w:210}); say(L.boss.down,null,true); } }
 
 // ---------- effects ----------
 function puff(x,y,col,n){ for(let k=0;k<n;k++){ const a=Math.random()*6.28, s=60+Math.random()*120; parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:.4+Math.random()*.3,r:3+Math.random()*4,col}); } }
@@ -270,9 +304,9 @@ function draw(){
   c.setTransform(RES,0,0,RES,0,0); c.imageSmoothingQuality='medium';
   if(shake>0) c.translate((Math.random()-.5)*16*shake,(Math.random()-.5)*12*shake);
   // sky panorama with slow parallax
-  const bg=IMG.bg_night; if(ok(bg)){ const w=VH*bg.naturalWidth/bg.naturalHeight, px=((scroll*.12)%w+w)%w; for(let x=-px;x<VW;x+=w) c.drawImage(bg,Math.round(x),0,w+1,VH); } else { c.fillStyle='#1a2250'; c.fillRect(0,0,VW,VH); }
+  const bg=IMG[L.bg]; if(ok(bg)){ const w=VH*bg.naturalWidth/bg.naturalHeight, px=((scroll*.12)%w+w)%w; for(let x=-px;x<VW;x+=w) c.drawImage(bg,Math.round(x),0,w+1,VH); } else { c.fillStyle='#1a2250'; c.fillRect(0,0,VW,VH); }
   // distant snowy ridge for depth
-  c.fillStyle='rgba(214,226,246,.9)'; c.beginPath(); c.moveTo(0,VH); for(let x=0;x<=VW;x+=20){ const wx=x+scroll*.45; c.lineTo(x,612+Math.sin(wx*.006)*16+Math.sin(wx*.017)*7); } c.lineTo(VW,VH); c.fill();
+  c.fillStyle=L.trees?'rgba(196,210,234,.92)':'rgba(214,226,246,.9)'; c.beginPath(); c.moveTo(0,VH); for(let x=0;x<=VW;x+=20){ const wx=x+scroll*.45; c.lineTo(x,612+Math.sin(wx*.006)*16+Math.sin(wx*.017)*7); } c.lineTo(VW,VH); c.fill();
   // houses
   houses.forEach(h=>{ if(h.done){ const g=c.createRadialGradient(h.x+h.w/2,h.top+h.h*.6,10,h.x+h.w/2,h.top+h.h*.6,h.w*.75); g.addColorStop(0,'rgba(255,200,90,.45)'); g.addColorStop(1,'rgba(255,200,90,0)'); c.fillStyle=g; c.fillRect(h.x-h.w*.3,h.top-20,h.w*1.6,h.h+20); }
     const i=IMG[h.type]; if(ok(i)) c.drawImage(i,h.x,h.top,h.w,h.h);
@@ -281,18 +315,22 @@ function draw(){
       if(h.glow>0){ c.globalAlpha=Math.min(1,h.glow); c.font='800 26px "Baloo 2"'; c.textAlign='center'; c.fillStyle='#ffe27a'; c.fillText('✓',h.cx,h.cy-24-(1.5-h.glow)*30); c.globalAlpha=1; } }
     else if(h.cx>P.x-120&&h.cx<P.x+340){ // chimney marker: bright gold when a present dropped now would land in it
       const good=dropWindow(h); if(good){ txt('TERAZ!',h.cx,h.cy-34,22,'#ffe27a','center'); } c.globalAlpha=good?1:.35+.2*Math.sin(t0*6); c.strokeStyle='#ffe27a'; c.lineWidth=good?5:3; c.beginPath(); c.moveTo(h.cx-h.cw*.5,h.cy-6); c.lineTo(h.cx+h.cw*.5,h.cy-6); c.stroke(); c.globalAlpha=1; } });
+  // forest: tall trees in front of the animal homes
+  trees.forEach(t=>{ const i=IMG[t.type]; if(!ok(i)) return; if(t.hit>0) c.globalAlpha=.6+.4*Math.sin(t0*40); c.drawImage(i,t.x,t.top,t.w,t.h); c.globalAlpha=1; });
   // foreground snow bank
   const gg=c.createLinearGradient(0,GROUND-14,0,VH); gg.addColorStop(0,'#f4f8ff'); gg.addColorStop(1,'#bccbe6'); c.fillStyle=gg; c.beginPath(); c.moveTo(0,VH); for(let x=0;x<=VW;x+=16){ const wx=x+scroll; c.lineTo(x,GROUND-6+Math.sin(wx*.02)*4+Math.sin(wx*.051)*3); } c.lineTo(VW,VH); c.fill();
   // presents
   gifts.forEach(g=>{ const a=g.state==='in'?Math.max(0,1-g.t/.4):g.state==='bounce'?Math.max(0,1-g.t/1.6):1; drawImg(g.img,g.x,g.y,40,g.rot,a); });
+  // happy beavers and badgers pop up with their present
+  pops.forEach(q=>{ const up=Math.min(1,q.t*3), a=q.t>1.7?Math.max(0,1-(q.t-1.7)*2):1; drawImg(q.img,q.x,q.y-30-up*55,86,Math.sin(q.t*6)*.06,a); });
   // items
   items.forEach(it=>{ c.globalAlpha=it.t>10?(Math.floor(it.t*8)%2?.3:1):1; const gl=c.createRadialGradient(it.x,it.y,4,it.x,it.y,34); gl.addColorStop(0,'rgba(255,240,180,.7)'); gl.addColorStop(1,'rgba(255,240,180,0)'); c.fillStyle=gl; c.fillRect(it.x-34,it.y-34,68,68); drawImg(it.kind,it.x,it.y,it.kind==='candy'?26:44); c.globalAlpha=1; });
   // planes falling
   flyers.forEach(f=>{ const s=Math.min(1,.3+f.t*2.5); drawImg(f.img,f.x,f.y,f.w*s,Math.sin(f.t*1.8)*.12); });
   dusts.forEach(d=>{ const k=d.t/1.1; d.puffs.forEach(p=>{ c.globalAlpha=Math.max(0,(1-k))*.85; c.fillStyle=`rgb(${p.sh},${p.sh-8},${p.sh-20})`; c.beginPath(); c.arc(d.x+p.dx+p.vx*d.t,d.y+p.dy+p.vy*d.t,p.r*(.6+k*.8),0,6.29); c.fill(); }); }); c.globalAlpha=1;
   // enemies
-  foes.forEach(f=>{ if(f.hit>0) c.filter='brightness(2)'; drawAnim('nl_inez','plane_inez',f.x,f.y,170,f.t+f.base*.01); c.filter='none'; });
-  if(boss&&boss.hp>0){ const b=boss; c.save(); if(b.hit>0) c.filter='brightness(1.8)'; drawAnim('nl_inez','plane_inez',b.x,b.y,320,b.t*1.3,b.rot||0); c.restore(); }
+  foes.forEach(f=>{ if(f.hit>0) c.filter='brightness(2)'; drawAnim(L.foe.anim,L.foe.img,f.x,f.y,L.foe.w,f.t+f.base*.01); c.filter='none'; });
+  if(boss&&boss.hp>0){ const b=boss; c.save(); if(b.hit>0) c.filter='brightness(1.8)'; drawAnim(L.boss.anim,L.boss.img,b.x,b.y,320,b.t*1.3,b.rot||0); c.restore(); }
   // drop guide
   c.save(); c.setLineDash([6,10]); c.strokeStyle='rgba(255,231,122,.28)'; c.lineWidth=2; c.beginPath(); c.moveTo(P.x-40,P.y+50); c.lineTo(P.x-40-120,GROUND-40); c.stroke(); c.restore();
   // sleigh
@@ -313,6 +351,12 @@ function draw(){
   popups.forEach(p=>{ c.globalAlpha=Math.min(1,p.t*2); txt(p.txt,p.x,p.y,24,p.col,'center'); c.globalAlpha=1; });
   drawHud(); }
 function txt(s,x,y,size,col,al){ c.font=`800 ${size}px "Baloo 2",sans-serif`; c.textAlign=al||'left'; c.textBaseline='middle'; c.lineWidth=Math.max(3,size/5); c.strokeStyle='rgba(10,10,30,.7)'; c.strokeText(s,x,y); c.fillStyle=col; c.fillText(s,x,y); }
+function drawSub(){ if(!sub) return; c.globalAlpha=Math.min(1,sub.ttl*2); c.font='700 24px "Baloo 2",sans-serif'; const head=sub.who+': ', hw=c.measureText(head).width;
+  let lines=[sub.t]; if(hw+c.measureText(sub.t).width>1100){ const words=sub.t.split(' '); let a='', i=0; while(i<words.length&&c.measureText(a+words[i]).width<(c.measureText(sub.t).width)/2){ a+=words[i]+' '; i++; } lines=[a.trim(),words.slice(i).join(' ')]; }
+  const w=Math.max(...lines.map((l,k)=>c.measureText(l).width+(k?0:hw)))+40, hgt=lines.length*30+16, sy=TOUCH?96:VH-26-hgt;
+  c.fillStyle='rgba(10,14,34,.74)'; c.beginPath(); c.roundRect(VW/2-w/2,sy,w,hgt,23); c.fill();
+  txt(sub.who+':',VW/2-w/2+20,sy+23,24,WHO_COL[sub.who]||'#fff'); c.font='700 24px "Baloo 2",sans-serif'; c.fillStyle='#fff'; c.textAlign='left'; c.textBaseline='middle';
+  lines.forEach((l,k)=>c.fillText(l,VW/2-w/2+20+(k?0:hw),sy+23+k*30)); c.globalAlpha=1; }
 function drawHud(){
   for(let i=0;i<Math.max(3,P.hp);i++){ c.globalAlpha=i<P.hp?1:.25; txt('❤️',24+i*40,38,30,'#fff'); } c.globalAlpha=1;
   txt('Punkty: '+score,VW/2,30,26,'#fff','center');
@@ -320,33 +364,56 @@ function drawHud(){
   txt('🦌 nos ×'+glows,24,84,24,'#ffb3a8');
   let y=118; if(P.triple>0){ txt('🍬 potrójne: '+Math.ceil(P.triple)+' s',24,y,20,'#ffd1dc'); y+=28; } if(P.shield>0){ txt('⭐ tarcza: '+Math.ceil(P.shield)+' s',24,y,20,'#fff1a8'); }
   // level progress / boss health
-  if(boss&&boss.in){ const w=420, x=VW/2-w/2; c.fillStyle='rgba(0,0,0,.45)'; c.fillRect(x,62,w,16); c.fillStyle='#ff6fae'; c.fillRect(x,62,w*Math.max(0,boss.hp)/boss.max,16); txt('Inez',x-12,70,22,'#ff9ccf','right'); }
+  if(boss&&boss.in){ const w=420, x=VW/2-w/2; c.fillStyle='rgba(0,0,0,.45)'; c.fillRect(x,62,w,16); c.fillStyle=L.boss.bar; c.fillRect(x,62,w*Math.max(0,boss.hp)/boss.max,16); txt(L.boss.name,x-12,70,22,L.boss.col,'right'); }
   else { const p=Math.min(1,lvlT/(LEVEL_LEN+5)), w=300, x=VW/2-w/2; c.fillStyle='rgba(0,0,0,.4)'; c.fillRect(x,64,w,8); c.fillStyle='#ffe27a'; c.fillRect(x,64,w*p,8); drawImg('sleigh',x+w*p,68,34); }
-  if(sub){ c.globalAlpha=Math.min(1,sub.ttl*2); const s=`${sub.who}: ${sub.t}`; c.font='700 24px "Baloo 2",sans-serif'; const w=c.measureText(s).width+40; const sy=TOUCH?100:VH-72; c.fillStyle='rgba(10,14,34,.72)'; c.beginPath(); c.roundRect(VW/2-w/2,sy,w,46,23); c.fill(); txt(sub.who+':',VW/2-w/2+20,sy+23,24,WHO_COL[sub.who]||'#fff'); c.font='700 24px "Baloo 2",sans-serif'; const ww=c.measureText(sub.who+': ').width; c.fillStyle='#fff'; c.textAlign='left'; c.fillText(sub.t,VW/2-w/2+20+ww,sy+23); c.globalAlpha=1; }
-  if(lvlT<4&&state==='play'){ c.globalAlpha=Math.min(1,(4-lvlT)); txt(TOUCH?'Zrzucaj prezenty 🎁, gdy komin świeci na złoto!':'Zrzucaj prezenty (X), gdy komin świeci na złoto!',VW/2,VH/2-120,34,'#ffe27a','center'); c.globalAlpha=1; } }
+  drawSub();
+  if(lvlT<4&&state==='play'){ c.globalAlpha=Math.min(1,(4-lvlT)); txt((TOUCH?'Zrzucaj prezenty 🎁, gdy ':'Zrzucaj prezenty (X), gdy ')+L.hint+'!',VW/2,VH/2-120,34,'#ffe27a','center'); c.globalAlpha=1; } }
+
+// ---------- cutscene: landing by the forest, Maryańska sends the family on ----------
+let CUT=null;
+function startCut(){ ['win','over','pause','intro','title'].forEach(id=>$(id).classList.add('hidden')); document.body.classList.remove('playing'); state='cut'; CUT={t:0,said:false}; sub=null; setMusic('music_2.mp3'); bgm.volume=bgmVol*.6; $('bSkip').style.display=''; }
+function updateCut(dt){ CUT.t+=dt; t0+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; }
+  if(!CUT.said&&CUT.t>3.7){ CUT.said=true; const chain=['nz_mar','mar_l2','nk_mar','nm_mar']; const next=i=>{ if(state!=='cut') return; if(i>=chain.length){ setTimeout(endCut,700); return; } say(chain[i],()=>setTimeout(()=>next(i+1),250),true); }; next(0); }
+  if(Math.floor(t0*1.3)!==Math.floor((t0-dt)*1.3)&&CUT.t<3.8) jingle(.035); }
+function endCut(){ if(state!=='cut') return; if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; $('bSkip').style.display='none'; showIntro(1); }
+function drawCut(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.landing; if(ok(bg)){ const sc=Math.max(VW/bg.naturalWidth,VH/bg.naturalHeight); c.drawImage(bg,(VW-bg.naturalWidth*sc)/2,(VH-bg.naturalHeight*sc)/2,bg.naturalWidth*sc,bg.naturalHeight*sc); } else { c.fillStyle='#0b1430'; c.fillRect(0,0,VW,VH); }
+  const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',960,655,290,t0);
+  const p=Math.min(1,CUT.t/3.5), e=1-Math.pow(1-p,3), x=-260+640*e, y=150+430*e-Math.sin(p*Math.PI)*40;
+  if(p<1) drawAnim('nl_sleigh','sleigh',x,y,330,CUT.t*1.2,(1-p)*.12); else drawImg('sleigh',x,y,330);
+  if(p>=1&&CUT.t<4.6){ c.globalAlpha=Math.max(0,1-(CUT.t-3.5)); c.fillStyle='#fff'; for(let k=0;k<10;k++){ c.beginPath(); c.arc(x-140+k*30,y+80+Math.sin(k)*6,10+((k*7)%9),0,6.29); c.fill(); } c.globalAlpha=1; }
+  // falling snow
+  c.fillStyle='rgba(255,255,255,.85)'; SNOW.forEach(s=>{ const yy=(s.y+t0*s.s)%VH, xx=((s.x-t0*s.s*.6+Math.sin(t0+s.d)*10)%VW+VW)%VW; c.beginPath(); c.arc(xx,yy,s.r,0,6.29); c.fill(); });
+  txt('Skraj lasu',VW/2,40,30,'#ffe27a','center'); drawSub(); }
+$('bSkip').onclick=endCut;
 
 // ---------- flow ----------
-function startLevel(){ document.body.classList.add('playing'); reset(); state='play'; ['intro','over','win','pause','title'].forEach(id=>$(id).classList.add('hidden')); setMusic('music_1.mp3'); last=performance.now(); say('nk_start',()=>setTimeout(()=>say('nz_start'),200),true); }
+function showIntro(i){ lvl=i; L=LEVELS[i]; reset(); $('iTitle').textContent=`Poziom ${i+1}: ${L.name}`; $('iText').innerHTML=L.intro; ['title','win','over','pause'].forEach(id=>$(id).classList.add('hidden')); $('intro').classList.remove('hidden'); state='intro'; if(i>0) setMusic(L.music); }
+function startLevel(){ document.body.classList.add('playing'); reset(); state='play'; ['intro','over','win','pause','title'].forEach(id=>$(id).classList.add('hidden')); setMusic(L.music); bgm.volume=bgmVol; last=performance.now(); if(L.start) say(L.start[0],()=>setTimeout(()=>say(L.start[1]),200),true); }
 function gameOver(){ state='over'; $('over').classList.remove('hidden'); if(voice){ voice.pause(); voice=null; } bgm.volume=bgmVol*.5; }
 function levelDone(){ state='win'; const pct=delivered/Math.max(1,houseCount), st=1+(pct>=.5?1:0)+(pct>=.75?1:0); $('wStars').textContent='★'.repeat(st)+'☆'.repeat(3-st);
-  $('wTxt').innerHTML=`Prezenty w kominach: <b>${delivered} / ${houseCount}</b> · Punkty: <b>${score}</b><br>Inez odfrunęła na spadochronie, a rodzinka leci dalej!`;
-  try{ const best=+localStorage.getItem('pn-best1')||0; if(score>best) localStorage.setItem('pn-best1',score); }catch(e){}
-  $('win').classList.remove('hidden'); sfx('win',.6); say('nk_win',()=>setTimeout(()=>say('nz_win'),300),true); }
+  $('wTxt').innerHTML=`${L.trees?'Prezenty u bobrów i borsuków':'Prezenty w kominach'}: <b>${delivered} / ${houseCount}</b> · Punkty: <b>${score}</b><br>${L.winTxt}`;
+  document.querySelector('#win h2').textContent=`Poziom ${lvl+1} ukończony!`; $('wNext').innerHTML=L.next; $('bNext').style.display=lvl===0?'':'none';
+  try{ const best=+localStorage.getItem('pn-best'+(lvl+1))||0; if(score>best) localStorage.setItem('pn-best'+(lvl+1),score); if((+localStorage.getItem('pn-level')||1)<lvl+2) localStorage.setItem('pn-level',lvl+2); }catch(e){} showLvlBtn();
+  $('win').classList.remove('hidden'); sfx('win',.6); say(L.win[0],()=>{ if(L.win[1]) setTimeout(()=>say(L.win[1]),300); },true); }
+function showLvlBtn(){ let u=1; try{ u=+localStorage.getItem('pn-level')||1; }catch(e){} if(new URLSearchParams(location.search).get('level')==='2') u=2; $('bLvl2').style.display=u>=2?'':'none'; }
 function pauseGame(){ if(state!=='play') return; state='pause'; $('pause').classList.remove('hidden'); bgm.pause(); if(voice) voice.pause(); }
 function resumeGame(){ if(state!=='pause') return; state='play'; $('pause').classList.add('hidden'); if(!muted) bgm.play().catch(()=>{}); if(voice&&!muted) voice.play().catch(()=>{}); last=performance.now(); }
-function toMenu(){ document.body.classList.remove('playing'); ['pause','over','win','intro'].forEach(id=>$(id).classList.add('hidden')); state='title'; if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; setMusic('music_title.mp3'); bgm.volume=bgmVol; $('title').classList.remove('hidden'); }
+function toMenu(){ document.body.classList.remove('playing'); $('bSkip').style.display='none'; ['pause','over','win','intro'].forEach(id=>$(id).classList.add('hidden')); state='title'; if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; setMusic('music_title.mp3'); bgm.volume=bgmVol; $('title').classList.remove('hidden'); }
 function setMute(m){ muted=m; try{ localStorage.setItem('pn-mute',m?'1':'0'); }catch(e){} $('bMute').textContent=m?'🔇':'🔊'; if(m){ bgm.pause(); if(voice) voice.pause(); } else if(state!=='pause') bgm.play().catch(()=>{}); }
-$('bPlay').onclick=()=>{ ac(); setMusic('music_title.mp3'); $('title').classList.add('hidden'); $('intro').classList.remove('hidden'); state='intro'; };
+$('bPlay').onclick=()=>{ ac(); setMusic('music_title.mp3'); showIntro(0); };
+$('bLvl2').onclick=()=>{ ac(); showIntro(1); };
+$('bNext').onclick=()=>{ ac(); startCut(); }; showLvlBtn();
 $('bGo').onclick=startLevel; $('bRetry').onclick=startLevel; $('bAgain').onclick=startLevel; $('bRestart').onclick=startLevel;
 $('bResume').onclick=resumeGame; ['bMenu','bMenu2','bMenu3'].forEach(id=>$(id).onclick=toMenu);
 $('bPause').onclick=()=>state==='play'?pauseGame():resumeGame(); $('bMute').onclick=()=>setMute(!muted); setMute(muted);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) pauseGame(); });
-window.__pn={get P(){return P}, get state(){return state}, get boss(){return boss}, get houses(){return houses}, get foes(){return foes}, get score(){return score}, get delivered(){return delivered}, set lvlT(v){lvlT=v; while(waveIdx<WAVES.length&&WAVES[waveIdx][0]<v) waveIdx++;}, get lvlT(){return lvlT}, K, startLevel, startBoss, dropWindow};
+window.__pn={get P(){return P}, get state(){return state}, get boss(){return boss}, get houses(){return houses}, get foes(){return foes}, get score(){return score}, get delivered(){return delivered}, set lvlT(v){lvlT=v; while(waveIdx<L.waves.length&&L.waves[waveIdx][0]<v) waveIdx++;}, get lvlT(){return lvlT}, get lvl(){return lvl}, get trees(){return trees}, K, startLevel, startBoss, dropWindow, startCut, showIntro, levelDone:()=>levelDone()};
 
 // ---------- loop ----------
 function loop(now){ let dt=Math.min(.05,(now-last)/1000); last=now; if(state==='play'){ while(dt>0){ const s=Math.min(dt,1/60); update(s); dt-=s; } }
+  else if(state==='cut') updateCut(dt);
   else if(state==='win'||state==='over'){ t0+=dt; parts.forEach(p=>{ p.t-=dt; }); }
-  if(P) draw(); requestAnimationFrame(loop); }
+  if(state==='cut') drawCut(); else if(P) draw(); requestAnimationFrame(loop); }
 ready.then(()=>Promise.all(['bg_night','sleigh','house1','plane_inez'].map(n=>IMG[n].decode?IMG[n].decode().catch(()=>{}):0))).then(()=>{ reset(); $('bPlay').disabled=false; $('bPlay').textContent='Graj ▶'; requestAnimationFrame(loop); });
 </script>
 </body>
