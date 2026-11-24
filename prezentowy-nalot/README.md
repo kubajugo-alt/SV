@@ -26,10 +26,17 @@ After the landing Maryańska invites the family into her tent (a hub like the li
 ## Level 2: Leśne gobliny
 A night forest. Presents go to beaver lodges (stick chimney) and badger setts (stone chimney pipe); a delivered home's animal pops out hugging its present and thanks the family. Tall snowy trees stand between the homes: their crowns hurt the sleigh (crown shapes in `art/trees.json`), so the sleigh flies high and dives between trees to drop presents. Green goblins in rusty planes throw lumps of coal, some of them in arcs; the boss is the Grinch in his patched plane, throwing coal. Level 2 can also be picked on the title screen once unlocked (or with `?level=2`). Test links: `?tent` opens Maryańska's tent, `?cut` plays the landing cutscene.
 
+## Jugo's gingerbread cottage
+After the Grinch, "Dalej" lands the sleigh at the edge of the village, in front of Jugo's rainbow gingerbread cottage. Jugo invites the family in: Gayzilla, in a headscarf and patchwork apron, stirs a bubbling cauldron like Baba Jaga and spoils Santa, whom both of them call "Papi" (hearts drift between them, Jugo holds mistletoe). Three glowing spots start three mini-games:
+- **Kociołek Gayzilli** (cauldron): move the cauldron (mouse, touch, ← →) and catch ten recipe items (porcini, beetroot, gingerbread); rotten eggs and smelly socks spoil the soup, three of them start it over. The steam turns green and cheerful.
+- **Karmienie Papiego** (armchair): Papi sways in his armchair; click or tap to throw pierogi and makowiec into his mouth, eight within 40 seconds. A plate of food and more hearts appear.
+- **Taniec z Papim** (disco ball): Gayzilla shows arrow steps, repeat them with the arrows or by clicking (3, 4, 5, then 6 steps) while Papi dances along. The disco ball lights up the room.
+When all three are done Jugo sends the family on, and a "Ciąg dalszy nastąpi" card announces level 3 (over the village). Test links: `?village` plays the landing at Jugo's, `?cottage` opens the cottage.
+
 ## Assets
 - Art by Gemini (`art/`): sleigh with the family and Rudolf in strict side view (Kaczor flies bare-headed), the three pilots on parachutes, three enemy planes, four houses with chimney positions in `houses.json`, a seamless night panorama, presents, power-ups and title art. The Grinch is an original grumpy green goblin design.
 - Animations by Ludo.ai (`art/anim/`): flying loops for the sleigh and each plane.
-- Voices by ElevenLabs (`audio/`): Maryańska (Anita) as in *Kaczor do sauny!*; the beaver and the badger use the library character voices "Snippy Bamboozle – Friendly Beaver" and "Edgar – Gentle Cartoon Character"; Kaka (KateCosm), Kaczor (Maks), Inez (Magda) and Gayzilla (kAImil) as in the other games; Mikołaj and the Grinch use fictional-character voices from the ElevenLabs library: "Teddy Twinkle – Cute Cartoon Boy" and "Nib – Mischievous Goblin" (both English-language voices speaking Polish).
+- Voices by ElevenLabs (`audio/`): Maryańska (Anita) as in *Kaczor do sauny!*; the beaver and the badger use the library character voices "Snippy Bamboozle – Friendly Beaver" and "Edgar – Gentle Cartoon Character"; Kaka (KateCosm), Kaczor (Maks), Inez (Magda), Gayzilla (kAImil) and Jugo (James) as in the other games; Papi (Santa) uses the library voice "Mr. Claus – The Classic Jolly Santa"; Mikołaj and the Grinch use fictional-character voices from the ElevenLabs library: "Teddy Twinkle – Cute Cartoon Boy" and "Nib – Mischievous Goblin" (both English-language voices speaking Polish).
 - Music and most sound effects come from *Kaczor do sauny!*; sleigh bells and small blips are synthesised with Web Audio.
 
 Single static `index.html`, no build. Best score per level is kept in `localStorage`.
