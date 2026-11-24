@@ -44,14 +44,14 @@ body.touch.playing #touch{ display:flex; }
 <div id="stage">
   <canvas id="cv"></canvas>
   <div id="hudBtns"><button id="bMute" title="Dźwięk (M)">🔊</button><button id="bPause" title="Pauza (P)">⏸</button></div>
-  <div id="touch"><button id="tList">📋<span>lista</span></button><button id="tGift">🎁<span>prezent</span></button><button id="tShot">❄<span>śnieżka</span></button></div>
+  <div id="touch"><button id="tList">🦌<span>nos</span></button><button id="tGift">🎁<span>prezent</span></button><button id="tShot">❄<span>śnieżka</span></button></div>
 
   <div id="title" class="ov">
     <div class="logo"><small>Świąteczna trylogia · część 3</small><b>Prezentowy nalot</b></div>
     <div>
       <button class="btn" id="bPlay" disabled>Ładowanie…</button>
-      <p class="help" id="helpTouch" style="display:none">Przesuwaj palcem po ekranie, żeby sterować saniami · ❄ śnieżka Kaczora · 🎁 prezent od Mikołaja · 📋 lista Kaki (czyści niebo)<br>Zrzucaj prezenty, gdy komin świeci na złoto, i nie daj się zatrzymać Inez, Gayzilli i Grinchowi!</p>
-      <p class="help" id="helpKeys">◀ ▶ ▲ ▼ / WASD — lot sań · <b>Spacja</b> / J — śnieżka Kaczora · <b>X</b> / K — prezent od Mikołaja · <b>C</b> / L — lista Kaki (czyści niebo, 2 na poziom)<br>Zrzucaj prezenty prosto do kominów i nie daj się zatrzymać Inez, Gayzilli i Grinchowi! · P — pauza · M — dźwięk</p>
+      <p class="help" id="helpTouch" style="display:none">Przesuwaj palcem po ekranie, żeby sterować saniami · ❄ śnieżka Kaczora · 🎁 prezent od Mikołaja · 🦌 fala światła z nosa Rudolfa (czyści niebo)<br>Zrzucaj prezenty, gdy komin świeci na złoto, i nie daj się zatrzymać Inez, Gayzilli i Grinchowi!</p>
+      <p class="help" id="helpKeys">◀ ▶ ▲ ▼ / WASD — lot sań · <b>Spacja</b> / J — śnieżka Kaczora · <b>X</b> / K — prezent od Mikołaja · <b>C</b> / L — fala światła z nosa Rudolfa (czyści niebo, 2 na poziom)<br>Zrzucaj prezenty prosto do kominów i nie daj się zatrzymać Inez, Gayzilli i Grinchowi! · P — pauza · M — dźwięk</p>
     </div>
   </div>
 
@@ -98,8 +98,8 @@ let muted=false; try{ muted=localStorage.getItem('pn-mute')==='1'; }catch(e){}
 const bgm=new Audio(); bgm.loop=true; let bgmVol=.32;
 function setMusic(src){ if(bgm.src.endsWith(src)) return; bgm.src='audio/'+src; bgm.volume=bgmVol; if(!muted) bgm.play().catch(()=>{}); }
 const AUD={}, aud=n=>{ if(!AUD[n]){ const a=new Audio('audio/'+n+'.mp3'); a.preload='auto'; AUD[n]=a; } return AUD[n]; };
-const VOICES=['nk_start','nk_hit','nk_bomb','nk_win','nz_start','nz_inez','nz_hit','nz_boss','nz_win','nm_drop','nm_good','nm_miss','ni_intro','ni_boss','ni_down'];
-const SUBS={nk_start:['Kaka','Lista prezentów sprawdzona, renifer nakarmiony. Lecimy, rodzinko!'],nk_hit:['Kaka','Uważaj, Kaczor! Prawie wypadł mi notes!'],nk_bomb:['Kaka','Punkt pierwszy: zniknąć z mojego nieba!'],nk_win:['Kaka','Wszystkie kominy odhaczone! Brawo, drużyno!'],
+const VOICES=['nk_start','nk_hit','nm_glow','nk_win','nz_start','nz_inez','nz_hit','nz_boss','nz_win','nm_drop','nm_good','nm_miss','ni_intro','ni_boss','ni_down'];
+const SUBS={nk_start:['Kaka','Lista prezentów sprawdzona, renifer nakarmiony. Lecimy, rodzinko!'],nk_hit:['Kaka','Uważaj, Kaczor! Prawie wypadł mi notes!'],nm_glow:['Mikołaj','Rudolf, zaświeć noskiem!'],nk_win:['Kaka','Wszystkie kominy odhaczone! Brawo, drużyno!'],
   nz_start:['Kaczor','Trzymajcie się mocno, Rudolf dziś szaleje!'],nz_inez:['Kaczor','Inez w samolocie? No pięknie…'],nz_hit:['Kaczor','Au! To był całus czy pocisk?'],nz_boss:['Kaczor','Dobra, Inez, pora na lądowanie!'],nz_win:['Kaczor','Ani jednego komina nie przegapiliśmy. Prawie.'],
   nm_drop:['Mikołaj','Prezent poleciał!'],nm_good:['Mikołaj','Trafiłem w komin! Hurra!'],nm_miss:['Mikołaj','Ups… na dach.'],
   ni_intro:['Inez','Kaczorku, nie uciekniesz mi nawet w saniach!'],ni_boss:['Inez','Koniec zabawy! Teraz lecę ja, kochanie!'],ni_down:['Inez','Moje skrzydełka! To jeszcze nie koniec!']};
@@ -133,7 +133,7 @@ hold('tShot','shot'); hold('tGift','gift'); hold('tList','list');
 
 // ---------- game state ----------
 let state='title', t0=0, last=performance.now(), shake=0;
-let P, shots, gifts, foes, ebullets, items, parts, popups, houses, scroll, lvlT, score, delivered, lists, boss, bossPhase, flyers, sheets, nextHouseX, rng, houseCount;
+let P, shots, gifts, foes, ebullets, items, parts, popups, houses, scroll, lvlT, score, delivered, glows, boss, bossPhase, flyers, waves, nextHouseX, rng, houseCount;
 const SPEED=175; // ground scroll, px/s
 const LEVEL_LEN=150; // seconds of houses before the boss
 function mulberry(a){ return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
@@ -142,8 +142,8 @@ const WAVES=[[7,'wave',1,180],[12,'wave',2,260],[18,'dive',1,140],[24,'wave',3,2
 let waveIdx=0;
 function reset(){
   P={x:260,y:220,vx:0,vy:0,hp:3,inv:2,shotCd:0,giftCd:0,triple:0,shield:0,anim:0,tilt:0};
-  shots=[]; gifts=[]; foes=[]; ebullets=[]; items=[]; parts=[]; popups=[]; houses=[]; flyers=[]; sheets=[];
-  scroll=0; lvlT=0; score=0; delivered=0; lists=2; boss=null; bossPhase=0; waveIdx=0; rng=mulberry(1225); nextHouseX=VW+80; houseCount=0; sub=null;
+  shots=[]; gifts=[]; foes=[]; ebullets=[]; items=[]; parts=[]; popups=[]; houses=[]; flyers=[]; waves=[];
+  scroll=0; lvlT=0; score=0; delivered=0; glows=2; boss=null; bossPhase=0; waveIdx=0; rng=mulberry(1225); nextHouseX=VW+80; houseCount=0; sub=null;
   // the first houses are already on screen so there is something to aim at right away
   for(let x=520;x<VW+80;x+=0){ x=spawnHouse(x); }
   saidInez=false; saidDrop=0; hitSay=0; }
@@ -169,8 +169,9 @@ function update(dt){
   // Mikołaj drops a present: it drifts back with the ground, so drop it when a chimney is just under the sleigh
   if(K.giftHit&&P.giftCd<=0){ P.giftCd=.45; const g=['gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold'][Math.floor(Math.random()*6)];
     gifts.push({x:P.x-40,y:P.y+30,vx:-SPEED*.85+P.vx*.25,vy:60,rot:0,vr:(Math.random()-.5)*4,img:g,state:'fall',t:0}); sfx('throw',.35); if(saidDrop<2&&!voice){ saidDrop++; say('nm_drop'); } }
-  // Kaka's chore list clears the sky
-  if(K.listHit&&lists>0&&state==='play'){ lists--; useList(); }
+  // Rudolf's nose sends out a wave of light that clears the sky
+  if(K.listHit&&glows>0&&state==='play'){ glows--; useGlow(); }
+  P.glowT=Math.max(0,(P.glowT||0)-dt);
   K.shotHit=K.giftHit=K.listHit=false;
   // houses scroll; new ones appear while the level lasts
   houses.forEach(h=>{ h.x-=dx; h.cx-=dx; h.glow=Math.max(0,h.glow-dt); h.smoke+=dt; }); houses=houses.filter(h=>h.x+h.w>-50);
@@ -203,7 +204,11 @@ function update(dt){
   items=items.filter(it=>it.t<12&&it.x>-40);
   flyers.forEach(f=>{ f.t+=dt; f.vy+=420*dt; f.x+=f.vx*dt; f.y+=f.vy*dt; f.rot+=f.vr*dt; if(Math.random()<.5) parts.push({x:f.x+20,y:f.y,vx:30,vy:-20,t:.8,r:6+Math.random()*6,col:'rgba(70,70,80,.6)'}); });
   flyers=flyers.filter(f=>f.y<VH+120);
-  sheets.forEach(s=>{ s.t+=dt; s.x+=s.vx*dt; s.y+=s.vy*dt; s.rot+=s.vr*dt; }); sheets=sheets.filter(s=>s.t<2.2);
+  waves.forEach(w=>{ w.r+=1350*dt; w.t+=dt;
+    foes.forEach(f=>{ if(f.alive&&f.hp>0&&!w.hit.has(f)&&Math.hypot(f.x-w.x,f.y-w.y)<w.r){ w.hit.add(f); damageFoe(f,4); } });
+    ebullets.forEach(b=>{ if(b.t>0&&Math.hypot(b.x-w.x,b.y-w.y)<w.r){ b.t=0; puff(b.x,b.y,'#ffe0a0',5); } });
+    if(boss&&boss.in&&!w.boss&&Math.hypot(boss.x-w.x,boss.y-w.y)<w.r){ w.boss=true; damageBoss(10); } });
+  waves=waves.filter(w=>w.r<1700);
   parts.forEach(p=>{ p.t-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=(p.g||0)*dt; }); parts=parts.filter(p=>p.t>0);
   popups.forEach(p=>{ p.t-=dt; p.y-=30*dt; }); popups=popups.filter(p=>p.t>0);
   // story beats
@@ -234,9 +239,8 @@ function damageFoe(f,d){ f.hp-=d; f.hit=.12; puff(f.x,f.y,'#ffffff',4); if(f.hp<
 function collect(it){ sfx('pick',.5); if(it.kind==='candy'){ P.triple=10; popups.push({x:P.x,y:P.y-90,txt:'Laska cukrowa: potrójne śnieżki!',t:1.6,col:'#ffd1dc'}); }
   else if(it.kind==='cookie'){ P.hp=Math.min(5,P.hp+1); popups.push({x:P.x,y:P.y-90,txt:'Ciasteczko z mlekiem: +1 ❤',t:1.6,col:'#ffe27a'}); }
   else { P.shield=10; popups.push({x:P.x,y:P.y-90,txt:'Gwiazdka: tarcza!',t:1.6,col:'#fff1a8'}); } }
-function useList(){ say('nk_bomb',null,true); sfx('glide',.6); shake=.3;
-  for(let k=0;k<26;k++) sheets.push({x:P.x+Math.random()*80,y:P.y-40+Math.random()*80,vx:700+Math.random()*700,vy:(Math.random()-.5)*500,rot:Math.random()*6,vr:(Math.random()-.5)*10,t:0});
-  ebullets.forEach(b=>{ puff(b.x,b.y,'#ffffff',4); }); ebullets=[]; foes.forEach(f=>damageFoe(f,4)); if(boss&&boss.in) damageBoss(8); }
+function useGlow(){ say('nm_glow',null,true); sfx('glide',.6); blip(220,880,.5,.06,'sine'); shake=.25; P.glowT=1.2;
+  const nx=P.x+150, ny=P.y-40; for(let k=0;k<3;k++) waves.push({x:nx,y:ny,r:-k*90,t:0,hit:new Set(),boss:false}); burst(nx,ny,'#ffb0a0',18); }
 
 // ---------- boss: Inez in her big pink biplane ----------
 function startBoss(){ boss={x:VW+260,y:240,hp:90,max:90,in:false,mode:'enter',mt:0,t:0,hit:0,dir:1}; bossPhase=1;
@@ -294,7 +298,12 @@ function draw(){
   // shots
   shots.forEach(s=>{ c.fillStyle='#fff'; c.beginPath(); c.arc(s.x,s.y,8,0,6.29); c.fill(); c.fillStyle='rgba(200,225,255,.8)'; c.beginPath(); c.arc(s.x+2,s.y+2,4,0,6.29); c.fill(); });
   ebullets.forEach(b=>drawImg(b.img,b.x,b.y,34,Math.sin(b.rot)*.3));
-  sheets.forEach(s=>{ c.save(); c.translate(s.x,s.y); c.rotate(s.rot); c.globalAlpha=Math.max(0,1-s.t/2.2); c.fillStyle='#fffdf6'; c.fillRect(-16,-21,32,42); c.strokeStyle='#9bb3d6'; c.lineWidth=1.5; for(let k=0;k<4;k++){ c.beginPath(); c.moveTo(-11,-12+k*8); c.lineTo(11,-12+k*8); c.stroke(); } c.fillStyle='#c8322b'; c.fillRect(-11,-17,8,3); c.restore(); });
+  // Rudolf's nose glow and its waves of light
+  { const nx=P.x+150, ny=P.y-40, gl=.35+.15*Math.sin(t0*5)+(P.glowT||0)*.6, R=26+(P.glowT||0)*40; const g=c.createRadialGradient(nx,ny,2,nx,ny,R); g.addColorStop(0,`rgba(255,90,70,${Math.min(1,gl)})`); g.addColorStop(1,'rgba(255,90,70,0)'); c.fillStyle=g; c.fillRect(nx-R,ny-R,R*2,R*2); }
+  waves.forEach(w=>{ if(w.r<=0) return; const a=Math.max(0,1-w.r/1700), inner=Math.max(0,w.r-70); const g=c.createRadialGradient(w.x,w.y,inner,w.x,w.y,w.r+16);
+    g.addColorStop(0,'rgba(255,80,60,0)'); g.addColorStop(.55,`rgba(255,90,70,${.45*a})`); g.addColorStop(.85,`rgba(255,235,160,${.85*a})`); g.addColorStop(1,'rgba(255,235,160,0)');
+    c.fillStyle=g; c.beginPath(); c.arc(w.x,w.y,w.r+16,0,6.29); c.arc(w.x,w.y,inner,0,6.29,true); c.fill(); });
+  if((P.glowT||0)>.8){ c.fillStyle=`rgba(255,80,60,${(P.glowT-.8)*.4})`; c.fillRect(0,0,VW,VH); }
   parts.forEach(p=>{ c.globalAlpha=Math.max(0,Math.min(1,p.t*2)); c.fillStyle=p.col; if(p.star){ c.save(); c.translate(p.x,p.y); c.rotate(p.t*6); c.fillRect(-p.r/2,-p.r/2,p.r,p.r); c.restore(); } else { c.beginPath(); c.arc(p.x,p.y,p.r,0,6.29); c.fill(); } }); c.globalAlpha=1;
   // falling snow
   c.fillStyle='rgba(255,255,255,.85)'; SNOW.forEach(s=>{ const y=(s.y+t0*s.s)%VH, x=((s.x-t0*s.s*.6-scroll*.1+Math.sin(t0+s.d)*10)%VW+VW)%VW; c.beginPath(); c.arc(x,y,s.r,0,6.29); c.fill(); });
@@ -305,7 +314,7 @@ function drawHud(){
   for(let i=0;i<Math.max(3,P.hp);i++){ c.globalAlpha=i<P.hp?1:.25; txt('❤️',24+i*40,38,30,'#fff'); } c.globalAlpha=1;
   txt('Punkty: '+score,VW/2,30,26,'#fff','center');
   txt('🎁 '+delivered+' / '+houseCount,VW-150,38,28,'#ffe27a','right');
-  txt('📋 ×'+lists,24,84,24,'#fff');
+  txt('🦌 nos ×'+glows,24,84,24,'#ffb3a8');
   let y=118; if(P.triple>0){ txt('🍬 potrójne: '+Math.ceil(P.triple)+' s',24,y,20,'#ffd1dc'); y+=28; } if(P.shield>0){ txt('⭐ tarcza: '+Math.ceil(P.shield)+' s',24,y,20,'#fff1a8'); }
   // level progress / boss health
   if(boss&&boss.in){ const w=420, x=VW/2-w/2; c.fillStyle='rgba(0,0,0,.45)'; c.fillRect(x,62,w,16); c.fillStyle='#ff6fae'; c.fillRect(x,62,w*Math.max(0,boss.hp)/boss.max,16); txt('Inez',x-12,70,22,'#ff9ccf','right'); }

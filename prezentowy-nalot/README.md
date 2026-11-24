@@ -3,8 +3,8 @@
 Part 3 of the Christmas trilogy (after the Kaka living-room game in `kaka/` and *Kaczor do sauny!* in `kaczor-do-sauny/`). A horizontal side-scrolling shoot 'em up: Kaka, Kaczor and their 4-year-old son Mikołaj fly a sleigh pulled by Rudolf over a snowy Polish village at night, dropping presents into chimneys while Inez, Gayzilla and the Grinch try to stop them from small planes.
 
 ## Play
-- Arrows / WASD fly the sleigh · Space / J: Kaczor throws snowballs · X / K: Mikołaj drops a present · C / L: Kaka's chore list clears the sky (2 per level) · P pause · M mute.
-- Phones: drag anywhere to steer, on-screen buttons for snowball, present and list; subtitles move to the top.
+- Arrows / WASD fly the sleigh · Space / J: Kaczor throws snowballs · X / K: Mikołaj drops a present · C / L: Rudolf's nose sends out waves of red light that shoot down every plane they reach, wipe out enemy shots and hit the boss hard (2 per level) · P pause · M mute.
+- Phones: drag anywhere to steer, on-screen buttons for snowball, present and Rudolf's nose; subtitles move to the top.
 - Presents drift back with the ground, so drop one when a chimney is just under the sleigh; the chimney marker turns gold ("TERAZ!") when a drop would land in it. A delivered house lights up and its chimney smokes. Hitting the very centre of a chimney scores a bonus.
 - Shot-down planes sometimes drop power-ups: candy cane (triple snowballs), cookie with milk (+1 heart), star (shield).
 - Stars at the end of a level: 1 for finishing, 2 for ≥50% of the chimneys, 3 for ≥75%.
