@@ -62,7 +62,7 @@ body.touch.playing #touch{ display:flex; }
     <button class="btn" id="bGo">Lecimy! ✨</button>
   </div></div>
 
-  <button id="bSkip" class="btn alt" style="position:absolute;right:2cqw;bottom:3cqh;z-index:7;display:none;font-size:2.4cqh">Pomiń ▶</button>
+  <button id="bSkip" class="btn alt" style="position:absolute;right:1.2cqw;top:10cqh;z-index:7;display:none;font-size:2.2cqh">Pomiń ▶</button>
   <div id="pause" class="ov dim hidden"><div class="card"><h2>Pauza</h2><p>Rudolf łapie oddech.</p><div class="row"><button class="btn" id="bResume">Wznów</button><button class="btn alt" id="bRestart">Od nowa</button><button class="btn alt" id="bMenu">Menu</button></div></div></div>
 
   <div id="over" class="ov dim hidden"><div class="card"><h2>Sanie na ziemi!</h2><p id="oTxt">Inez zatrzymała sanie. Kaka już poprawia listę — spróbujcie jeszcze raz!</p><div class="row"><button class="btn" id="bRetry">Jeszcze raz</button><button class="btn alt" id="bMenu2">Menu</button></div></div></div>
@@ -82,7 +82,7 @@ const TOUCH=matchMedia('(pointer:coarse)').matches; if(TOUCH){ document.body.cla
 
 // ---------- assets ----------
 const IMG={}, img=n=>{ if(IMG[n]) return IMG[n]; const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; return i; };
-const ART=['bg_night','sleigh','plane_inez','plane_gay','plane_grinch','house1','house2','house3','house4','gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold','candy','cookie','star','coal','kiss','phone','para_inez','para_gay','para_grinch','face_kaka','face_kaczor','face_mikolaj','face_inez','bg_forest','tree1','tree2','tree3','lodge','sett','beaver','badger','plane_goblin','landing','mar_idle'];
+const ART=['bg_night','sleigh','plane_inez','plane_gay','plane_grinch','house1','house2','house3','house4','gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold','candy','cookie','star','coal','kiss','phone','para_inez','para_gay','para_grinch','face_kaka','face_kaczor','face_mikolaj','face_inez','bg_forest','tree1','tree2','tree3','lodge','sett','beaver','badger','plane_goblin','landing','mar_idle','tent_in','family','ck_star','ck_heart','ck_tree','ck_deer','ck_peace','pr_feather','pr_cone','dreamcatcher','plate','garland'];
 ART.forEach(img);
 let ANIM={}, HOUSES={}, TREES={};
 const ready=Promise.all([fetch('art/anim/anim.json').then(r=>r.json()).then(j=>{ ANIM=j; for(const k in j) ANIM[k].img=img('anim/'+k); }).catch(()=>{}),
@@ -101,7 +101,7 @@ let muted=false; try{ muted=localStorage.getItem('pn-mute')==='1'; }catch(e){}
 const bgm=new Audio(); bgm.loop=true; let bgmVol=.32;
 function setMusic(src){ if(bgm.src.endsWith(src)) return; bgm.src='audio/'+src; bgm.volume=bgmVol; if(!muted) bgm.play().catch(()=>{}); }
 const AUD={}, aud=n=>{ if(!AUD[n]){ const a=new Audio('audio/'+n+'.mp3'); a.preload='auto'; AUD[n]=a; } return AUD[n]; };
-const VOICES=['nk_start','nk_hit','nm_glow','nk_win','nz_start','nz_inez','nz_hit','nz_boss','nz_win','nm_drop','nm_good','nm_miss','ni_intro','ni_boss','ni_down','mar_l2','nz_mar','nk_mar','nm_mar','nz_goblin','nk_tree','gb_taunt','gr_intro','gr_down','nz_boss2','an_beaver','an_badger','nk_win2'];
+const VOICES=['nk_start','nk_hit','nm_glow','nk_win','nz_start','nz_inez','nz_hit','nz_boss','nz_win','nm_drop','nm_good','nm_miss','ni_intro','ni_boss','ni_down','mar_l2','nz_mar','nk_mar','nm_mar','nz_goblin','nk_tree','gb_taunt','gr_intro','gr_down','nz_boss2','an_beaver','an_badger','nk_win2','mar_invite','mar_tent','mar_g1','mar_g1done','mar_g2','mar_g2done','mar_g3','mar_g3done','mar_all','nk_tent','nm_tent','nz_tent'];
 const SUBS={nk_start:['Kaka','Lista prezentów sprawdzona, renifer nakarmiony. Lecimy, rodzinko!'],nk_hit:['Kaka','Uważaj, Kaczor! Prawie wypadł mi notes!'],nm_glow:['Mikołaj','Rudolf, zaświeć noskiem!'],nk_win:['Kaka','Wszystkie kominy odhaczone! Brawo, drużyno!'],
   nz_start:['Kaczor','Trzymajcie się mocno, Rudolf dziś szaleje!'],nz_inez:['Kaczor','Inez w samolocie? No pięknie…'],nz_hit:['Kaczor','Au! To był całus czy pocisk?'],nz_boss:['Kaczor','Dobra, Inez, pora na lądowanie!'],nz_win:['Kaczor','Ani jednego komina nie przegapiliśmy. Prawie.'],
   nm_drop:['Mikołaj','Prezent poleciał!'],nm_good:['Mikołaj','Trafiłem w komin! Hurra!'],nm_miss:['Mikołaj','Ups… na dach.'],
@@ -110,7 +110,12 @@ const SUBS={nk_start:['Kaka','Lista prezentów sprawdzona, renifer nakarmiony. L
   nz_mar:['Kaczor','Maryańska? Co ty robisz w środku lasu?'],nk_mar:['Kaka','Dobrze. Bobry i borsuki, dopisane do listy!'],nm_mar:['Mikołaj','Bobry dostaną prezenty? Juhu!'],
   nz_goblin:['Kaczor','Gobliny?! Kaka, tego nie było w planie!'],nk_tree:['Kaka','Kaczor, drzewo! Wyżej!'],gb_taunt:['Goblin','Hehe! Węgiel zamiast prezentów!'],
   gr_intro:['Grinch','Święta? Nie w moim niebie! Wszystkie prezenty będą moje!'],gr_down:['Grinch','Mój samolot! Jeszcze się spotkamy!'],nz_boss2:['Kaczor','Grinch, oddawaj święta!'],
-  an_beaver:['Bóbr','Dziękujemy! Wesołych Świąt!'],an_badger:['Borsuk','Och, prezent dla borsuka! Dziękuję!'],nk_win2:['Kaka','Las odhaczony! Gobliny rozgonione!']};
+  an_beaver:['Bóbr','Dziękujemy! Wesołych Świąt!'],an_badger:['Borsuk','Och, prezent dla borsuka! Dziękuję!'],nk_win2:['Kaka','Las odhaczony! Gobliny rozgonione!'],
+  mar_invite:['Maryańska','Zanim polecicie dalej, wpadnijcie do mojego namiotu! Pomożecie mi przygotować święta?'],mar_tent:['Maryańska','Rozgośćcie się, kochani! Pierniki, łapacz snów i kolęda… bez tego nie ma świąt!'],
+  mar_g1:['Maryańska','Pierniki z moimi ziołami pachną jak cały las! Wytnij sześć, a potem upieczemy.'],mar_g1done:['Maryańska','Mmm, jak pachnie! Kosmiczne pierniki!'],
+  mar_g2:['Maryańska','Łapacz snów złapie wszystkie złe sny. Nawlekaj dokładnie tak, jak ci pokażę.'],mar_g2done:['Maryańska','Pięknie! Teraz dobre sny zostaną z nami na całe święta.'],
+  mar_g3:['Maryańska','Zagrajmy kolędę! Ja gram, a ty trafiaj w struny.'],mar_g3done:['Maryańska','Ależ to brzmiało! Peace and love!'],mar_all:['Maryańska','Namiot gotowy na święta! Lećcie, bobry i borsuki już czekają. Peace!'],
+  nk_tent:['Kaka','Świąteczne zadania? To moja specjalność!'],nm_tent:['Mikołaj','Pierniki! Ja chcę wycinać!'],nz_tent:['Kaczor','Dobra… ale potem do sauny.']};
 const WHO_COL={Kaka:'#ffd1dc',Kaczor:'#cfe6ff',Mikołaj:'#fff1a8',Inez:'#ff9ccf',Maryańska:'#ffcf8a',Goblin:'#b6f08a',Grinch:'#b6f08a',Bóbr:'#e8c49a',Borsuk:'#e0e0e0'};
 let voice=null, sub=null;
 function say(key,onend,force){ if(voice&&!force){ if(onend) onend(); return false; } if(voice){ voice.onended=null; voice.pause(); }
@@ -371,11 +376,11 @@ function drawHud(){
 
 // ---------- cutscene: landing by the forest, Maryańska sends the family on ----------
 let CUT=null;
-function startCut(){ ['win','over','pause','intro','title'].forEach(id=>$(id).classList.add('hidden')); document.body.classList.remove('playing'); state='cut'; CUT={t:0,said:false}; sub=null; setMusic('music_2.mp3'); bgm.volume=bgmVol*.6; $('bSkip').style.display=''; }
+function startCut(){ ['win','over','pause','intro','title'].forEach(id=>$(id).classList.add('hidden')); document.body.classList.remove('playing'); state='cut'; CUT={t:0,said:false}; sub=null; $('bSkip').textContent='Pomiń ▶'; setMusic('music_2.mp3'); bgm.volume=bgmVol*.6; $('bSkip').style.display=''; }
 function updateCut(dt){ CUT.t+=dt; t0+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; }
-  if(!CUT.said&&CUT.t>3.7){ CUT.said=true; const chain=['nz_mar','mar_l2','nk_mar','nm_mar']; const next=i=>{ if(state!=='cut') return; if(i>=chain.length){ setTimeout(endCut,700); return; } say(chain[i],()=>setTimeout(()=>next(i+1),250),true); }; next(0); }
+  if(!CUT.said&&CUT.t>3.7){ CUT.said=true; const chain=['nz_mar','mar_l2','nk_mar','nm_mar','mar_invite']; const next=i=>{ if(state!=='cut') return; if(i>=chain.length){ setTimeout(endCut,700); return; } say(chain[i],()=>setTimeout(()=>next(i+1),250),true); }; next(0); }
   if(Math.floor(t0*1.3)!==Math.floor((t0-dt)*1.3)&&CUT.t<3.8) jingle(.035); }
-function endCut(){ if(state!=='cut') return; if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; $('bSkip').style.display='none'; showIntro(1); }
+function endCut(){ if(state!=='cut') return; if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; startTent(); }
 function drawCut(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.landing; if(ok(bg)){ const sc=Math.max(VW/bg.naturalWidth,VH/bg.naturalHeight); c.drawImage(bg,(VW-bg.naturalWidth*sc)/2,(VH-bg.naturalHeight*sc)/2,bg.naturalWidth*sc,bg.naturalHeight*sc); } else { c.fillStyle='#0b1430'; c.fillRect(0,0,VW,VH); }
   const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',960,655,290,t0);
   const p=Math.min(1,CUT.t/3.5), e=1-Math.pow(1-p,3), x=-260+640*e, y=150+430*e-Math.sin(p*Math.PI)*40;
@@ -384,7 +389,96 @@ function drawCut(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.landing; if(ok
   // falling snow
   c.fillStyle='rgba(255,255,255,.85)'; SNOW.forEach(s=>{ const yy=(s.y+t0*s.s)%VH, xx=((s.x-t0*s.s*.6+Math.sin(t0+s.d)*10)%VW+VW)%VW; c.beginPath(); c.arc(xx,yy,s.r,0,6.29); c.fill(); });
   txt('Skraj lasu',VW/2,40,30,'#ffe27a','center'); drawSub(); }
-$('bSkip').onclick=endCut;
+$('bSkip').onclick=()=>{ if(state==='cut') endCut(); else if(state==='tent') leaveTent(); };
+
+// ---------- Maryańska's tent: a hub with three Christmas mini-games ----------
+let TENT=null, G=null; const MOUSE={x:0,y:0};
+const HOT={ck:{x:15,y:380,w:330,h:210,label:'🍪 Pierniki z ziołami',voice:'mar_g1',done:'mar_g1done'},dc:{x:540,y:30,w:200,h:190,label:'🪶 Łapacz snów',voice:'mar_g2',done:'mar_g2done'},gt:{x:960,y:290,w:210,h:330,label:'🎸 Kolęda na gitarze',voice:'mar_g3',done:'mar_g3done'}};
+function canvasXY(e){ const r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)/r.width*VW,y:(e.clientY-r.top)/r.height*VH}; }
+cv.addEventListener('pointermove',e=>{ const p=canvasXY(e); MOUSE.x=p.x; MOUSE.y=p.y; });
+cv.addEventListener('pointerdown',e=>{ if(state!=='tent') return; const p=canvasXY(e); MOUSE.x=p.x; MOUSE.y=p.y; ac(); if(G) gameClick(p.x,p.y); else hubClick(p.x,p.y); });
+addEventListener('keydown',e=>{ if(state!=='tent'||!G) return; if(e.code==='Escape'){ G=null; sub=null; return; }
+  if(G.id==='gt'){ const lane={KeyA:0,KeyJ:0,ArrowLeft:0,KeyS:1,KeyK:1,ArrowDown:1,KeyD:2,KeyL:2,ArrowRight:2}[e.code]; if(lane!=null&&!e.repeat){ e.preventDefault(); strum(lane); } }
+  if(G.id==='ck'&&G.stage==='bake'&&(e.code==='Space'||e.code==='Enter')&&!e.repeat){ e.preventDefault(); bakeStop(); } });
+function startTent(){ ['win','over','pause','intro','title'].forEach(id=>$(id).classList.add('hidden')); state='tent'; G=null; TENT={done:{},t:0,end:false}; sub=null; setMusic('music_title.mp3'); bgm.volume=bgmVol*.5;
+  $('bSkip').textContent='Pomiń minigry ▶'; $('bSkip').style.display='';
+  say('mar_tent',()=>setTimeout(()=>say('nk_tent',()=>setTimeout(()=>say('nm_tent',()=>setTimeout(()=>say('nz_tent'),250)),250)),250),true); }
+function leaveTent(){ if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; G=null; $('bSkip').style.display='none'; $('bSkip').textContent='Pomiń ▶'; showIntro(1); }
+function hubClick(x,y){ if(TENT.end) return; for(const id in HOT){ const h=HOT[id]; if(!TENT.done[id]&&x>h.x&&x<h.x+h.w&&y>h.y&&y<h.y+h.h){ openGame(id); return; } } }
+function openGame(id){ blip(500,900,.12,.05,'sine'); say(HOT[id].voice,null,true);
+  if(id==='ck') G={id,stage:'cut',cookies:[],need:6,shapes:['ck_star','ck_heart','ck_tree','ck_deer','ck_peace'],round:0,res:[],t:0,msg:'Kliknij na cieście, żeby wyciąć piernik'};
+  if(id==='dc'){ G={id,round:0,lens:[3,4,5],seq:[],input:[],phase:'wait',t:-1.6,msg:'Patrz uważnie, co pokazuje Maryańska…',strung:[]}; newSeq(); }
+  if(id==='gt') G={id,t:-2.2,notes:song(),hits:0,miss:0,flash:[0,0,0],done:false,msg:'Trafiaj w nuty: A S D (albo J K L, strzałki, dotyk)'}; }
+function gameWon(){ const id=G.id; TENT.done[id]=true; sfx('win',.5); G.won=1.6; say(HOT[id].done,null,true); }
+// --- 1) gingerbread: cut six cookies, then stop the oven needle in the golden zone three times
+const DOUGH={x:330,y:190,w:620,h:330};
+function bakeStop(){ const g=G; if(g.stage!=='bake'||g.lock>0) return; const ok2=Math.abs(g.needle-g.zone)<g.zw/2; g.res.push(ok2); g.lock=.9; g.msg=ok2?'Złociste! ✨':'Ups, trochę przypalone…'; ok2?sfx('cp',.5):sfx('splat',.4);
+  setTimeout(()=>{ if(G!==g) return; g.round++; g.lock=0; if(g.round>=3){ g.stage='done'; g.msg='Pierniki upieczone!'; gameWon(); } else { g.zone=.2+Math.random()*.6; g.speed*=1.25; g.msg='Jeszcze '+(3-g.round)+'… kliknij, gdy wskazówka jest w złotym polu'; } },900); }
+// --- 2) dream catcher: repeat Maryańska's bead sequence (3, 4, 5 items)
+const BEADS=[{k:'red',col:'#d8453a'},{k:'blue',col:'#3a7bd8'},{k:'gold',col:'#e8b83a'},{k:'green',col:'#3aa55a'},{k:'feather',img:'pr_feather'},{k:'cone',img:'pr_cone'}];
+const TRAY=BEADS.map((b,i)=>({...b,x:330+i*124,y:560}));
+function newSeq(){ const g=G; g.seq=[]; for(let i=0;i<g.lens[g.round];i++) g.seq.push(Math.floor(Math.random()*BEADS.length)); g.input=[]; g.phase='show'; g.t=g.round===0?-1.6:-.5; }
+// --- 3) carol: "Cicha noc" (Silent Night, public domain) falling on three strings
+const NOTE={C4:261.6,D4:293.7,E4:329.6,F4:349.2,G4:392,A4:440,B4:493.9,C5:523.3,D5:587.3,E5:659.3,F5:698.5};
+function song(){ const m='G4 1.5,A4 .5,G4 1,E4 3,G4 1.5,A4 .5,G4 1,E4 3,D5 2,D5 1,B4 3,C5 2,C5 1,G4 3,A4 2,A4 1,C5 1.5,B4 .5,A4 1,G4 1.5,A4 .5,G4 1,E4 3,A4 2,A4 1,C5 1.5,B4 .5,A4 1,G4 1.5,A4 .5,G4 1,E4 3,D5 2,D5 1,F5 1.5,D5 .5,B4 1,C5 3,E5 3,C5 1,G4 1,E4 1,G4 1.5,F4 .5,D4 1,C4 3';
+  const beat=.46; let t=0; return m.split(',').map(x=>{ const [n,d]=x.split(' '); const f=NOTE[n], lane=f<380?0:f<500?1:2; const o={t,f,lane,state:0}; t+=(+d)*beat; return o; }); }
+const PLUCK={}; function pluck(f,v=.35){ if(muted||!ac()) return; let buf=PLUCK[f|0]; if(!buf){ const sr=AC.sampleRate, N=Math.floor(sr*1.6), b=AC.createBuffer(1,N,sr), d=b.getChannelData(0), P=Math.round(sr/f); const ring=new Float32Array(P); for(let i=0;i<P;i++) ring[i]=Math.random()*2-1; let k=0; for(let i=0;i<N;i++){ const nx=(k+1)%P, val=ring[k]; d[i]=val; ring[k]=.996*.5*(val+ring[nx]); k=nx; } buf=PLUCK[f|0]=b; }
+  const src=AC.createBufferSource(), g=AC.createGain(); src.buffer=buf; g.gain.value=v; src.connect(g).connect(AC.destination); src.start(); }
+const LANE_X=[520,640,760], HIT_Y=560, FALL=1.7;
+function strum(lane){ const g=G; if(!g||g.id!=='gt'||g.done) return; g.flash[lane]=.15; let best=null; for(const n of g.notes){ if(n.state||n.lane!==lane) continue; const dt=Math.abs(n.t-g.t); if(dt<.2&&(!best||dt<Math.abs(best.t-g.t))) best=n; }
+  if(best){ best.state=1; g.hits++; pluck(best.f,.4); } else { blip(120,90,.08,.04,'triangle'); } }
+function gameClick(x,y){ const g=G; if(g.won) return;
+  if(g.id==='ck'){ if(g.stage==='cut'){ if(x>DOUGH.x+50&&x<DOUGH.x+DOUGH.w-50&&y>DOUGH.y+50&&y<DOUGH.y+DOUGH.h-50&&g.cookies.every(k=>Math.hypot(k.x-x,k.y-y)>100)){ g.cookies.push({x,y,img:g.shapes[g.cookies.length%5]}); blip(300,180,.08,.05,'triangle'); if(g.cookies.length===1&&!voice) say('nm_tent');
+        if(g.cookies.length>=g.need){ g.stage='bake'; g.needle=0; g.dir=1; g.speed=.9; g.zone=.3+Math.random()*.4; g.zw=.16; g.lock=0; g.msg='Do pieca! Kliknij (albo Spacja), gdy wskazówka jest w złotym polu'; } } else if(g.cookies.length<g.need) { g.msg='Wytnij na cieście, z dala od innych pierników'; } }
+    else if(g.stage==='bake') bakeStop(); return; }
+  if(g.id==='dc'&&g.phase==='input'){ for(let i=0;i<TRAY.length;i++){ const b=TRAY[i]; if(Math.hypot(x-b.x,y-b.y)<50){ const want=g.seq[g.input.length]; if(i===want){ g.input.push(i); g.strung.push(i); blip(500+i*80,700+i*80,.1,.05,'sine');
+          if(g.input.length===g.seq.length){ g.round++; if(g.round>=3){ g.phase='done'; g.msg='Łapacz snów gotowy!'; gameWon(); } else { g.msg='Super! Następny wzór…'; g.phase='wait'; setTimeout(()=>{ if(G===g) newSeq(); },900); } } }
+        else { g.msg='Nie ta kolejność — Maryańska pokaże jeszcze raz'; blip(200,120,.2,.05,'square'); g.strung.splice(g.strung.length-g.input.length,g.input.length); g.input=[]; g.phase='wait'; setTimeout(()=>{ if(G===g){ g.phase='show'; g.t=-.4; } },700); } return; } } return; }
+  if(g.id==='gt'){ const lane=x<580?0:x<700?1:2; if(y>200) strum(lane); } }
+function updateTent(dt){ t0+=dt; TENT.t+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; }
+  if(!G){ if(!TENT.end&&TENT.done.ck&&TENT.done.dc&&TENT.done.gt&&!voice){ TENT.end=true; say('mar_all',()=>setTimeout(leaveTent,600),true); $('bSkip').textContent='Lecimy dalej ✨'; } return; }
+  const g=G; if(g.won!=null){ g.won-=dt; if(g.won<=0){ G=null; } return; } g.t+=dt;
+  if(g.id==='ck'&&g.stage==='bake'&&!g.lock){ g.needle+=g.dir*g.speed*dt; if(g.needle>1){ g.needle=1; g.dir=-1; } if(g.needle<0){ g.needle=0; g.dir=1; } }
+  if(g.id==='dc'&&g.phase==='show'){ const step=.75, i=Math.floor(g.t/step); if(g.t>=0&&i<g.seq.length&&Math.floor((g.t-dt)/step)!==i) blip(500+g.seq[i]*80,700+g.seq[i]*80,.12,.05,'sine'); if(i>=g.seq.length){ g.phase='input'; g.msg='Twoja kolej! Kliknij w tej samej kolejności ('+g.seq.length+')'; } }
+  if(g.id==='gt'&&!g.done){ g.flash=g.flash.map(f=>Math.max(0,f-dt)); for(const n of g.notes){ if(!n.state&&g.t>n.t+.22){ n.state=2; g.miss++; } }
+    const last=g.notes[g.notes.length-1]; if(g.t>last.t+1){ const pct=g.hits/g.notes.length; if(pct>=.6){ g.done=true; g.msg=`Brawo! Trafione ${g.hits} z ${g.notes.length}`; gameWon(); } else { g.msg=`Trafione ${g.hits} z ${g.notes.length} — spróbujmy jeszcze raz!`; g.t=-2.2; g.hits=0; g.miss=0; g.notes=song(); } }
+    // Maryańska strums a soft bass note on each bar
+    const bar=Math.floor(g.t/(.46*3)); if(g.t>0&&bar!==g.bar){ g.bar=bar; const roots=[196,196,196,196,147,196,131,196,131,196,196,196,147,196,131,131]; pluck(roots[bar%roots.length],.18); } } }
+function panel(x,y,w,h){ c.fillStyle='rgba(32,20,14,.82)'; c.beginPath(); c.roundRect(x,y,w,h,24); c.fill(); c.strokeStyle='rgba(255,207,138,.6)'; c.lineWidth=3; c.stroke(); }
+function drawTent(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.tent_in; if(ok(bg)){ const sc=Math.max(VW/bg.naturalWidth,VH/bg.naturalHeight); c.drawImage(bg,0,0,bg.naturalWidth*sc,bg.naturalHeight*sc); } else { c.fillStyle='#2a1a12'; c.fillRect(0,0,VW,VH); }
+  const D=TENT.done;
+  // decorations appear as the games are finished
+  if(D.gt){ for(let k=0;k<26;k++){ const u=k/25, x=300+u*700, y=26+Math.sin(u*Math.PI)*58, col=['#ff5a4e','#ffd34e','#5ad1ff','#7dff7a'][k%4], a=.6+.4*Math.sin(t0*3+k); const gl=c.createRadialGradient(x,y,1,x,y,16); gl.addColorStop(0,col); gl.addColorStop(1,'rgba(0,0,0,0)'); c.globalAlpha=a; c.fillStyle=gl; c.fillRect(x-16,y-16,32,32); } c.globalAlpha=1;
+    const w=c.createRadialGradient(640,360,100,640,360,800); w.addColorStop(0,'rgba(255,200,120,.12)'); w.addColorStop(1,'rgba(255,160,80,0)'); c.fillStyle=w; c.fillRect(0,0,VW,VH); }
+  if(D.dc){ drawImg('dreamcatcher',640,150,74,Math.sin(t0*1.2)*.05); drawImg('garland',250,200,64,Math.sin(t0)*.03); drawImg('garland',1030,200,64,-Math.sin(t0)*.03); }
+  if(D.ck) drawImg('plate',165,452,170);
+  // family and Maryańska
+  const fam=IMG.family; if(ok(fam)){ const h=290, w=h*fam.naturalWidth/fam.naturalHeight; c.drawImage(fam,330-w/2,705-h,w,h); }
+  const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',820,705,320,t0);
+  // hotspots
+  if(!G){ txt('Namiot Maryańskiej',VW/2,40,30,'#ffcf8a','center'); for(const id in HOT){ const h=HOT[id], dn=D[id], hov=!dn&&MOUSE.x>h.x&&MOUSE.x<h.x+h.w&&MOUSE.y>h.y&&MOUSE.y<h.y+h.h;
+      if(!dn){ c.save(); c.setLineDash([10,8]); c.lineDashOffset=-t0*30; c.strokeStyle=hov?'rgba(255,231,122,.95)':`rgba(255,231,122,${.45+.25*Math.sin(t0*4)})`; c.lineWidth=hov?5:3; c.beginPath(); c.roundRect(h.x,h.y,h.w,h.h,20); c.stroke(); c.restore(); }
+      txt((dn?'✓ ':'')+h.label,h.x+h.w/2,h.y+(id==='dc'?h.h+22:-18),22,dn?'#9be38c':'#ffe27a','center'); }
+    if(!TENT.end){ const n=Object.keys(D).length; txt(n<3?`Pomóż Maryańskiej: ${n} / 3 — kliknij świecące miejsce`:'Wszystko gotowe!',VW/2,78,22,'#fff','center'); } }
+  else drawGame();
+  drawSub(); }
+function drawGame(){ const g=G; c.fillStyle='rgba(10,6,4,.45)'; c.fillRect(0,0,VW,VH); panel(270,110,740,520); txt(HOT[g.id].label,VW/2,150,30,'#ffcf8a','center'); txt(g.msg,VW/2,186,20,'#fff','center'); txt('Esc — wróć do namiotu',1000,612,15,'rgba(255,255,255,.6)','right');
+  if(g.id==='ck'){ c.fillStyle='#c8955c'; c.beginPath(); c.roundRect(DOUGH.x,DOUGH.y,DOUGH.w,DOUGH.h,40); c.fill(); c.fillStyle='rgba(255,255,255,.12)'; for(let k=0;k<30;k++){ c.beginPath(); c.arc(DOUGH.x+((k*97)%DOUGH.w),DOUGH.y+((k*53)%DOUGH.h),3,0,6.29); c.fill(); }
+    g.cookies.forEach(k=>{ c.save(); if(g.stage==='cut') c.globalAlpha=.75; drawImg(k.img,k.x,k.y,96); c.restore(); });
+    if(g.stage==='cut'){ const nx=g.shapes[g.cookies.length%5]; if(MOUSE.x>DOUGH.x&&MOUSE.x<DOUGH.x+DOUGH.w&&MOUSE.y>DOUGH.y&&MOUSE.y<DOUGH.y+DOUGH.h){ c.globalAlpha=.4; drawImg(nx,MOUSE.x,MOUSE.y,96); c.globalAlpha=1; } txt(`${g.cookies.length} / ${g.need}`,VW/2,DOUGH.y+DOUGH.h+30,24,'#ffe27a','center'); }
+    if(g.stage==='bake'||g.stage==='done'){ const bx=380, bw=520, by=DOUGH.y+DOUGH.h+28; c.fillStyle='rgba(0,0,0,.5)'; c.fillRect(bx,by-14,bw,28); c.fillStyle='#ffd34e'; c.fillRect(bx+(g.zone-g.zw/2)*bw,by-14,g.zw*bw,28);
+      c.fillStyle='#fff'; c.fillRect(bx+g.needle*bw-3,by-22,6,44); g.res.forEach((r,i)=>txt(r?'✓':'✗',bx+bw+30+i*26,by,24,r?'#9be38c':'#ff8a7a','center')); } }
+  if(g.id==='dc'){ // hoop with the strung beads
+    c.strokeStyle='#8a5a32'; c.lineWidth=8; c.beginPath(); c.arc(VW/2,300,80,0,6.29); c.stroke(); c.strokeStyle='rgba(255,240,220,.7)'; c.lineWidth=1.5; for(let k=0;k<8;k++){ const a=k*Math.PI/4; c.beginPath(); c.moveTo(VW/2,300); c.lineTo(VW/2+Math.cos(a)*78,300+Math.sin(a)*78); c.stroke(); }
+    g.strung.forEach((i,k)=>{ const b=BEADS[i], x=VW/2-((g.strung.length-1)*36)/2+k*36, y=420; c.strokeStyle='rgba(255,240,220,.5)'; c.beginPath(); c.moveTo(x,380); c.lineTo(x,y); c.stroke(); beadAt(b,x,y,15); });
+    const step=.75, si=Math.floor(g.t/step), showing=g.phase==='show'&&g.t>=0&&si<g.seq.length?g.seq[si]:-1;
+    TRAY.forEach((b,i)=>{ const lit=i===showing, hov=g.phase==='input'&&Math.hypot(MOUSE.x-b.x,MOUSE.y-b.y)<50; c.fillStyle=lit?'rgba(255,231,122,.55)':hov?'rgba(255,255,255,.2)':'rgba(255,255,255,.08)'; c.beginPath(); c.arc(b.x,b.y,46,0,6.29); c.fill(); beadAt(b,b.x,b.y,lit?28:24); });
+    txt(`Wzór ${Math.min(3,g.round+1)} / 3`,VW/2,630-10,18,'#ffe27a','center'); }
+  if(g.id==='gt'){ for(let l=0;l<3;l++){ c.strokeStyle=g.flash[l]>0?'#ffe27a':'rgba(255,240,220,.55)'; c.lineWidth=g.flash[l]>0?5:2+l; c.beginPath(); c.moveTo(LANE_X[l],210); c.lineTo(LANE_X[l],600); c.stroke(); txt(['A','S','D'][l],LANE_X[l],600,18,'rgba(255,255,255,.7)','center'); }
+    c.fillStyle='rgba(255,231,122,.25)'; c.fillRect(470,HIT_Y-6,340,12);
+    g.notes.forEach(n=>{ const dtn=n.t-g.t; if(dtn>FALL||dtn<-.3||n.state===1) return; const y=HIT_Y-dtn/FALL*(HIT_Y-210); c.fillStyle=n.state===2?'rgba(120,120,120,.6)':['#ff7a6a','#ffd34e','#7ad1ff'][n.lane]; c.beginPath(); c.arc(LANE_X[n.lane],y,17,0,6.29); c.fill(); c.fillStyle='rgba(255,255,255,.6)'; c.beginPath(); c.arc(LANE_X[n.lane]-5,y-5,5,0,6.29); c.fill(); });
+    txt(`Trafione: ${g.hits}`,860,240,22,'#9be38c','left'); if(g.t<0) txt('Gotowi? '+Math.ceil(-g.t),VW/2,380,40,'#ffe27a','center'); } }
+function beadAt(b,x,y,r){ if(b.img) drawImg(b.img,x,y,r*2.2); else { c.fillStyle=b.col; c.beginPath(); c.arc(x,y,r,0,6.29); c.fill(); c.fillStyle='rgba(255,255,255,.55)'; c.beginPath(); c.arc(x-r*.35,y-r*.35,r*.3,0,6.29); c.fill(); } }
 
 // ---------- flow ----------
 function showIntro(i){ lvl=i; L=LEVELS[i]; reset(); $('iTitle').textContent=`Poziom ${i+1}: ${L.name}`; $('iText').innerHTML=L.intro; ['title','win','over','pause'].forEach(id=>$(id).classList.add('hidden')); $('intro').classList.remove('hidden'); state='intro'; if(i>0) setMusic(L.music); }
@@ -407,13 +501,14 @@ $('bGo').onclick=startLevel; $('bRetry').onclick=startLevel; $('bAgain').onclick
 $('bResume').onclick=resumeGame; ['bMenu','bMenu2','bMenu3'].forEach(id=>$(id).onclick=toMenu);
 $('bPause').onclick=()=>state==='play'?pauseGame():resumeGame(); $('bMute').onclick=()=>setMute(!muted); setMute(muted);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) pauseGame(); });
-window.__pn={get P(){return P}, get state(){return state}, get boss(){return boss}, get houses(){return houses}, get foes(){return foes}, get score(){return score}, get delivered(){return delivered}, set lvlT(v){lvlT=v; while(waveIdx<L.waves.length&&L.waves[waveIdx][0]<v) waveIdx++;}, get lvlT(){return lvlT}, get lvl(){return lvl}, get trees(){return trees}, K, startLevel, startBoss, dropWindow, startCut, showIntro, levelDone:()=>levelDone()};
+window.__pn={get P(){return P}, get state(){return state}, get boss(){return boss}, get houses(){return houses}, get foes(){return foes}, get score(){return score}, get delivered(){return delivered}, set lvlT(v){lvlT=v; while(waveIdx<L.waves.length&&L.waves[waveIdx][0]<v) waveIdx++;}, get lvlT(){return lvlT}, get lvl(){return lvl}, get trees(){return trees}, get TENT(){return TENT}, get G(){return G}, startTent, gameClick:(x,y)=>gameClick(x,y), hubClick:(x,y)=>hubClick(x,y), strum:l=>strum(l), K, startLevel, startBoss, dropWindow, startCut, showIntro, levelDone:()=>levelDone()};
 
 // ---------- loop ----------
 function loop(now){ let dt=Math.min(.05,(now-last)/1000); last=now; if(state==='play'){ while(dt>0){ const s=Math.min(dt,1/60); update(s); dt-=s; } }
   else if(state==='cut') updateCut(dt);
+  else if(state==='tent') updateTent(dt);
   else if(state==='win'||state==='over'){ t0+=dt; parts.forEach(p=>{ p.t-=dt; }); }
-  if(state==='cut') drawCut(); else if(P) draw(); requestAnimationFrame(loop); }
+  if(state==='cut') drawCut(); else if(state==='tent') drawTent(); else if(P) draw(); requestAnimationFrame(loop); }
 ready.then(()=>Promise.all(['bg_night','sleigh','house1','plane_inez'].map(n=>IMG[n].decode?IMG[n].decode().catch(()=>{}):0))).then(()=>{ reset(); $('bPlay').disabled=false; $('bPlay').textContent='Graj ▶'; requestAnimationFrame(loop); });
 </script>
 </body>

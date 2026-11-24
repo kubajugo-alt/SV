@@ -14,7 +14,14 @@ Part 3 of the Christmas trilogy (after the Kaka living-room game in `kaka/` and 
 About 2.5 minutes of houses with waves of Inez's pink biplanes (sine waves, dives with kiss volleys, lines), then a boss fight with Inez in a big biplane: kiss fans, homing kiss streams, a dash at the sleigh and, once angry, a rain of kisses.
 
 ## Cutscene: Skraj lasu
-After Inez escapes, "Dalej" lands the sleigh on a clearing at the edge of the forest. Maryańska (the hippie mentor from *Kaczor do sauny!*, her Ludo animations and voice) waits by her tent and campfire and sends the family into the forest; Kaczor, Kaka and Mikołaj answer. "Pomiń" skips it.
+After Inez escapes, "Dalej" lands the sleigh on a clearing at the edge of the forest. Maryańska (the hippie mentor from *Kaczor do sauny!*, her Ludo animations and voice) waits by her tent and campfire and sends the family into the forest; Kaczor, Kaka and Mikołaj answer. "Pomiń" skips it. Maryańska then invites them into her tent.
+
+## Maryańska's tent
+After the landing Maryańska invites the family into her tent (a hub like the living room in the Kaka game). Three glowing spots start three Christmas mini-games, and each finished one changes the tent:
+- **Pierniki z ziołami** (stove and table): cut six gingerbread cookies out of the dough, then bake three trays by stopping the oven needle in the golden zone. A plate of iced cookies appears on the table.
+- **Łapacz snów** (hook over the entrance): Maryańska shows a sequence of beads, feathers and cones; repeat it (3, 4, then 5 items). The dream catcher and two garlands of dried oranges appear.
+- **Kolęda na gitarze** (guitar): "Cicha noc" (Silent Night, public domain) falls on three strings; hit the notes with A S D (or J K L, arrows, taps) for plucked-string sounds while Maryańska strums the bass; 60% of the notes passes. The fairy lights light up.
+"Pomiń minigry" goes straight to level 2; when all three are done Maryańska sends the family off.
 
 ## Level 2: Leśne gobliny
 A night forest. Presents go to beaver lodges (stick chimney) and badger setts (stone chimney pipe); a delivered home's animal pops out hugging its present and thanks the family. Tall snowy trees stand between the homes: their crowns hurt the sleigh (crown shapes in `art/trees.json`), so the sleigh flies high and dives between trees to drop presents. Green goblins in rusty planes throw lumps of coal, some of them in arcs; the boss is the Grinch in his patched plane, throwing coal. Level 2 can also be picked on the title screen once unlocked (or with `?level=2`).
