@@ -375,6 +375,7 @@ function miniBoss(e,dt,punching,hx0,hx1,hy0,hy1){ const C=MB[e.who]; L.boss=e; c
   if(e.state==='gone'){ e.st-=dt; e.x+=130*dt; if(e.st<=0) e.alive=false; return; }
   if(!e.act){ if(P.x>e.x-720){ e.act=true; e.intro=3.2; e.mode='idle'; e.mt=0; e.plan=0; cp=Math.max(cp,e.a-T*9); saveGame(); toast(C.block||C.name+' zagradza drogę do warsztatu!','#ffd1dc'); play(C.intro[0],()=>play(C.intro[1])); } else return; }
   kaka.wait=Math.max(kaka.wait,.5);
+  if(e.intro<=0&&e.state!=='gone'){ e.cocoaT=(e.cocoaT??8)-dt; if(e.cocoaT<=0){ e.cocoaT=12; const from=e.a-T*3, dx=P.x-from; ents.push({k:'ladle',x:from,y:gy-260,vx:dx/1.3,vy:-560,fall:true,alive:true}); sfx('throw',.4); if(!e.toldCocoa){ e.toldCocoa=1; toast('Lojalny elf rzuca gorące kakao! ☕ Złap je: +1 ❤','#d6ffd9'); } } }
   const face=()=>{ e.dir=Math.sign(P.x-e.x)||-1; };
   if(e.intro>0){ e.intro-=dt; face(); return; }
   if(ph&&!e.phSaid){ e.phSaid=1; if(cur){ cur.onended=null; cur.pause(); cur=null; } play(C.phase); }
@@ -408,7 +409,7 @@ function miniBoss(e,dt,punching,hx0,hx1,hy0,hy1){ const C=MB[e.who]; L.boss=e; c
   const sb=snowballs.find(b=>b.t>0&&Math.abs(b.x-e.x)<46&&b.y>top&&b.y<gy);
   const stomp=ox&&P.vy>0&&P.y+P.h>top&&P.y+P.h<top+42&&e.mode!=='dash';
   const punchHit=punching&&e.x>hx0-40&&e.x<hx1+40&&top<hy1&&gy>hy0;
-  if(e.inv<=0&&(stomp||open&&(sb||punchHit))){ if(sb) sb.t=0; if(stomp) P.vy=-680; e.hp--; e.inv=.9; e.mode='hurt'; e.mt=.5; e.kx=(Math.sign(e.x-P.x)||1)*240; shake=.15; puff(e.x,gy-120,'#ff8fb3',16); sfx('defeat');
+  if(e.inv<=0&&(stomp||open&&(sb||punchHit))){ if(sb) sb.t=0; if(stomp) P.vy=-680; e.hp--; e.inv=.9; if(e.hp>0) ents.push({k:'ladle',x:e.x,y:gy-170,vx:(Math.sign(P.x-e.x)||-1)*160,vy:-520,fall:true,alive:true}); e.mode='hurt'; e.mt=.5; e.kx=(Math.sign(e.x-P.x)||1)*240; shake=.15; puff(e.x,gy-120,'#ff8fb3',16); sfx('defeat');
     if(e.hp<=0){ e.state='gone'; e.st=3; kisses=[]; phones=[]; rain=[]; if(cur){ cur.onended=null; cur.pause(); cur=null; } play(C.end,()=>{ play(C.win); kzSay={t:C.winTxt,ttl:3.2}; }); toast(C.free||C.name+' się poddaje! Droga do warsztatu wolna 🎁','#d6ffd9'); }
     else if(!cur) play(C.hit[(e.maxhp-e.hp-1)%C.hit.length]); return; }
   if(sb&&!open){ sb.t=0; puff(sb.x,sb.y,'#ffffff',6); sfx('phone',.3); if(!e.toldGuard){ e.toldGuard=1; toast(C.guard,'#ffe6a8'); } }
