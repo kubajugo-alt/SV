@@ -205,7 +205,7 @@ function start(){ initAudio(); if(AC&&AC.state==='suspended') AC.resume(); $('in
   say('b_start',()=>setTimeout(()=>say('b_start_m'),200),true); }
 $('bGo').onclick=start;
 function finish(win){ state='end'; ['L','R','F','B'].forEach(k=>K[k]=false); if(runG) runG.gain.value=0; const row=$('eRow'); row.innerHTML='';
-  if(win){ $('eH').textContent='Inez pokonana! ❄'; $('eTxt').innerHTML=`Ostatnia śnieżka z armatki i różowy bobslej wylądował w zaspie. Inez oddała biegun!<br>Czas pościgu: <b>${fmt(clock)}</b>`; try{ if((+localStorage.getItem('pn-level')||1)<8) localStorage.setItem('pn-level',8); }catch(e){}
+  if(win){ $('eH').textContent='Inez w zaspie! ❄'; $('eTxt').innerHTML=`Ostatnia śnieżka z armatki i różowy bobslej wylądował w zaspie… ale Inez już wzywa swojego Różowego Renifera!<br>Czas pościgu: <b>${fmt(clock)}</b>`; try{ if((+localStorage.getItem('pn-level')||1)<8) localStorage.setItem('pn-level',8); }catch(e){}
     const b1=document.createElement('button'); b1.className='btn'; b1.textContent='Dalej ➜'; b1.onclick=()=>{ location.href='../index.html?after=bobslej'; }; row.append(b1); }
   else { $('eH').textContent='Inez uciekła!'; $('eTxt').innerHTML=`Inez przejechała trzy okrążenia i zostały jej ${'❤'.repeat(INEZ.hp)}. Trzymajcie się środka rynny, łapcie turbo i strzelajcie, gdy jest blisko!`; say('b_lose',null,true); }
   const b2=document.createElement('button'); b2.className='btn'+(win?' alt':''); b2.textContent='Jeszcze raz'; b2.onclick=start; row.append(b2); $('end').classList.remove('hidden'); }
