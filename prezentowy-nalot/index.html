@@ -49,9 +49,9 @@ body.touch.playing #touch{ display:flex; }
   <div id="title" class="ov">
     <div class="logo"><small>Świąteczna trylogia · część 3</small><b>Prezentowy nalot</b></div>
     <div>
-      <button class="btn" id="bPlay" disabled>Ładowanie…</button> <button class="btn alt" id="bLvl2" style="display:none">Poziom 2: Las ▶</button>
-      <p class="help" id="helpTouch" style="display:none">Przesuwaj palcem po ekranie, żeby sterować saniami · ❄ śnieżka Kaczora · 🎁 prezent od Mikołaja · 🦌 fala światła z nosa Rudolfa (czyści niebo)<br>Zrzucaj prezenty, gdy komin świeci na złoto, i nie daj się zatrzymać Inez, Gayzilli i Grinchowi!</p>
-      <p class="help" id="helpKeys">◀ ▶ ▲ ▼ / WASD — lot sań · <b>Spacja</b> / J — śnieżka Kaczora · <b>X</b> / K — prezent od Mikołaja · <b>C</b> / L — fala światła z nosa Rudolfa (czyści niebo, 2 na poziom)<br>Zrzucaj prezenty prosto do kominów i nie daj się zatrzymać Inez, Gayzilli i Grinchowi! · P — pauza · M — dźwięk</p>
+      <button class="btn" id="bPlay" disabled>Ładowanie…</button> <button class="btn alt" id="bLvl2" style="display:none">Poziom 2: Las ▶</button> <button class="btn alt" id="bLvl3" style="display:none">Poziom 3: Biegun ▶</button>
+      <p class="help" id="helpTouch" style="display:none">Przesuwaj palcem po ekranie, żeby sterować saniami · ❄ śnieżka Kaczora · 🎁 prezent od Mikołaja · 🦌 fala światła z nosa Rudolfa (czyści niebo)<br>Zrzucaj prezenty, gdy komin świeci na złoto, i nie daj się zatrzymać krukom, goblinom Grincha i elfom Inez!</p>
+      <p class="help" id="helpKeys">◀ ▶ ▲ ▼ / WASD — lot sań · <b>Spacja</b> / J — śnieżka Kaczora · <b>X</b> / K — prezent od Mikołaja · <b>C</b> / L — fala światła z nosa Rudolfa (czyści niebo, 2 na poziom)<br>Zrzucaj prezenty prosto do kominów i nie daj się zatrzymać krukom, goblinom Grincha i elfom Inez! · P — pauza · M — dźwięk</p>
     </div>
   </div>
 
@@ -65,9 +65,9 @@ body.touch.playing #touch{ display:flex; }
   <button id="bSkip" class="btn alt" style="position:absolute;right:1.2cqw;top:10cqh;z-index:7;display:none;font-size:2.2cqh">Pomiń ▶</button>
   <div id="pause" class="ov dim hidden"><div class="card"><h2>Pauza</h2><p>Rudolf łapie oddech.</p><div class="row"><button class="btn" id="bResume">Wznów</button><button class="btn alt" id="bRestart">Od nowa</button><button class="btn alt" id="bMenu">Menu</button></div></div></div>
 
-  <div id="over" class="ov dim hidden"><div class="card"><h2>Sanie na ziemi!</h2><p id="oTxt">Inez zatrzymała sanie. Kaka już poprawia listę — spróbujcie jeszcze raz!</p><div class="row"><button class="btn" id="bRetry">Jeszcze raz</button><button class="btn alt" id="bMenu2">Menu</button></div></div></div>
+  <div id="over" class="ov dim hidden"><div class="card"><h2>Sanie na ziemi!</h2><p id="oTxt"></p><div class="row"><button class="btn" id="bRetry">Jeszcze raz</button><button class="btn alt" id="bMenu2">Menu</button></div></div></div>
 
-  <div id="tbc" class="ov dim hidden"><div class="card"><h2>Ciąg dalszy nastąpi…</h2><p>Papi najedzony, kociołek bulgocze, a disco kula wciąż się kręci. 🪩💕<br>Rodzinka wsiada do sań — przed nimi <b>poziom 3: nad wioską</b>. Już wkrótce!</p><div class="row"><button class="btn" id="bCotAgain">Jeszcze raz w chatce</button><button class="btn alt" id="bMenu4">Menu</button></div></div></div>
+  <div id="tbc" class="ov dim hidden"><div class="card"><h2>Wesołych Świąt! 🎄</h2><p>Biegun uwolniony, elfy wróciły do warsztatów, a Inez odfrunęła na spadochronie.<br>Papi znów rządzi na biegunie… ale na Wigilię i tak leci do Jugo i Gayzilli na pierogi. 💕</p><p><b>Koniec świątecznej trylogii Kaki, Kaczora i Mikołaja!</b></p><div class="row"><button class="btn" id="bCotAgain">Biegun jeszcze raz</button><button class="btn alt" id="bMenu4">Menu</button></div></div></div>
   <div id="win" class="ov dim hidden"><div class="card"><h2>Poziom 1 ukończony!</h2><div class="stars" id="wStars"></div><p id="wTxt"></p><p id="wNext"></p><div class="row"><button class="btn" id="bNext">Dalej ➜</button><button class="btn alt" id="bAgain">Zagraj jeszcze raz</button><button class="btn alt" id="bMenu3">Menu</button></div></div></div>
 </div>
 
@@ -83,7 +83,7 @@ const TOUCH=matchMedia('(pointer:coarse)').matches; if(TOUCH){ document.body.cla
 
 // ---------- assets ----------
 const IMG={}, img=n=>{ if(IMG[n]) return IMG[n]; const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; return i; };
-const ART=['bg_night','sleigh','plane_inez','plane_gay','plane_grinch','house1','house2','house3','house4','gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold','candy','cookie','star','coal','kiss','phone','para_inez','para_gay','para_grinch','face_kaka','face_kaczor','face_mikolaj','face_inez','bg_forest','tree1','tree2','tree3','lodge','sett','beaver','badger','plane_goblin','landing','mar_idle','tent_in','family','ck_star','ck_heart','ck_tree','ck_deer','ck_peace','pr_feather','pr_cone','dreamcatcher','plate','garland','village','cottage_in','jugo','gay_cook','santa','f_mush','f_beet','f_egg','f_sock','f_pierog','f_cake','f_disco'];
+const ART=['bg_night','sleigh','plane_inez','plane_gay','plane_grinch','house1','house2','house3','house4','gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold','candy','cookie','star','coal','kiss','phone','para_inez','para_gay','para_grinch','face_kaka','face_kaczor','face_mikolaj','face_inez','bg_forest','tree1','tree2','tree3','lodge','sett','beaver','badger','plane_goblin','landing','mar_idle','tent_in','family','ck_star','ck_heart','ck_tree','ck_deer','ck_peace','pr_feather','pr_cone','dreamcatcher','plate','garland','village','cottage_in','jugo','gay_cook','santa','f_mush','f_beet','f_egg','f_sock','f_pierog','f_cake','f_disco','raven','raven_boss','raven_daze','bauble','snowball','feather','bg_pole','ws1','ws2','plane_elf','para_elf','elf_happy','pole_land','santa_stand'];
 ART.forEach(img);
 let ANIM={}, HOUSES={}, TREES={};
 const ready=Promise.all([fetch('art/anim/anim.json').then(r=>r.json()).then(j=>{ ANIM=j; for(const k in j) ANIM[k].img=img('anim/'+k); }).catch(()=>{}),
@@ -102,7 +102,7 @@ let muted=false; try{ muted=localStorage.getItem('pn-mute')==='1'; }catch(e){}
 const bgm=new Audio(); bgm.loop=true; let bgmVol=.32;
 function setMusic(src){ if(bgm.src.endsWith(src)) return; bgm.src='audio/'+src; bgm.volume=bgmVol; if(!muted) bgm.play().catch(()=>{}); }
 const AUD={}, aud=n=>{ if(!AUD[n]){ const a=new Audio('audio/'+n+'.mp3'); a.preload='auto'; AUD[n]=a; } return AUD[n]; };
-const VOICES=['nk_start','nk_hit','nm_glow','nk_win','nz_start','nz_inez','nz_hit','nz_boss','nz_win','nm_drop','nm_good','nm_miss','ni_intro','ni_boss','ni_down','mar_l2','nz_mar','nk_mar','nm_mar','nz_goblin','nk_tree','gb_taunt','gr_intro','gr_down','nz_boss2','an_beaver','an_badger','nk_win2','mar_invite','mar_tent','mar_g1','mar_g1done','mar_g2','mar_g2done','mar_g3','mar_g3done','mar_all','nk_tent','nm_tent','nz_tent'];
+const VOICES=['nk_start','nk_hit','nm_glow','nk_win','nz_start','nz_inez','nz_hit','nz_boss','nz_win','nm_drop','nm_good','nm_miss','ni_intro','ni_boss','ni_down','mar_l2','nz_mar','nk_mar','nm_mar','nz_goblin','nk_tree','gb_taunt','gr_intro','gr_down','nz_boss2','an_beaver','an_badger','nk_win2','mar_invite','mar_tent','mar_g1','mar_g1done','mar_g2','mar_g2done','mar_g3','mar_g3done','mar_all','nk_tent','nm_tent','nz_tent','nk_raven','nz_raven','rk_intro','nz_boss1','rk_down','nk_start3','nz_start3','elf_taunt','nz_elf','elf_thx','ni3_intro','nz_boss3','ni3_down','nk_win3','nz_win3'];
 const SUBS={nk_start:['Kaka','Lista prezentów sprawdzona, renifer nakarmiony. Lecimy, rodzinko!'],nk_hit:['Kaka','Uważaj, Kaczor! Prawie wypadł mi notes!'],nm_glow:['Mikołaj','Rudolf, zaświeć noskiem!'],nk_win:['Kaka','Wszystkie kominy odhaczone! Brawo, drużyno!'],
   nz_start:['Kaczor','Trzymajcie się mocno, Rudolf dziś szaleje!'],nz_inez:['Kaczor','Inez w samolocie? No pięknie…'],nz_hit:['Kaczor','Au! To był całus czy pocisk?'],nz_boss:['Kaczor','Dobra, Inez, pora na lądowanie!'],nz_win:['Kaczor','Ani jednego komina nie przegapiliśmy. Prawie.'],
   nm_drop:['Mikołaj','Prezent poleciał!'],nm_good:['Mikołaj','Trafiłem w komin! Hurra!'],nm_miss:['Mikołaj','Ups… na dach.'],
@@ -123,8 +123,17 @@ const SUBS={nk_start:['Kaka','Lista prezentów sprawdzona, renifer nakarmiony. L
   gz_g1:['Gayzilla','Do kociołka tylko to, co w przepisie! Zgniłe jajka i skarpety precz!'],gz_g1done:['Gayzilla','Mmm! Zupa jak u babci Jagi!'],
   jugo_g2:['Jugo','Papi głodny! Celuj prosto w buzię, nie w brodę!'],santa_g2done:['Papi','Ho ho ho! Już nie dam rady, chłopcy!'],
   gz_g3:['Gayzilla','Papi, do tańca! Powtarzaj kroki za nami!'],santa_g3done:['Papi','Ho ho ho! Dawno tak nie tańczyłem!'],
-  jugo_all:['Jugo','Papi najedzony i roztańczony. Lećcie dalej, kochani, wioska czeka na prezenty!']};
-const WHO_COL={Kaka:'#ffd1dc',Kaczor:'#cfe6ff',Mikołaj:'#fff1a8',Inez:'#ff9ccf',Maryańska:'#ffcf8a',Goblin:'#b6f08a',Grinch:'#b6f08a',Bóbr:'#e8c49a',Borsuk:'#e0e0e0',Jugo:'#9fe6c8',Gayzilla:'#e0b0ff',Papi:'#ff9a8a'};
+  nk_raven:['Kaka','Uwaga, kruki! I kradną bombki z choinek!'],nz_raven:['Kaczor','Kruki? W Wigilię? Skąd ich tyle?!'],rk_intro:['Wielki Kruk','Kraaa! Wszystkie błyskotki i prezenty będą moje! Kraaa!'],nz_boss1:['Kaczor','Wielki kruk! Trzymajcie prezenty!'],rk_down:['Wielki Kruk','Kraaa! Moje pióra! Powiem wszystko szefowej!'],
+  nk_why:['Kaka','Święty Mikołaju… a co pan właściwie tu robi, zamiast na biegunie?'],santa_s1:['Papi','Ech… ukrywam się tu, dzieci. Przez Inez.'],santa_s2:['Papi','Była nową panią Mikołajową. Ale romans nie wyszedł… A wtedy Inez zbuntowała elfy i przejęła biegun północny!'],
+  nz_inez2:['Kaczor','Inez?! Ona jest wszędzie!'],nk_ravens:['Kaka','To pewnie ona nasłała na nas te kruki!'],santa_s3:['Papi','Kobiety? Za dużo z nimi kłopotu! Zostaję u chłopców. Przynajmniej Gayzilla dobrze gotuje! Ho ho ho!'],
+  gz_wink:['Gayzilla','Oj, Papi, zawstydzasz mnie!'],nk_hey:['Kaka','Hej! Ja tu też jestem!'],santa_s4:['Papi','Wy macie sanie i Rudolfa. Lećcie na biegun, pokonajcie Inez i uwolnijcie elfy! Ho ho ho!'],
+  nm_pole:['Mikołaj','Lecimy na biegun! Juhu!'],jugo_bye:['Jugo','Lećcie, kochani! A Papi zostaje u nas na pierogach.'],
+  nk_start3:['Kaka','Kurs na biegun! Każdy dom elfów dostanie prezent, wtedy elfy wrócą do Mikołaja!'],nz_start3:['Kaczor','Trzymajcie się! Rudolf, pełna para!'],
+  elf_taunt:['Zbuntowany elf','Stać! Tu rządzi Inez! Śnieżkami w nich!'],nz_elf:['Kaczor','Elfy w samolotach? No to mamy problem.'],elf_thx:['Elf','Prezent! Wracam do Mikołaja! Precz z Inez!'],
+  ni3_intro:['Inez','Kaczorku! Przyleciałeś do mnie aż na biegun? Ten biegun jest mój!'],nz_boss3:['Kaczor','Inez, oddawaj biegun Mikołajowi!'],ni3_down:['Inez','Moje elfy! Mój biegun! Kaczorku, jeszcze się spotkamy!'],
+  nk_win3:['Kaka','Biegun uwolniony! Elfy wolne, święta uratowane!'],nz_win3:['Kaczor','A teraz… naprawdę do sauny!'],
+  santa_end:['Papi','Ho ho ho! Biegun znów jest mój! Dziękuję wam, rodzinko!'],santa_end2:['Papi','Ale na Wigilię i tak wracam do chłopców. Gayzilla obiecał pierogi!'],nm_end:['Mikołaj','Wesołych Świąt, Święty Mikołaju!'],elf_end:['Elf','Wesołych Świąt! Do roboty, elfy, prezenty same się nie zapakują!']};
+const WHO_COL={Kaka:'#ffd1dc',Kaczor:'#cfe6ff',Mikołaj:'#fff1a8',Inez:'#ff9ccf',Maryańska:'#ffcf8a',Goblin:'#b6f08a',Grinch:'#b6f08a',Bóbr:'#e8c49a',Borsuk:'#e0e0e0',Jugo:'#9fe6c8',Gayzilla:'#e0b0ff',Papi:'#ff9a8a','Wielki Kruk':'#c8b6ff',Elf:'#b6f08a','Zbuntowany elf':'#ff9ccf'};
 let voice=null, sub=null;
 function say(key,onend,force){ if(voice&&!force){ if(onend) onend(); return false; } if(voice){ voice.onended=null; voice.pause(); }
   sub={who:SUBS[key][0],t:SUBS[key][1],ttl:4}; if(muted){ voice=null; setTimeout(()=>{ if(onend) onend(); },1200); return true; }
@@ -161,17 +170,26 @@ function mulberry(a){ return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>
 // enemy schedules: [time, pattern, count, y]
 const WAVES=[[7,'wave',1,180],[12,'wave',2,260],[18,'dive',1,140],[24,'wave',3,200],[31,'dive',2,180],[38,'wave',2,120],[44,'line',4,0],[52,'dive',2,240],[58,'wave',3,300],[66,'dive',3,160],[74,'line',5,0],[82,'wave',3,180],[90,'dive',2,120],[96,'wave',4,260],[104,'line',5,0],[112,'dive',3,200],[120,'wave',4,150],[128,'dive',3,260],[136,'line',6,0]];
 const WAVES2=[[8,'wave',1,160],[13,'dive',1,140],[19,'wave',2,200],[25,'lob',2,120],[32,'dive',2,160],[39,'wave',3,130],[46,'lob',3,110],[53,'line',4,0],[60,'dive',2,200],[67,'lob',3,120],[74,'wave',3,150],[81,'dive',3,140],[88,'line',5,0],[95,'lob',4,110],[103,'wave',4,170],[111,'dive',3,130],[118,'lob',4,120],[126,'line',6,0],[134,'dive',3,150]];
+const WAVES3=[[6,'wave',2,170],[11,'dive',1,140],[16,'wave',3,230],[22,'lob',2,120],[28,'dive',2,170],[34,'line',4,0],[40,'wave',3,140],[46,'lob',3,110],[52,'dive',3,200],[58,'line',5,0],[64,'wave',4,180],[70,'lob',3,120],[76,'dive',3,150],[82,'line',5,0],[88,'wave',4,260],[94,'lob',4,110],[100,'dive',3,140],[106,'wave',4,170],[112,'line',6,0],[118,'lob',4,120],[124,'dive',4,180],[130,'line',6,0],[136,'wave',5,200]];
 const LEVELS=[
   {name:'Nad osiedlem',bg:'bg_night',music:'music_1.mp3',targets:['house1','house2','house3','house4'],trees:false,waves:WAVES,
-   foe:{kind:'inez',anim:'nl_inez',img:'plane_inez',shot:'kiss',w:170},start:['nk_start','nz_start'],meet:['ni_intro','nz_inez'],win:['nk_win','nz_win'],
-   boss:{name:'Inez',anim:'nl_inez',img:'plane_inez',para:'para_inez',hp:90,bar:'#ff6fae',col:'#ff9ccf',intro:['ni_boss','nz_boss'],down:'ni_down',angry:'Inez się wścieka! 💢',shot:'kiss'},
-   hint:'komin świeci na złoto',intro:`<p>Wigilia. Kaka ma listę wszystkich domów, Kaczor trzyma lejce, a mały Mikołaj pilnuje worka z prezentami. Rudolf rusza w noc!</p><p>Ale nad osiedlem krąży różowy samolot… <b>Inez</b> nie odpuści Kaczorowi nawet w Wigilię.</p>`,
-   faces:['face_kaka','face_mikolaj','face_kaczor'],winTxt:'Inez odfrunęła na spadochronie, a rodzinka leci dalej!',next:'Na skraju lasu czeka ktoś znajomy…'},
+   foe:{kind:'raven',anim:'nl_raven',img:'raven',shot:'bauble',w:150,para:'raven_daze',paraW:110,fall:true,col:'#3a3550'},start:['nk_start','nz_start'],meet:['nk_raven','nz_raven'],win:['nk_win','nz_win'],
+   boss:{name:'Wielki Kruk',anim:'nl_ravenboss',img:'raven_boss',para:'raven_daze',fall:true,hp:90,bar:'#8f7cff',col:'#c8b6ff',intro:['rk_intro','nz_boss1'],down:'rk_down',angry:'Wielki Kruk się wścieka! 💢',shot:'bauble'},
+   over:'Kruki zatrzymały sanie. Kaka już poprawia listę — spróbujcie jeszcze raz!',got:'Prezenty w kominach',
+   hint:'komin świeci na złoto',intro:`<p>Wigilia. Kaka ma listę wszystkich domów, Kaczor trzyma lejce, a mały Mikołaj pilnuje worka z prezentami. Rudolf rusza w noc!</p><p>Ale nad osiedlem krążą <b>kruki</b> w różowych szalikach — kradną bombki z choinek i rzucają nimi w sanie. Ktoś je tu nasłał…</p>`,
+   faces:['face_kaka','face_mikolaj','face_kaczor'],winTxt:'Wielki Kruk odleciał bez piór, a rodzinka leci dalej!',next:'Na skraju lasu czeka ktoś znajomy…'},
   {name:'Leśne gobliny',bg:'bg_forest',music:'music_2.mp3',targets:['lodge','sett'],trees:true,waves:WAVES2,
    foe:{kind:'goblin',anim:'nl_goblin',img:'plane_goblin',shot:'coal',w:170,para:'para_grinch'},start:null,meet:['gb_taunt','nz_goblin'],win:['nk_win2'],
+   over:'Gobliny zatrzymały sanie. Kaka już poprawia listę — spróbujcie jeszcze raz!',got:'Prezenty u bobrów i borsuków',
    boss:{name:'Grinch',anim:'nl_grinch',img:'plane_grinch',para:'para_grinch',hp:110,bar:'#7ac74f',col:'#b6f08a',intro:['gr_intro','nz_boss2'],down:'gr_down',angry:'Grinch się wścieka! 💢',shot:'coal'},
    hint:'nora świeci na złoto',intro:`<p>Maryańska wskazała drogę: za lasem bobry i borsuki czekają na prezenty, a w koronach drzew czają się <b>gobliny Grincha</b> z workami węgla.</p><p>Lećcie nisko, żeby trafić do kominków w żeremiach i norach, ale <b>uważajcie na korony drzew!</b></p>`,
-   faces:['face_kaka','face_mikolaj','face_kaczor'],winTxt:'Grinch odfrunął na spadochronie, a las świętuje z bobrami i borsukami!',next:'Za lasem, na skraju wioski, stoi pewna piernikowa chatka…'}];
+   faces:['face_kaka','face_mikolaj','face_kaczor'],winTxt:'Grinch odfrunął na spadochronie, a las świętuje z bobrami i borsukami!',next:'Za lasem, na skraju wioski, stoi pewna piernikowa chatka…'},
+  {name:'Biegun północny',bg:'bg_pole',music:'music_3.mp3',targets:['ws1','ws2'],trees:false,waves:WAVES3,pop:'elf_happy',popVoice:'elf_thx',
+   foe:{kind:'elf',anim:'nl_elf',img:'plane_elf',shot:'snowball',w:170,para:'para_elf',col:'#ff9ccf'},start:['nk_start3','nz_start3'],meet:['elf_taunt','nz_elf'],win:['nk_win3','nz_win3'],
+   boss:{name:'Inez',anim:'nl_inez',img:'plane_inez',para:'para_inez',hp:140,bar:'#ff6fae',col:'#ff9ccf',intro:['ni3_intro','nz_boss3'],down:'ni3_down',angry:'Inez się wścieka! 💢',shot:'kiss'},
+   over:'Elfy Inez zatrzymały sanie. Kaka już poprawia listę — spróbujcie jeszcze raz!',got:'Prezenty u elfów',
+   hint:'komin świeci na złoto',intro:`<p>Biegun północny pod rządami <b>Inez</b>: zbuntowane elfy latają w pasiastych samolotach i rzucają śnieżkami, a na warsztatach wiszą różowe flagi.</p><p>Każdy prezent wrzucony do komina warsztatu sprawia, że elf wraca do Mikołaja. Na końcu czeka sama <b>Inez</b> — i tym razem jest naprawdę wściekła!</p>`,
+   faces:['face_kaka','face_mikolaj','face_kaczor'],winTxt:'Inez odfrunęła na spadochronie, a elfy wróciły do Mikołaja!',next:'Na biegunie ktoś bardzo chce wam podziękować…'}];
 let lvl=0, L=LEVELS[0], waveIdx=0, trees=[], nextTreeX=0, pops=[], saidTree=0, saidAnimal={};
 function reset(){
   P={x:260,y:220,vx:0,vy:0,hp:3,inv:2,shotCd:0,giftCd:0,triple:0,shield:0,anim:0,tilt:0};
@@ -184,7 +202,7 @@ function reset(){
 let saidInez=false, saidDrop=0, hitSay=0;
 function spawnHouse(x){ const types=L.targets; const type=types[Math.floor(rng()*types.length)], m=HOUSES[type]||{w:500,h:520,cx:250,cy:0,cw:60};
   const base=type==='house2'?.5:type==='lodge'?.5:type==='sett'?.58:.43, s=base*(0.92+rng()*.16), w=m.w*s, h=m.h*s;
-  houses.push({type,x,s,w,h,top:GROUND-h,cx:x+m.cx*s,cy:GROUND-h+m.cy*s,cw:Math.max(26,m.cw*s),done:false,glow:0,smoke:rng()*2,animal:type==='lodge'?'beaver':type==='sett'?'badger':null}); houseCount++;
+  houses.push({type,x,s,w,h,top:GROUND-h,cx:x+m.cx*s,cy:GROUND-h+m.cy*s,cw:Math.max(26,m.cw*s),done:false,glow:0,smoke:rng()*2,animal:type==='lodge'?'beaver':type==='sett'?'badger':L.pop||null}); houseCount++;
   if(!L.trees) return x+w+90+rng()*240;
   // forest: one tall tree in the gap after each animal home, never covering a home
   const tx=spawnTree(x+w+50+rng()*60); return tx+50+rng()*120; }
@@ -222,7 +240,7 @@ function update(dt){
   // presents
   gifts.forEach(g=>{ g.t+=dt; if(g.state==='fall'){ g.vy+=850*dt; g.x+=g.vx*dt; g.y+=g.vy*dt; g.rot+=g.vr*dt;
       for(const h of houses){ if(g.x>h.x&&g.x<h.x+h.w){ if(!h.done&&Math.abs(g.x-h.cx)<h.cw*.55&&g.y>h.cy-6&&g.y<h.cy+26){ g.state='in'; g.t=0; h.done=true; h.glow=1.5; delivered++; const pts=100+(Math.abs(g.x-h.cx)<h.cw*.2?50:0); score+=pts; popups.push({x:h.cx,y:h.cy-30,txt:pts>100?'Idealnie! +'+pts:'+'+pts,t:1.3,col:'#ffe27a'}); sfx('cp',.55); burst(h.cx,h.cy,'#ffe27a',18);
-            if(h.animal){ pops.push({x:h.cx,y:h.cy,img:h.animal,t:0}); if(!saidAnimal[h.animal]||(!voice&&Math.random()<.2)){ saidAnimal[h.animal]=1; say(h.animal==='beaver'?'an_beaver':'an_badger',null,true); } }
+            if(h.animal){ pops.push({x:h.cx,y:h.cy,img:h.animal,t:0}); if(!saidAnimal[h.animal]||(!voice&&Math.random()<.2)){ saidAnimal[h.animal]=1; say(h.animal==='beaver'?'an_beaver':h.animal==='badger'?'an_badger':L.popVoice,null,true); } }
             else if(!voice&&(delivered<=2||Math.random()<.18)) say('nm_good'); break; }
           if(g.y>h.top+h.h*(h.animal?.45:.32)){ g.state='bounce'; g.vy=-260; g.vx=-SPEED*.2-60; sfx('splat',.3); if(!voice&&Math.random()<.3) say('nm_miss'); break; } } }
       if(g.y>GROUND-10&&g.state==='fall'){ g.state='bounce'; g.vy=-180; } }
@@ -247,7 +265,7 @@ function update(dt){
   // power-ups
   items.forEach(it=>{ it.t+=dt; it.x+=it.vx*dt; it.y+=Math.sin(it.t*3)*30*dt; if(hitsPlayer(it.x,it.y,30)){ it.t=99; collect(it); } });
   items=items.filter(it=>it.t<12&&it.x>-40);
-  flyers.forEach(f=>{ f.t+=dt; f.vy+=(70-f.vy)*Math.min(1,dt*2); f.x+=(-SPEED*.45+Math.sin(f.t*1.3)*25)*dt; f.y+=f.vy*dt; });
+  flyers.forEach(f=>{ f.t+=dt; f.vy+=((f.fall?240:70)-f.vy)*Math.min(1,dt*2); f.x+=(-SPEED*.45+Math.sin(f.t*1.3)*25)*dt; f.y+=f.vy*dt; });
   flyers=flyers.filter(f=>f.y<VH+60&&f.x>-160);
   dusts.forEach(d=>{ d.t+=dt; d.x-=SPEED*.3*dt; }); dusts=dusts.filter(d=>d.t<1.1);
   waves.forEach(w=>{ w.r+=1350*dt; w.t+=dt;
@@ -281,8 +299,8 @@ function updateFoe(f,dt){ f.t+=dt; f.hit=Math.max(0,f.hit-dt);
     else ebullets.push({x:f.x-60,y:f.y,vx:Math.cos(a)*240,vy:Math.sin(a)*240,t:7,img:sh,home:sh==='kiss'?.8:.4}); blip(900,1300,.08,.025,'sine'); }
   if(hitsPlayer(f.x,f.y,40)){ damageFoe(f,9); hurt(); }
   if(f.x<-200||f.y<-200) f.alive=false; }
-function damageFoe(f,d){ f.hp-=d; f.hit=.12; puff(f.x,f.y,'#ffffff',4); if(f.hp<=0){ f.alive=false; score+=150; popups.push({x:f.x,y:f.y-50,txt:'+150',t:1,col:'#fff'}); sfx('defeat',.5); burst(f.x,f.y,f.kind==='inez'?'#ff9ccf':'#b6f08a',16);
-    dust(f.x,f.y,1); flyers.push({img:L.foe.para||'para_'+f.kind,x:f.x,y:f.y-20,vy:-40,t:0,w:120});
+function damageFoe(f,d){ f.hp-=d; f.hit=.12; puff(f.x,f.y,'#ffffff',4); if(f.hp<=0){ f.alive=false; score+=150; popups.push({x:f.x,y:f.y-50,txt:'+150',t:1,col:'#fff'}); sfx('defeat',.5); burst(f.x,f.y,L.foe.col||'#b6f08a',16); if(f.kind==='raven') for(let k=0;k<4;k++) parts.push({x:f.x,y:f.y,vx:(Math.random()-.5)*160,vy:-60-Math.random()*90,g:120,t:1.2,r:4,col:'#1c1a28'});
+    dust(f.x,f.y,1); flyers.push({img:L.foe.para||'para_'+f.kind,x:f.x,y:f.y-20,vy:-40,t:0,w:L.foe.paraW||120,fall:L.foe.fall});
     if(Math.random()<.22){ const r=Math.random(); items.push({kind:r<.4?'candy':r<.75?'cookie':'star',x:f.x,y:f.y,vx:-90,t:0}); } } }
 function collect(it){ sfx('pick',.5); if(it.kind==='candy'){ P.triple=10; popups.push({x:P.x,y:P.y-90,txt:'Laska cukrowa: potrójne śnieżki!',t:1.6,col:'#ffd1dc'}); }
   else if(it.kind==='cookie'){ P.hp=Math.min(5,P.hp+1); popups.push({x:P.x,y:P.y-90,txt:'Ciasteczko z mlekiem: +1 ❤',t:1.6,col:'#ffe27a'}); }
@@ -304,7 +322,7 @@ function updateBoss(dt){ const b=boss; b.t+=dt; b.mt-=dt; b.hit=Math.max(0,b.hit
   if(Math.abs(b.x-P.x)<170&&Math.abs(b.y-P.y)<90) hurt(); }
 function damageBoss(d){ const b=boss; if(b.hp<=0) return; b.hp-=d; b.hit=.1; score+=10; puff(b.x-40+Math.random()*80,b.y-30+Math.random()*60,'#ffffff',3);
   if(b.hp<=b.max/2&&bossPhase===1){ bossPhase=2; popups.push({x:b.x,y:Math.max(140,b.y-120),txt:L.boss.angry,t:1.6,col:L.boss.col}); }
-  if(b.hp<=0){ b.hp=0; score+=2000; sfx('defeat',.8); dust(b.x,b.y,2.2); burst(b.x,b.y,L.boss.col,30); shake=.6; ebullets=[]; flyers.push({img:L.boss.para,x:b.x,y:b.y-30,vy:-60,t:0,w:210}); say(L.boss.down,null,true); } }
+  if(b.hp<=0){ b.hp=0; score+=2000; sfx('defeat',.8); dust(b.x,b.y,2.2); burst(b.x,b.y,L.boss.col,30); shake=.6; ebullets=[]; flyers.push({img:L.boss.para,x:b.x,y:b.y-30,vy:-60,t:0,w:L.boss.fall?200:210,fall:L.boss.fall}); say(L.boss.down,null,true); } }
 
 // ---------- effects ----------
 function puff(x,y,col,n){ for(let k=0;k<n;k++){ const a=Math.random()*6.28, s=60+Math.random()*120; parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:.4+Math.random()*.3,r:3+Math.random()*4,col}); } }
@@ -339,7 +357,7 @@ function draw(){
   // items
   items.forEach(it=>{ c.globalAlpha=it.t>10?(Math.floor(it.t*8)%2?.3:1):1; const gl=c.createRadialGradient(it.x,it.y,4,it.x,it.y,34); gl.addColorStop(0,'rgba(255,240,180,.7)'); gl.addColorStop(1,'rgba(255,240,180,0)'); c.fillStyle=gl; c.fillRect(it.x-34,it.y-34,68,68); drawImg(it.kind,it.x,it.y,it.kind==='candy'?26:44); c.globalAlpha=1; });
   // planes falling
-  flyers.forEach(f=>{ const s=Math.min(1,.3+f.t*2.5); drawImg(f.img,f.x,f.y,f.w*s,Math.sin(f.t*1.8)*.12); });
+  flyers.forEach(f=>{ const s=Math.min(1,.3+f.t*2.5); drawImg(f.img,f.x,f.y,f.w*s,f.fall?f.t*5:Math.sin(f.t*1.8)*.12); });
   dusts.forEach(d=>{ const k=d.t/1.1; d.puffs.forEach(p=>{ c.globalAlpha=Math.max(0,(1-k))*.85; c.fillStyle=`rgb(${p.sh},${p.sh-8},${p.sh-20})`; c.beginPath(); c.arc(d.x+p.dx+p.vx*d.t,d.y+p.dy+p.vy*d.t,p.r*(.6+k*.8),0,6.29); c.fill(); }); }); c.globalAlpha=1;
   // enemies
   foes.forEach(f=>{ if(f.hit>0) c.filter='brightness(2)'; drawAnim(L.foe.anim,L.foe.img,f.x,f.y,L.foe.w,f.t+f.base*.01); c.filter='none'; });
@@ -384,20 +402,22 @@ function drawHud(){
 
 // ---------- cutscene: landing by the forest, Maryańska sends the family on ----------
 let CUT=null;
-function startCut(kind){ ['win','over','pause','intro','title'].forEach(id=>$(id).classList.add('hidden')); document.body.classList.remove('playing'); state='cut'; CUT={t:0,said:false,kind:kind==='jugo'?'jugo':'mar'}; sub=null; $('bSkip').textContent='Pomiń ▶'; setMusic('music_2.mp3'); bgm.volume=bgmVol*.6; $('bSkip').style.display=''; }
+function startCut(kind){ ['win','over','pause','intro','title'].forEach(id=>$(id).classList.add('hidden')); document.body.classList.remove('playing'); state='cut'; CUT={t:0,said:false,kind:kind==='jugo'||kind==='pole'?kind:'mar'}; sub=null; $('bSkip').textContent='Pomiń ▶'; setMusic('music_2.mp3'); bgm.volume=bgmVol*.6; $('bSkip').style.display=''; }
 function updateCut(dt){ CUT.t+=dt; t0+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; }
-  if(!CUT.said&&CUT.t>3.7){ CUT.said=true; const chain=CUT.kind==='jugo'?['jugo_hi','nz_jugo','nk_jugo']:['nz_mar','mar_l2','nk_mar','nm_mar','mar_invite']; const next=i=>{ if(state!=='cut') return; if(i>=chain.length){ setTimeout(endCut,700); return; } say(chain[i],()=>setTimeout(()=>next(i+1),250),true); }; next(0); }
+  if(!CUT.said&&CUT.t>3.7){ CUT.said=true; const chain=CUT.kind==='jugo'?['jugo_hi','nz_jugo','nk_jugo']:CUT.kind==='pole'?['santa_end','nm_end','elf_end','santa_end2']:['nz_mar','mar_l2','nk_mar','nm_mar','mar_invite']; const next=i=>{ if(state!=='cut') return; if(i>=chain.length){ setTimeout(endCut,700); return; } say(chain[i],()=>setTimeout(()=>next(i+1),250),true); }; next(0); }
   if(Math.floor(t0*1.3)!==Math.floor((t0-dt)*1.3)&&CUT.t<3.8) jingle(.035); }
-function endCut(){ if(state!=='cut') return; if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; CUT.kind==='jugo'?startCot():startTent(); }
-function drawCut(){ c.setTransform(RES,0,0,RES,0,0); const J=CUT.kind==='jugo', bg=J?IMG.village:IMG.landing; if(ok(bg)){ const sc=Math.max(VW/bg.naturalWidth,VH/bg.naturalHeight); c.drawImage(bg,(VW-bg.naturalWidth*sc)/2,(VH-bg.naturalHeight*sc)/2,bg.naturalWidth*sc,bg.naturalHeight*sc); } else { c.fillStyle='#0b1430'; c.fillRect(0,0,VW,VH); }
+function endCut(){ if(state!=='cut'||CUT.done) return; if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; CUT.kind==='jugo'?startCot():CUT.kind==='pole'?theEnd():startTent(); }
+function drawCut(){ c.setTransform(RES,0,0,RES,0,0); const J=CUT.kind==='jugo', PO=CUT.kind==='pole', bg=J?IMG.village:PO?IMG.pole_land:IMG.landing; if(ok(bg)){ const sc=Math.max(VW/bg.naturalWidth,VH/bg.naturalHeight); c.drawImage(bg,(VW-bg.naturalWidth*sc)/2,(VH-bg.naturalHeight*sc)/2,bg.naturalWidth*sc,bg.naturalHeight*sc); } else { c.fillStyle='#0b1430'; c.fillRect(0,0,VW,VH); }
   if(J){ drawStand('jugo',1000,690,300,sub&&sub.who==='Jugo'); if(CUT.t>4) hearts(1000,380,CUT.t); }
+  else if(PO){ drawStand('santa_stand',930,700,330,sub&&sub.who==='Papi'); for(let k=0;k<3;k++){ const hop=Math.abs(Math.sin(t0*3+k*1.3))*(sub&&sub.who==='Elf'&&k===1?40:18); drawStand('elf_happy',1080+k*70,690-hop-(k%2)*14,120-k*8,false,k===2); }
+    if(CUT.t>4){ for(let k=0;k<12;k++){ const ph=(t0*.25+k/12)%1; c.fillStyle=['#ff5a4e','#ffd34e','#7dff7a','#5ad1ff','#ff9ccf'][k%5]; c.save(); c.translate(200+k*90+Math.sin(t0+k)*30,-20+ph*760); c.rotate(t0*3+k); c.fillRect(-5,-3,10,6); c.restore(); } } }
   else { const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',960,655,290,t0); }
   const p=Math.min(1,CUT.t/3.5), e=1-Math.pow(1-p,3), x=-260+640*e, y=150+430*e-Math.sin(p*Math.PI)*40;
   if(p<1) drawAnim('nl_sleigh','sleigh',x,y,330,CUT.t*1.2,(1-p)*.12); else drawImg('sleigh',x,y,330);
   if(p>=1&&CUT.t<4.6){ c.globalAlpha=Math.max(0,1-(CUT.t-3.5)); c.fillStyle='#fff'; for(let k=0;k<10;k++){ c.beginPath(); c.arc(x-140+k*30,y+80+Math.sin(k)*6,10+((k*7)%9),0,6.29); c.fill(); } c.globalAlpha=1; }
   // falling snow
   c.fillStyle='rgba(255,255,255,.85)'; SNOW.forEach(s=>{ const yy=(s.y+t0*s.s)%VH, xx=((s.x-t0*s.s*.6+Math.sin(t0+s.d)*10)%VW+VW)%VW; c.beginPath(); c.arc(xx,yy,s.r,0,6.29); c.fill(); });
-  txt(J?'Skraj wioski':'Skraj lasu',VW/2,40,30,'#ffe27a','center'); drawSub(); }
+  txt(J?'Skraj wioski':PO?'Biegun północny':'Skraj lasu',VW/2,40,30,'#ffe27a','center'); drawSub(); }
 $('bSkip').onclick=()=>{ if(state==='cut') endCut(); else if(state==='tent') leaveTent(); else if(state==='cot') leaveCot(); };
 
 // ---------- Maryańska's tent: a hub with three Christmas mini-games ----------
@@ -499,7 +519,8 @@ function hearts(x,y,t,n=4){ for(let k=0;k<n;k++){ const ph=(t*.5+k/n)%1; heart(x
 function startCot(){ ['win','over','pause','intro','title','tbc'].forEach(id=>$(id).classList.add('hidden')); document.body.classList.remove('playing'); state='cot'; CG=null; COT={done:{},t:0,end:false,fin:false}; sub=null; setMusic('music_title.mp3'); bgm.volume=bgmVol*.5;
   $('bSkip').textContent='Pomiń minigry ▶'; $('bSkip').style.display='';
   const chain=['gz_hub','santa_hub','jugo_hub','nm_santa','nz_cot']; const next=i=>{ if(state!=='cot'||CG||i>=chain.length) return; say(chain[i],()=>setTimeout(()=>next(i+1),250),i===0); }; next(0); }
-function leaveCot(){ if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; CG=null; COT.fin=true; $('bSkip').style.display='none'; $('bSkip').textContent='Pomiń ▶'; $('tbc').classList.remove('hidden'); sfx('win',.5); }
+function leaveCot(){ if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; CG=null; COT.fin=true; $('bSkip').style.display='none'; $('bSkip').textContent='Pomiń ▶'; try{ if((+localStorage.getItem('pn-level')||1)<3) localStorage.setItem('pn-level',3); }catch(e){} showLvlBtn(); showIntro(2); }
+function theEnd(){ $('bSkip').style.display='none'; COT=COT||{}; state='cut'; CUT.t=Math.max(CUT.t,5); CUT.done=true; $('tbc').classList.remove('hidden'); sfx('win',.6); }
 function cotPointer(x,y){ if(!COT||COT.fin) return; if(CG){ cotGameClick(x,y); return; } if(COT.end) return;
   for(const id in COT_HOT){ const h=COT_HOT[id]; if(!COT.done[id]&&x>h.x&&x<h.x+h.w&&y>h.y&&y<h.y+h.h){ openCot(id); return; } } }
 addEventListener('keydown',e=>{ if(state!=='cot') return; CKEY[e.code]=true; if(!CG) return; if(e.code==='Escape'){ CG=null; sub=null; return; }
@@ -554,7 +575,8 @@ function cotGameClick(x,y){ const g=CG; if(g.won!=null) return;
   if(g.id==='fd'){ if(y<580&&y>200) throwFood(x,y); return; }
   if(g.id==='dn'){ ARR.forEach((a,i)=>{ if(Math.hypot(x-a.x,y-a.y)<52) danceKey(i); }); } }
 function updateCot(dt){ t0+=dt; COT.t+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } if(COT.fin) return;
-  if(!CG){ if(!COT.end&&COT.done.kc&&COT.done.fd&&COT.done.dn&&!voice){ COT.end=true; say('jugo_all',()=>setTimeout(leaveCot,700),true); $('bSkip').textContent='Lecimy dalej ✨'; } return; }
+  if(!CG){ if(!COT.end&&COT.done.kc&&COT.done.fd&&COT.done.dn&&!voice){ COT.end=true; COT.story=true; $('bSkip').textContent='Lecimy na biegun ✨';
+      const chain=['nk_why','santa_s1','santa_s2','nz_inez2','nk_ravens','santa_s3','gz_wink','nk_hey','santa_s4','nm_pole','jugo_bye']; const next=i=>{ if(state!=='cot'||COT.fin) return; if(i>=chain.length){ setTimeout(leaveCot,700); return; } say(chain[i],()=>setTimeout(()=>next(i+1),250),true); }; next(0); } return; }
   const g=CG; if(g.won!=null){ g.won-=dt; if(g.id==='kc') kcUpdate(g,dt); if(g.won<=0) CG=null; return; }
   if(g.id==='kc'){ g.t+=dt; kcUpdate(g,dt); } if(g.id==='fd') fdUpdate(g,dt); if(g.id==='dn') dnUpdate(g,dt); }
 function drawCot(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.cottage_in; if(ok(bg)) c.drawImage(bg,0,0,VW,VH); else { c.fillStyle='#3a2414'; c.fillRect(0,0,VW,VH); }
@@ -576,7 +598,7 @@ function drawCot(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.cottage_in; if
     for(const id in COT_HOT){ const h=COT_HOT[id], dn=D[id], hov=!dn&&MOUSE.x>h.x&&MOUSE.x<h.x+h.w&&MOUSE.y>h.y&&MOUSE.y<h.y+h.h;
       if(!dn){ c.save(); c.setLineDash([10,8]); c.lineDashOffset=-t0*30; c.strokeStyle=hov?'rgba(255,231,122,.95)':`rgba(255,231,122,${.45+.25*Math.sin(t0*4)})`; c.lineWidth=hov?5:3; c.beginPath(); c.roundRect(h.x,h.y,h.w,h.h,20); c.stroke(); c.restore(); }
       txt((dn?'✓ ':'')+h.label,h.x+h.w/2,h.y+(id==='dn'?h.h+22:-18),22,dn?'#9be38c':'#ffe27a','center'); }
-    if(!COT.end){ const n=Object.keys(D).length; txt(n<3?`Pomóż w chatce: ${n} / 3 — kliknij świecące miejsce`:'Wszystko gotowe!',VW/2,78,22,'#fff','center'); } }
+    if(!COT.end){ const n=Object.keys(D).length; txt(n<3?`Pomóż w chatce: ${n} / 3 — kliknij świecące miejsce`:'Wszystko gotowe!',VW/2,78,22,'#fff','center'); } else txt('Papi ma wam coś do powiedzenia…',VW/2,78,22,'#ffcf8a','center'); }
   else drawCotGame();
   drawSub(); }
 function drawCotGame(){ const g=CG; c.fillStyle='rgba(10,6,4,.45)'; c.fillRect(0,0,VW,VH);
@@ -607,25 +629,25 @@ function drawCotGame(){ const g=CG; c.fillStyle='rgba(10,6,4,.45)'; c.fillRect(0
 // ---------- flow ----------
 function showIntro(i){ lvl=i; L=LEVELS[i]; reset(); $('iTitle').textContent=`Poziom ${i+1}: ${L.name}`; $('iText').innerHTML=L.intro; ['title','win','over','pause'].forEach(id=>$(id).classList.add('hidden')); $('intro').classList.remove('hidden'); state='intro'; if(i>0) setMusic(L.music); }
 function startLevel(){ document.body.classList.add('playing'); reset(); state='play'; ['intro','over','win','pause','title'].forEach(id=>$(id).classList.add('hidden')); setMusic(L.music); bgm.volume=bgmVol; last=performance.now(); if(L.start) say(L.start[0],()=>setTimeout(()=>say(L.start[1]),200),true); }
-function gameOver(){ state='over'; $('over').classList.remove('hidden'); if(voice){ voice.pause(); voice=null; } bgm.volume=bgmVol*.5; }
+function gameOver(){ state='over'; $('oTxt').textContent=L.over||''; $('over').classList.remove('hidden'); if(voice){ voice.pause(); voice=null; } bgm.volume=bgmVol*.5; }
 function levelDone(){ state='win'; const pct=delivered/Math.max(1,houseCount), st=1+(pct>=.5?1:0)+(pct>=.75?1:0); $('wStars').textContent='★'.repeat(st)+'☆'.repeat(3-st);
-  $('wTxt').innerHTML=`${L.trees?'Prezenty u bobrów i borsuków':'Prezenty w kominach'}: <b>${delivered} / ${houseCount}</b> · Punkty: <b>${score}</b><br>${L.winTxt}`;
-  document.querySelector('#win h2').textContent=`Poziom ${lvl+1} ukończony!`; $('wNext').innerHTML=L.next; $('bNext').style.display=lvl<=1?'':'none';
+  $('wTxt').innerHTML=`${L.got||'Prezenty w kominach'}: <b>${delivered} / ${houseCount}</b> · Punkty: <b>${score}</b><br>${L.winTxt}`;
+  document.querySelector('#win h2').textContent=`Poziom ${lvl+1} ukończony!`; $('wNext').innerHTML=L.next; $('bNext').style.display=lvl<=2?'':'none';
   try{ const best=+localStorage.getItem('pn-best'+(lvl+1))||0; if(score>best) localStorage.setItem('pn-best'+(lvl+1),score); if((+localStorage.getItem('pn-level')||1)<lvl+2) localStorage.setItem('pn-level',lvl+2); }catch(e){} showLvlBtn();
   $('win').classList.remove('hidden'); sfx('win',.6); say(L.win[0],()=>{ if(L.win[1]) setTimeout(()=>say(L.win[1]),300); },true); }
-function showLvlBtn(){ let u=1; try{ u=+localStorage.getItem('pn-level')||1; }catch(e){} if(new URLSearchParams(location.search).get('level')==='2') u=2; $('bLvl2').style.display=u>=2?'':'none'; }
+function showLvlBtn(){ let u=1; try{ u=+localStorage.getItem('pn-level')||1; }catch(e){} const q=+new URLSearchParams(location.search).get('level')||0; if(q>u) u=q; $('bLvl2').style.display=u>=2?'':'none'; $('bLvl3').style.display=u>=3?'':'none'; }
 function pauseGame(){ if(state!=='play') return; state='pause'; $('pause').classList.remove('hidden'); bgm.pause(); if(voice) voice.pause(); }
 function resumeGame(){ if(state!=='pause') return; state='play'; $('pause').classList.add('hidden'); if(!muted) bgm.play().catch(()=>{}); if(voice&&!muted) voice.play().catch(()=>{}); last=performance.now(); }
 function toMenu(){ $('tbc').classList.add('hidden'); document.body.classList.remove('playing'); $('bSkip').style.display='none'; ['pause','over','win','intro'].forEach(id=>$(id).classList.add('hidden')); state='title'; if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; setMusic('music_title.mp3'); bgm.volume=bgmVol; $('title').classList.remove('hidden'); }
 function setMute(m){ muted=m; try{ localStorage.setItem('pn-mute',m?'1':'0'); }catch(e){} $('bMute').textContent=m?'🔇':'🔊'; if(m){ bgm.pause(); if(voice) voice.pause(); } else if(state!=='pause') bgm.play().catch(()=>{}); }
 $('bPlay').onclick=()=>{ ac(); setMusic('music_title.mp3'); showIntro(0); };
 // test links: ?tent opens Maryańska's tent, ?cut the landing cutscene (the button gives the browser the click it needs for sound)
-const QS=new URLSearchParams(location.search); const QTENT=QS.has('tent'), QCUT=QS.has('cut'), QCOT=QS.has('cottage'), QVIL=QS.has('village');
-if(QTENT||QCUT||QCOT||QVIL){ $('bPlay').onclick=()=>{ ac(); QTENT?startTent():QCOT?startCot():QVIL?startCut('jugo'):startCut(); }; }
-$('bLvl2').onclick=()=>{ ac(); showIntro(1); };
-$('bNext').onclick=()=>{ ac(); startCut(lvl===1?'jugo':'mar'); }; showLvlBtn();
+const QS=new URLSearchParams(location.search); const QTENT=QS.has('tent'), QCUT=QS.has('cut'), QCOT=QS.has('cottage'), QVIL=QS.has('village'), QPOLE=QS.has('pole');
+if(QTENT||QCUT||QCOT||QVIL||QPOLE){ $('bPlay').onclick=()=>{ ac(); QTENT?startTent():QCOT?startCot():QVIL?startCut('jugo'):QPOLE?startCut('pole'):startCut(); }; }
+$('bLvl2').onclick=()=>{ ac(); showIntro(1); }; $('bLvl3').onclick=()=>{ ac(); showIntro(2); };
+$('bNext').onclick=()=>{ ac(); startCut(['mar','jugo','pole'][lvl]); }; showLvlBtn();
 $('bGo').onclick=startLevel; $('bRetry').onclick=startLevel; $('bAgain').onclick=startLevel; $('bRestart').onclick=startLevel;
-$('bResume').onclick=resumeGame; ['bMenu','bMenu2','bMenu3','bMenu4'].forEach(id=>$(id).onclick=toMenu); $('bCotAgain').onclick=()=>{ ac(); startCot(); };
+$('bResume').onclick=resumeGame; ['bMenu','bMenu2','bMenu3','bMenu4'].forEach(id=>$(id).onclick=toMenu); $('bCotAgain').onclick=()=>{ ac(); $('tbc').classList.add('hidden'); showIntro(2); };
 $('bPause').onclick=()=>state==='play'?pauseGame():resumeGame(); $('bMute').onclick=()=>setMute(!muted); setMute(muted);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) pauseGame(); });
 window.__pn={get P(){return P}, get state(){return state}, get boss(){return boss}, get houses(){return houses}, get foes(){return foes}, get score(){return score}, get delivered(){return delivered}, set lvlT(v){lvlT=v; while(waveIdx<L.waves.length&&L.waves[waveIdx][0]<v) waveIdx++;}, get lvlT(){return lvlT}, get lvl(){return lvl}, get trees(){return trees}, get TENT(){return TENT}, get G(){return G}, startTent, startCot, get COT(){return COT}, cotClick:(x,y)=>cotPointer(x,y), danceKey:d=>danceKey(d), gameClick:(x,y)=>gameClick(x,y), hubClick:(x,y)=>hubClick(x,y), strum:l=>strum(l), K, startLevel, startBoss, dropWindow, startCut, showIntro, levelDone:()=>levelDone()};
@@ -637,7 +659,7 @@ function loop(now){ let dt=Math.min(.05,(now-last)/1000); last=now; if(state==='
   else if(state==='cot') updateCot(dt);
   else if(state==='win'||state==='over'){ t0+=dt; parts.forEach(p=>{ p.t-=dt; }); }
   if(state==='cut') drawCut(); else if(state==='tent') drawTent(); else if(state==='cot') drawCot(); else if(P) draw(); requestAnimationFrame(loop); }
-ready.then(()=>Promise.all(['bg_night','sleigh','house1','plane_inez'].map(n=>IMG[n].decode?IMG[n].decode().catch(()=>{}):0))).then(()=>{ reset(); $('bPlay').disabled=false; $('bPlay').textContent=QTENT?'Do namiotu Maryańskiej ▶':QCUT?'Lądowanie u Maryańskiej ▶':QCOT?'Do chatki Jugo ▶':QVIL?'Lądowanie u Jugo ▶':'Graj ▶'; requestAnimationFrame(loop); });
+ready.then(()=>Promise.all(['bg_night','sleigh','house1','plane_inez'].map(n=>IMG[n].decode?IMG[n].decode().catch(()=>{}):0))).then(()=>{ reset(); $('bPlay').disabled=false; $('bPlay').textContent=QTENT?'Do namiotu Maryańskiej ▶':QCUT?'Lądowanie u Maryańskiej ▶':QCOT?'Do chatki Jugo ▶':QVIL?'Lądowanie u Jugo ▶':QPOLE?'Zakończenie na biegunie ▶':'Graj ▶'; requestAnimationFrame(loop); });
 </script>
 </body>
 </html>
