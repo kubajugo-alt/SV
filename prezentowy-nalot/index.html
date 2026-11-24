@@ -86,7 +86,7 @@ const TOUCH=matchMedia('(pointer:coarse)').matches; if(TOUCH){ document.body.cla
 
 // ---------- assets ----------
 const IMG={}, img=n=>{ if(IMG[n]) return IMG[n]; const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; return i; };
-const ART=['bg_night','sleigh','plane_inez','plane_gay','plane_grinch','house1','house2','house3','house4','gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold','candy','cookie','star','coal','kiss','phone','para_inez','para_gay','para_grinch','face_kaka','face_kaczor','face_mikolaj','face_inez','bg_forest','tree1','tree2','tree3','lodge','sett','beaver','badger','plane_goblin','landing','mar_idle','tent_in','family','ck_star','ck_heart','ck_tree','ck_deer','ck_peace','pr_feather','pr_cone','dreamcatcher','plate','garland','village','cottage_in','jugo','gay_cook','santa','f_mush','f_beet','f_egg','f_sock','f_pierog','f_cake','f_disco','raven','raven_boss','raven_daze','bauble','snowball','feather','bg_pole','ws1','ws2','plane_elf','para_elf','elf_happy','pole_land','santa_stand','fab_in','cannon','part_boiler','part_sight','part_hopper'];
+const ART=['arcade','bg_night','sleigh','plane_inez','plane_gay','plane_grinch','house1','house2','house3','house4','gift_red','gift_green','gift_blue','gift_purple','gift_stripe','gift_gold','candy','cookie','star','coal','kiss','phone','para_inez','para_gay','para_grinch','face_kaka','face_kaczor','face_mikolaj','face_inez','bg_forest','tree1','tree2','tree3','lodge','sett','beaver','badger','plane_goblin','landing','mar_idle','tent_in','family','ck_star','ck_heart','ck_tree','ck_deer','ck_peace','pr_feather','pr_cone','dreamcatcher','plate','garland','village','cottage_in','jugo','gay_cook','santa','f_mush','f_beet','f_egg','f_sock','f_pierog','f_cake','f_disco','raven','raven_boss','raven_daze','bauble','snowball','feather','bg_pole','ws1','ws2','plane_elf','para_elf','elf_happy','pole_land','santa_stand','fab_in','cannon','part_boiler','part_sight','part_hopper'];
 ART.forEach(img);
 let ANIM={}, HOUSES={}, TREES={};
 const ready=Promise.all([fetch('art/anim/anim.json').then(r=>r.json()).then(j=>{ ANIM=j; for(const k in j) ANIM[k].img=img('anim/'+k); }).catch(()=>{}),
@@ -650,7 +650,15 @@ function startFab(){ ['win','over','pause','intro','title','tbc','tbc2'].forEach
   $('bSkip').textContent='Pomiń zagadki ▶'; $('bSkip').style.display='';
   const chain=['mar_fab','mar_fab2','nz_fab','nk_fab','nm_fab']; const next=i=>{ if(state!=='fab'||FG||i>=chain.length) return; say(chain[i],()=>setTimeout(()=>next(i+1),250),i===0); }; next(0); }
 function leaveFab(){ if(voice){ voice.onended=null; voice.pause(); voice=null; } FAB.fin=true; try{ if((+localStorage.getItem('pn-level')||1)<6) localStorage.setItem('pn-level',6); }catch(e){} location.href='wioska/?level=2'; }
-function fabPointer(x,y){ if(!FAB||FAB.fin) return; if(FG){ fabGameClick(x,y); return; } if(FAB.end) return;
+// the optional arcade machine in the corner of the workshop: Inez's own maze game, played in an overlay so the room keeps its state
+const ARC={x:262,y:330,w:160,h:310};
+function openArcade(){ if($('arcOv')) return; blip(600,1200,.15,.06,'square'); if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; bgm.pause();
+  const ov=document.createElement('div'); ov.id='arcOv'; ov.style.cssText='position:absolute;inset:0;z-index:20;background:#000';
+  ov.innerHTML='<iframe src="arcade/index.html" title="Inez na łowach" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe><button id="arcX" style="position:absolute;right:70px;top:10px;z-index:2;border:0;border-radius:999px;padding:.35em 1.1em;font:700 18px \'Baloo 2\',sans-serif;background:#ff6fae;color:#fff;cursor:pointer;box-shadow:0 3px 0 #b03a72">✕ Wróć do fabryki</button>';
+  $('stage').append(ov); const fr=ov.querySelector('iframe'); fr.addEventListener('load',()=>{ try{ fr.contentWindow.focus(); }catch(e){} }); $('arcX').onclick=closeArcade; }
+function closeArcade(){ const ov=$('arcOv'); if(ov) ov.remove(); if(!muted&&state==='fab') bgm.play().catch(()=>{}); }
+function fabPointer(x,y){ if(!FAB||FAB.fin) return; if(FG){ fabGameClick(x,y); return; }
+  if(x>ARC.x&&x<ARC.x+ARC.w&&y>ARC.y&&y<ARC.y+ARC.h){ openArcade(); return; } if(FAB.end) return;
   for(const id in FAB_HOT){ const h=FAB_HOT[id]; if(!FAB.done[id]&&x>h.x&&x<h.x+h.w&&y>h.y&&y<h.y+h.h){ openFab(id); return; } } }
 addEventListener('keydown',e=>{ if(state!=='fab'||!FG) return; if(e.code==='Escape'){ FG=null; sub=null; } });
 function fabWon(){ FAB.done[FG.id]=true; sfx('win',.5); FG.won=1.8; say(FAB_HOT[FG.id].done,null,true); }
@@ -702,6 +710,11 @@ function drawFab(){ c.setTransform(RES,0,0,RES,0,0); const bg=IMG.fab_in; if(ok(
   // parts land on the workbench; when all three are there the cannon appears
   if(FAB.end&&FAB.build>.6){ const a=Math.min(1,(FAB.build-.6)*2); c.save(); c.globalAlpha=a; drawImg('cannon',528,368,330*(.8+.2*a)); c.restore(); if(FAB.build<2) for(let k=0;k<8;k++){ c.fillStyle='#fff6b0'; c.beginPath(); c.arc(528+Math.cos(k+t0*6)*160*(FAB.build),368+Math.sin(k+t0*6)*60,4,0,6.29); c.fill(); } }
   else { if(D.p1) drawImg('part_boiler',440,370,70); if(D.p2) drawImg('part_sight',540,352,110); if(D.p3) drawImg('part_hopper',630,366,80); }
+  // the arcade machine (optional): screen flickers, a little sign invites a game
+  { const im=IMG.arcade; if(ok(im)){ c.drawImage(im,ARC.x,ARC.y,ARC.w,ARC.h); c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=.18+.1*Math.sin(t0*9)+.05*Math.sin(t0*31); c.fillStyle='#4fa8ff'; c.fillRect(ARC.x+ARC.w*.25,ARC.y+ARC.h*.3,ARC.w*.45,ARC.h*.22); c.restore();
+    const g=c.createRadialGradient(ARC.x+ARC.w*.5,ARC.y+ARC.h*.4,10,ARC.x+ARC.w*.5,ARC.y+ARC.h*.4,150); g.addColorStop(0,`rgba(255,120,200,${.16+.06*Math.sin(t0*3)})`); g.addColorStop(1,'rgba(255,120,200,0)'); c.fillStyle=g; c.fillRect(ARC.x-120,ARC.y-60,ARC.w+240,ARC.h);
+    if(!FG){ const hov=MOUSE.x>ARC.x&&MOUSE.x<ARC.x+ARC.w&&MOUSE.y>ARC.y&&MOUSE.y<ARC.y+ARC.h; if(hov){ c.save(); c.setLineDash([10,8]); c.lineDashOffset=-t0*30; c.strokeStyle='rgba(255,140,210,.95)'; c.lineWidth=4; c.beginPath(); c.roundRect(ARC.x-6,ARC.y-6,ARC.w+12,ARC.h+12,16); c.stroke(); c.restore(); }
+      txt('🕹 Inez na łowach',ARC.x+ARC.w/2,ARC.y+ARC.h+20,19,hov?'#ffd1ec':'#ff9ccf','center'); txt('(automat — dla chętnych)',ARC.x+ARC.w/2,ARC.y+ARC.h+42,14,'#f3d9c4','center'); } } }
   // the family and Maryańska (she leads the elf resistance here)
   const talking=sub&&sub.who==='Maryańska'; drawFeet(talking?'mar_talk':'mar_cheer','mar_idle',805,718,470,t0);
   if(!FG){ txt('Fabryka zabawek — ruch oporu',VW/2,40,30,'#ffcf8a','center');

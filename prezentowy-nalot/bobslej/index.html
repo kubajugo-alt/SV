@@ -183,7 +183,8 @@ const WALLS=[]; { const N=SEG.length; for(let i=0;i<N;i++){ const g=SEG[i], z=zo
 
 // ---------- state ----------
 const RW=400, RH=225, HZ=74, FH=RH-HZ, CAMH=44, CAMD=100, FAR=4200, S=VW/RW;
-const low=document.createElement('canvas'); low.width=RW; low.height=FH; const lc=low.getContext('2d'), LD=lc.createImageData(RW,FH), LD32=new Uint32Array(LD.data.buffer);
+// the floor buffer is rendered with a margin (for the camera roll and shake) instead of being stretched, so it lines up exactly with the sprites
+const MX=24, MY=16, LW=RW+2*MX, LH=FH+MY; const low=document.createElement('canvas'); low.width=LW; low.height=LH; const lc=low.getContext('2d'), LD=lc.createImageData(LW,LH), LD32=new Uint32Array(LD.data.buffer);
 const VMAX=640, NEED_HP=8;
 let state='intro', P, INEZ, shots, obst, hearts, sparks, t0=0, count=0, clock=0, cam={x:0,y:0,a:0,f:200,roll:0,h:44}, shake=0, zoneMsg=null, hype=0, SN=[], FLAKES=[], flash=0, hint=null, saidWall=0, saidClose=0, ammoMsg=0, last=performance.now();
 const K={};
@@ -293,10 +294,10 @@ function update(dt){ t0+=dt; clock+=dt; hype=Math.max(0,hype-dt); if(sub){ sub.t
 
 // ---------- rendering ----------
 function drawFloor(){ const ca=Math.cos(cam.a), sa=Math.sin(cam.a), F=cam.f;
-  for(let y=0;y<FH;y++){ const z=cam.h*F/(y+.6); let o=y*RW; if(z>FAR){ LD32.fill(SNOW32,o,o+RW); continue; }
-    const cx=cam.x+ca*z, cy=cam.y+sa*z, rx=-sa*z/F, ry=ca*z/F; let wx=cx-rx*RW/2, wy=cy-ry*RW/2;
-    for(let x=0;x<RW;x++){ const tx=(wx*TSC)|0, ty=(wy*TSC)|0; LD32[o++]=(tx>=0&&ty>=0&&tx<TS&&ty<TS)?TEX32[ty*TS+tx]:SNOW32; wx+=rx; wy+=ry; } }
-  lc.putImageData(LD,0,0); c.imageSmoothingEnabled=false; c.drawImage(low,-60,HZ*S,VW+120,FH*S+40); c.imageSmoothingEnabled=true;
+  for(let y=0;y<LH;y++){ const z=cam.h*F/(y+.5); let o=y*LW; if(z>FAR){ LD32.fill(SNOW32,o,o+LW); continue; }
+    const cx=cam.x+ca*z, cy=cam.y+sa*z, rx=-sa*z/F, ry=ca*z/F; let wx=cx-rx*(RW/2+MX-.5), wy=cy-ry*(RW/2+MX-.5);
+    for(let x=0;x<LW;x++){ const tx=(wx*TSC)|0, ty=(wy*TSC)|0; LD32[o++]=(tx>=0&&ty>=0&&tx<TS&&ty<TS)?TEX32[ty*TS+tx]:SNOW32; wx+=rx; wy+=ry; } }
+  lc.putImageData(LD,0,0); c.imageSmoothingEnabled=false; c.drawImage(low,-MX*S,HZ*S,LW*S,LH*S); c.imageSmoothingEnabled=true;
   // haze towards the horizon
   const fg=zoneMix(P.lastS,'fog').map(v=>v|0).join(','), dk=zoneMix(P.lastS,'dark'); if(dk>0){ c.fillStyle=`rgba(10,18,52,${dk*.4})`; c.fillRect(-60,HZ*S,VW+120,VH); } const g=c.createLinearGradient(0,HZ*S,0,HZ*S+150); g.addColorStop(0,`rgba(${fg},.95)`); g.addColorStop(1,`rgba(${fg},0)`); c.fillStyle=g; c.fillRect(-60,HZ*S,VW+120,150); }
 function drawSky(){ const im=IMG.sky, hy=HZ*S; if(!ok(im)){ c.fillStyle='#1b2650'; c.fillRect(-60,-60,VW+120,hy+60); return; } const sh=im.naturalHeight*.87, h=hy+80, w=h*im.naturalWidth/sh, off=((-cam.a/(Math.PI*2))*w*1.5%w+w)%w;

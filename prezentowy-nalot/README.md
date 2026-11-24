@@ -44,7 +44,7 @@ After the village (`?after=wioska`) the family walks into the toy factory, where
 - **Rury z parą** (pipes on the left wall): rotate pipe tiles until steam flows from the boiler to the compressor (random solvable layout every time) → the steam boiler.
 - **Panel celownika** (lamp panel): Lights Out on a 4×4 grid — a press toggles a lamp and its neighbours, light all sixteen → the brass sight.
 - **Szyfr do magazynu** (storage door): a Mastermind lock with four different coloured baubles out of six, ten tries, ● right place / ○ right colour → the snowball hopper.
-The parts land on the workbench and the cannon appears; Maryańska sends Kaczor through the production hall while the others get the bobsled ready. Test link: `?fab`.
+In the corner stands an optional pink arcade machine: clicking it opens *Inez na łowach* (Inez's maze-chase game, copied into `arcade/` from `inez-na-lowach/`) in an overlay, and "✕ Wróć do fabryki" returns to the room with the puzzles as they were. The parts land on the workbench and the cannon appears; Maryańska sends Kaczor through the production hall while the others get the bobsled ready. Test link: `?fab`.
 
 ## Hala produkcyjna (platformer, `wioska/?level=2`)
 The second level of the platformer engine: a toy-factory hall with wooden platforms, lots of springs (also springs on the edge of a pit that throw you across), moving platforms and lifts, and a new mechanic — **swinging ropes** over pits: jump and grab a rope in the air, pump with ◀ ▶ to swing higher, and let go with a jump; the release keeps the swing's speed. Wide pits have two ropes and a crumbling stepping stone. Rebel elves, toy soldiers, toy planes and caged elves as in the village; no boss, the goal is the factory's loading gate. Afterwards `?after=fabryka` shows the bobsled card.
@@ -59,6 +59,7 @@ The finale with Inez, on its own Mode 7 engine: a closed ice-channel course (Cat
 - Physics: the sled slides a little sideways on the ice, bounces off the channel walls (which slow it and turn the nose away), yellow chevrons give turbo, ▼ brakes for tighter turns.
 - Snow cannon: Space / X / ❄ fires arcing snowballs that the brass sight curves towards Inez; ammo is limited (crates on the track give +4).
 - Inez: rubber-band racing line, swerves away from snowballs, drops gift boxes and throws hearts back down the track (both spin you out; snowballs pop them). After four hits she speeds up and attacks more often. Eight hits before she finishes three laps win; then `../?after=bobslej` leads to the ending at Santa's workshop (`?pole`) and the "Wesołych Świąt" card.
+- The ground is rendered into a buffer with a margin for the camera roll (not stretched), so every billboard — houses, trees, gates, spectators — stands exactly on its spot of the floor.
 - HUD: Inez's hearts, ammo, speed, her lap, distance, timer, minimap; 3-2-1 countdown; synthesised runner noise.
 
 ## Character sizes
