@@ -373,8 +373,11 @@ function updateDuel(b,dt){ b.dt+=dt; b.x+=(990-b.x)*Math.min(1,dt*2); b.y+=(230-
   b.duel-=dt*(.17+.06*Math.sin(b.dt*2.1)+Math.min(.08,b.dt*.004)); if(Math.random()<.4) parts.push({x:duelX(b),y:duelY(b),vx:(Math.random()-.5)*300,vy:(Math.random()-.5)*300,t:.3,r:3+Math.random()*4,col:Math.random()<.5?'#ff4040':'#ff7ad0'});
   if(b.duel<=0){ b.duel=.45; P.inv=0; hurt(); shake=.5; }
   if(b.duel>=1){ b.duelDone=1; b.mode='float'; shake=.8; burst(b.x-120,b.y-30,'#ff4040',40); damageBoss(99); } }
-const duelX=b=>{ const ax=P.x+150, bx=b.x-170; return ax+(bx-ax)*Math.max(0,Math.min(1,b.duel)); }, duelY=b=>{ const ay=P.y-10, by=b.y-50; return ay+(by-ay)*Math.max(0,Math.min(1,b.duel)); };
-function drawDuel(b){ if(b.mode!=='duel'||b.dt<1.2) return; const ax=P.x+150, ay=P.y-10, bx=b.x-170, by=b.y-50, mx=duelX(b), my=duelY(b), w=10+4*Math.sin(t0*30);
+// the beams start exactly at the noses: Rudolf's red nose on the sleigh sprite and the pink reindeer's nose on the boss sprite (rotated with them)
+const rot=(x,y,dx,dy,a)=>[x+dx*Math.cos(a||0)-dy*Math.sin(a||0), y+dx*Math.sin(a||0)+dy*Math.cos(a||0)];
+const noseR=()=>rot(P.x,P.y,152,-57,P.tilt), noseB=b=>rot(b.x,b.y,-105,-83,b.rot);
+const duelX=b=>{ const ax=noseR()[0], bx=noseB(b)[0]; return ax+(bx-ax)*Math.max(0,Math.min(1,b.duel)); }, duelY=b=>{ const ay=noseR()[1], by=noseB(b)[1]; return ay+(by-ay)*Math.max(0,Math.min(1,b.duel)); };
+function drawDuel(b){ if(b.mode!=='duel'||b.dt<1.2) return; const [ax,ay]=noseR(), [bx,by]=noseB(b), mx=duelX(b), my=duelY(b), w=10+4*Math.sin(t0*30);
   c.save(); c.globalCompositeOperation='lighter'; c.lineCap='round';
   [[ax,ay,'255,60,60'],[bx,by,'255,110,210']].forEach(([x,y,col])=>{ c.strokeStyle=`rgba(${col},.35)`; c.lineWidth=w*3; c.beginPath(); c.moveTo(x,y); c.lineTo(mx,my); c.stroke(); c.strokeStyle=`rgba(${col},.95)`; c.lineWidth=w; c.beginPath(); c.moveTo(x,y); c.lineTo(mx,my); c.stroke(); c.strokeStyle='rgba(255,255,255,.9)'; c.lineWidth=w*.35; c.beginPath(); c.moveTo(x,y); c.lineTo(mx,my); c.stroke(); });
   const g=c.createRadialGradient(mx,my,2,mx,my,70); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(1,'rgba(255,150,200,0)'); c.fillStyle=g; c.beginPath(); c.arc(mx,my,70+Math.sin(t0*40)*8,0,6.29); c.fill(); c.restore();
