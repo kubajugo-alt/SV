@@ -103,6 +103,7 @@ The title screen gets "Różowy Pałac", "Wieża luster" and "Sala tronowa" butt
 - Puzzle rooms flicker and breathe: fire and candle light, fairy lights, snow behind the tent flap and windows, the bubbling cauldron, disco spots, steam valves, dust in the lamplight.
 - Platformers: painted gingerbread-brick, Christmas-plank and pink-ice ground textures; the HUD no longer sits under the back link; bosses are no longer taller than Kaczor; in the tower's second phase the real Inez also hides inside a mirror.
 - The family in the sleigh is drawn at the same scale as the characters who greet them; in the warehouse Kaczor is bigger than the elf guards.
+- Easier shoot 'em ups: enemies drop a booster twice as often (42%), with cookies favoured when the sleigh is down to two hearts or fewer; a red gift balloon with a booster drifts in every 9–13 s, also during boss fights; items last longer. Losing all hearts in a boss fight offers "Od początku walki z bossem": the level restarts straight at the boss with full hearts, a short star shield and the presents and score from before the fight.
 - Performance (Macs): all pages cap drawing at ~60 fps (ProMotion displays no longer render twice as often), the main game starts at 1.5× resolution instead of 2× on Retina and steps down to 1× if frames run slow, and the star shield uses a canvas shadow instead of stacked CSS filters.
 
 ## Assets

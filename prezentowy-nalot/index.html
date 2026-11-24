@@ -209,7 +209,7 @@ LEVELS.push({name:'Różowy Pałac',bg:'bg_palace',music:'music_palace.mp3',targ
    hint:'komin świeci na złoto',intro:`<p>Inez uciekła z bobsleja prosto do swojego <b>Różowego Pałacu</b> na szczycie lodowca — a w środku trzyma skradziony <b>Worek Prezentów Papiego</b>.</p><p>Pod pałacem wciąż są elfie warsztaty — wrzucajcie prezenty do kominów. Kruki Inez wróciły całym stadem, a ona sama czeka na swoim <b>Różowym Reniferze</b>. Gdy zacznie się <b>pojedynek promieni</b>, wciskaj szybko <b>Spację</b> (albo X / C), żeby nos Rudolfa przepchnął jej różowy promień!</p>`,
    faces:['face_kaka','face_mikolaj','face_kaczor'],winTxt:'Różowy Renifer uciekł, a Inez spadła na spadochronie prosto do swojego pałacu!',next:'<b>Dalej:</b> Kaczor wchodzi do pałacu pieszo — wieża luster i ostatnia walka z Inez (platformówka)! 🏰'});
 let lvl=0, L=LEVELS[0], waveIdx=0, trees=[], nextTreeX=0, pops=[], saidTree=0, saidAnimal={};
-function reset(){
+function reset(){ balloonT=8;
   P={x:260,y:220,vx:0,vy:0,hp:3,inv:2,shotCd:0,giftCd:0,triple:0,shield:0,anim:0,tilt:0};
   shots=[]; gifts=[]; foes=[]; ebullets=[]; items=[]; parts=[]; popups=[]; houses=[]; decos=[]; lastType=null; flyers=[]; waves=[]; dusts=[];
   scroll=0; lvlT=0; score=0; delivered=0; glows=2; boss=null; bossPhase=0; waveIdx=0; rng=mulberry(1225+lvl*77); nextHouseX=VW+80; houseCount=0; sub=null;
@@ -293,7 +293,7 @@ function update(dt){
   shots=shots.filter(s=>s.t>0&&s.x<VW+40);
   // power-ups
   items.forEach(it=>{ it.t+=dt; it.x+=it.vx*dt; it.y+=Math.sin(it.t*3)*30*dt; if(hitsPlayer(it.x,it.y,30)){ it.t=99; collect(it); } });
-  items=items.filter(it=>it.t<12&&it.x>-40);
+  updateBalloons(dt); items=items.filter(it=>it.t<14&&it.x>-40);
   flyers.forEach(f=>{ f.t+=dt; f.vy+=((f.fall?240:70)-f.vy)*Math.min(1,dt*2); f.x+=(-SPEED*.45+Math.sin(f.t*1.3)*25)*dt; f.y+=f.vy*dt; });
   flyers=flyers.filter(f=>f.y<VH+60&&f.x>-160);
   dusts.forEach(d=>{ d.t+=dt; d.x-=SPEED*.3*dt; }); dusts=dusts.filter(d=>d.t<1.1);
@@ -330,7 +330,11 @@ function updateFoe(f,dt){ f.t+=dt; f.hit=Math.max(0,f.hit-dt);
   if(f.x<-200||f.y<-200) f.alive=false; }
 function damageFoe(f,d){ f.hp-=d; f.hit=.12; puff(f.x,f.y,'#ffffff',4); if(f.hp<=0){ f.alive=false; score+=150; popups.push({x:f.x,y:f.y-50,txt:'+150',t:1,col:'#fff'}); sfx('defeat',.5); burst(f.x,f.y,L.foe.col||'#b6f08a',16); if(f.kind==='raven') for(let k=0;k<4;k++) parts.push({x:f.x,y:f.y,vx:(Math.random()-.5)*160,vy:-60-Math.random()*90,g:120,t:1.2,r:4,col:'#1c1a28'});
     dust(f.x,f.y,1); flyers.push({img:L.foe.para||'para_'+f.kind,x:f.x,y:f.y-20,vy:-40,t:0,w:L.foe.paraW||120,fall:L.foe.fall});
-    if(Math.random()<.22){ const r=Math.random(); items.push({kind:r<.4?'candy':r<.75?'cookie':'star',x:f.x,y:f.y,vx:-90,t:0}); } } }
+    if(Math.random()<.42){ items.push({kind:boosterKind(),x:f.x,y:f.y,vx:-90,t:0}); } } }
+function boosterKind(){ const r=Math.random(), low=P.hp<=2; return low?(r<.55?'cookie':r<.8?'star':'candy'):(r<.38?'candy':r<.68?'cookie':'star'); }
+// a gift balloon drifts in every 9–13 s (also during the boss) carrying a booster; snowballs or touching it pop it
+let balloonT=8;
+function updateBalloons(dt){ if(state!=='play') return; balloonT-=dt; if(balloonT<=0){ balloonT=9+Math.random()*4; items.push({kind:boosterKind(),x:VW+40,y:110+Math.random()*260,vx:-110,t:0,balloon:true}); } }
 function collect(it){ sfx('pick',.5); if(it.kind==='candy'){ P.triple=10; popups.push({x:P.x,y:P.y-90,txt:'Laska cukrowa: potrójne śnieżki!',t:1.6,col:'#ffd1dc'}); }
   else if(it.kind==='cookie'){ P.hp=Math.min(5,P.hp+1); popups.push({x:P.x,y:P.y-90,txt:'Ciasteczko z mlekiem: +1 ❤',t:1.6,col:'#ffe27a'}); }
   else { P.shield=10; popups.push({x:P.x,y:P.y-90,txt:'Gwiazdka: tarcza!',t:1.6,col:'#fff1a8'}); } }
@@ -346,7 +350,8 @@ function updateCameo(dt){ const b=boss; b.t+=dt; P.inv=.06; // no damage, and sh
   else { b.x+=260*dt; b.y-=110*dt; if(!b.heart&&!b.fired){ b.fired=1; b.heart={x:b.x-120,y:b.y+12}; blip(700,1500,.25,.06,'sine'); } }
   if(b.heart){ const h=b.heart, dx=P.x-h.x, dy=P.y-h.y, d=Math.hypot(dx,dy)||1; h.x+=dx/d*760*dt; h.y+=dy/d*760*dt; if(d<60){ b.heart=null; b.crash=0; shake=.9; sfx('hurt',.7); burst(P.x,P.y,'#ff9ccf',36); dust(P.x,P.y,1.4); say('nz_crash',()=>setTimeout(()=>say('nk_crash'),300),true); } }
   if(b.crash!=null){ b.crash+=dt; P.x+=50*dt; P.y=Math.min(370,P.y+150*dt); P.tilt=.35+Math.sin(b.crash*9)*.08; if(Math.random()<.5) puff(P.x-60,P.y+20,'#9a9aa8',3); if(b.crash>5.5&&state==='play') levelDone(); } }
-function startBoss(){ const B=L.boss; boss={x:VW+260,y:240,hp:B.hp,max:B.hp,in:false,mode:'enter',mt:0,t:0,hit:0,dir:1}; bossPhase=1;
+let BOSSCP=null;
+function startBoss(){ BOSSCP={lvl,delivered,houseCount,score}; const B=L.boss; boss={x:VW+260,y:240,hp:B.hp,max:B.hp,in:false,mode:'enter',mt:0,t:0,hit:0,dir:1}; bossPhase=1;
   say(B.intro[0],()=>setTimeout(()=>say(B.intro[1]),250),true); }
 function updateBoss(dt){ const b=boss; b.t+=dt; b.mt-=dt; b.hit=Math.max(0,b.hit-dt); if(b.hp<=0){ b.dead=(b.dead||0)+dt; if(b.dead>4&&state==='play') levelDone(); return; }
   const angry=b.hp<b.max/2;
@@ -410,7 +415,8 @@ function draw(){
   // happy beavers and badgers pop up with their present
   pops.forEach(q=>{ const up=Math.min(1,q.t*3), a=q.t>1.7?Math.max(0,1-(q.t-1.7)*2):1; drawImg(q.img,q.x,q.y-30-up*55,86,Math.sin(q.t*6)*.06,a); });
   // items
-  items.forEach(it=>{ c.globalAlpha=it.t>10?(Math.floor(it.t*8)%2?.3:1):1; const gl=c.createRadialGradient(it.x,it.y,4,it.x,it.y,34); gl.addColorStop(0,'rgba(255,240,180,.7)'); gl.addColorStop(1,'rgba(255,240,180,0)'); c.fillStyle=gl; c.fillRect(it.x-34,it.y-34,68,68); drawImg(it.kind,it.x,it.y,it.kind==='candy'?26:44); c.globalAlpha=1; });
+  items.forEach(it=>{ c.globalAlpha=it.t>12?(Math.floor(it.t*8)%2?.3:1):1; const gl=c.createRadialGradient(it.x,it.y,4,it.x,it.y,34); gl.addColorStop(0,'rgba(255,240,180,.7)'); gl.addColorStop(1,'rgba(255,240,180,0)'); c.fillStyle=gl; c.fillRect(it.x-34,it.y-34,68,68); if(it.balloon){ c.strokeStyle='rgba(255,255,255,.7)'; c.lineWidth=1.5; c.beginPath(); c.moveTo(it.x,it.y-26); c.quadraticCurveTo(it.x+6,it.y-44,it.x,it.y-58); c.stroke(); c.fillStyle='#e8383d'; c.beginPath(); c.ellipse(it.x,it.y-80,20,24,0,0,6.29); c.fill(); c.fillStyle='rgba(255,255,255,.5)'; c.beginPath(); c.ellipse(it.x-7,it.y-88,5,8,-.4,0,6.29); c.fill(); }
+    drawImg(it.kind,it.x,it.y,it.kind==='candy'?26:44); c.globalAlpha=1; });
   // planes falling
   flyers.forEach(f=>{ const s=Math.min(1,.3+f.t*2.5); drawImg(f.img,f.x,f.y,f.w*s,f.fall?f.t*5:Math.sin(f.t*1.8)*.12); });
   dusts.forEach(d=>{ const k=d.t/1.1; d.puffs.forEach(p=>{ c.globalAlpha=Math.max(0,(1-k))*.85; c.fillStyle=`rgb(${p.sh},${p.sh-8},${p.sh-20})`; c.beginPath(); c.arc(d.x+p.dx+p.vx*d.t,d.y+p.dy+p.vy*d.t,p.r*(.6+k*.8),0,6.29); c.fill(); }); }); c.globalAlpha=1;
@@ -983,8 +989,8 @@ function drawFabGame(){ const G=FG; c.fillStyle='rgba(10,6,4,.5)'; c.fillRect(0,
     txt(`Próby: ${G.hist.length} / ${G.max}`,300,505,18,'#ffe27a','left'); } }
 // ---------- flow ----------
 function showIntro(i){ lvl=i; L=LEVELS[i]; reset(); $('iTitle').textContent=`Poziom ${i+1}: ${L.name}`; $('iText').innerHTML=L.intro; ['title','win','over','pause'].forEach(id=>$(id).classList.add('hidden')); $('intro').classList.remove('hidden'); state='intro'; if(i>0) setMusic(L.music); }
-function startLevel(){ document.body.classList.add('playing'); reset(); state='play'; ['intro','over','win','pause','title'].forEach(id=>$(id).classList.add('hidden')); setMusic(L.music); bgm.volume=bgmVol; last=performance.now(); sleighBells(); if(QDEER&&lvl===3){ lvlT=(L.len||LEVEL_LEN)+5; waveIdx=L.waves.length; foes=[]; return; } const st=L.start; if(st) say(st[0],()=>setTimeout(()=>{ if(st[1]&&state==='play') say(st[1]); },200),true); }
-function gameOver(){ state='over'; $('oTxt').textContent=L.over||''; $('over').classList.remove('hidden'); if(voice){ voice.pause(); voice=null; } bgm.volume=bgmVol*.5; }
+function startLevel(){ document.body.classList.add('playing'); reset(); state='play'; ['intro','over','win','pause','title'].forEach(id=>$(id).classList.add('hidden')); setMusic(L.music); bgm.volume=bgmVol; last=performance.now(); sleighBells(); if((QDEER&&lvl===3)||JUMPBOSS===lvl){ const cp=JUMPBOSS===lvl?BOSSCP:null; JUMPBOSS=-1; lvlT=(L.len||LEVEL_LEN)+5; waveIdx=L.waves.length; foes=[]; if(cp){ delivered=cp.delivered; houseCount=cp.houseCount; score=cp.score; P.shield=4; } return; } const st=L.start; if(st) say(st[0],()=>setTimeout(()=>{ if(st[1]&&state==='play') say(st[1]); },200),true); }
+function gameOver(){ state='over'; const atBoss=BOSSCP&&BOSSCP.lvl===lvl; $('bRetry').textContent=atBoss?'Od początku walki z bossem ↺':'Jeszcze raz'; $('oTxt').textContent=(L.over||'')+(atBoss?' Zaczniecie od razu od walki — z pełnymi serduszkami.':''); $('over').classList.remove('hidden'); if(voice){ voice.pause(); voice=null; } bgm.volume=bgmVol*.5; }
 function levelDone(){ state='win'; const pct=delivered/Math.max(1,houseCount), st=1+(pct>=.5?1:0)+(pct>=.75?1:0); $('wStars').textContent='★'.repeat(st)+'☆'.repeat(3-st);
   $('wTxt').innerHTML=`${L.got||'Prezenty w kominach'}: <b>${delivered} / ${houseCount}</b> · Punkty: <b>${score}</b><br>${L.winTxt}`;
   document.querySelector('#win h2').textContent=`Poziom ${lvl+1} ukończony!`; $('wNext').innerHTML=L.next; $('bNext').style.display=lvl<=3?'':'none';
@@ -1002,7 +1008,7 @@ const QS=new URLSearchParams(location.search); const QTENT=QS.has('tent'), QCUT=
 if(QTENT||QCUT||QCOT||QVIL||QPOLE||QFAB||QWAKE||QTHRONE||QFIN||QDEER){ $('bPlay').onclick=()=>{ ac(); if(QDEER){ showIntro(3); return; } QTENT?startTent():QCOT?startCot():QVIL?startCut('jugo'):QPOLE?startCut('finale'):QFAB?startFab():QWAKE?startCut('wake'):QTHRONE?startCut('throne'):QFIN?startCut('finale'):startCut(); }; }
 $('bLvl2').onclick=()=>{ ac(); showIntro(1); }; $('bLvl3').onclick=()=>{ ac(); showIntro(2); }; $('bVil').onclick=()=>{ location.href='wioska/'; }; $('bFab').onclick=()=>{ ac(); startFab(); }; $('bHall').onclick=()=>{ location.href='wioska/?level=2'; }; $('bBob').onclick=()=>{ location.href='bobslej/'; }; $('bMag').onclick=()=>{ location.href='magazyn/'; }; $('bPal').onclick=()=>{ ac(); showIntro(3); }; $('bTower').onclick=()=>{ location.href='wioska/?level=3'; }; $('bThrone').onclick=()=>{ ac(); startCut('throne'); };
 $('bNext').onclick=()=>{ ac(); if(lvl===2){ location.href='wioska/'; return; } if(lvl===3){ try{ if((+localStorage.getItem('pn-level')||1)<9) localStorage.setItem('pn-level',9); }catch(e){} location.href='wioska/?level=3'; return; } startCut(['mar','jugo'][lvl]); }; showLvlBtn();
-$('bGo').onclick=startLevel; $('bRetry').onclick=startLevel; $('bAgain').onclick=startLevel; $('bRestart').onclick=startLevel;
+$('bGo').onclick=()=>{ BOSSCP=null; startLevel(); }; $('bRetry').onclick=()=>{ if(BOSSCP&&BOSSCP.lvl===lvl) JUMPBOSS=lvl; else BOSSCP=null; startLevel(); }; $('bAgain').onclick=startLevel; $('bRestart').onclick=startLevel;
 $('bResume').onclick=resumeGame; ['bMenu','bMenu2','bMenu3','bMenu4','bMenu5','bMenu6'].forEach(id=>$(id).onclick=toMenu); $('bVilAgain').onclick=()=>{ location.href='wioska/'; };
 $('bToFab').onclick=()=>{ ac(); startFab(); }; $('bToBob').onclick=()=>{ location.href='magazyn/'; }; $('bBobAgain').onclick=()=>{ location.href='bobslej/'; }; $('bToEnd').onclick=()=>{ ac(); $('tbc4').classList.add('hidden'); showIntro(3); }; $('bToThrone').onclick=()=>{ ac(); $('tbc5').classList.add('hidden'); startCut('throne'); }; $('bTowerAgain').onclick=()=>{ location.href='wioska/?level=3'; };
 { const af=QS0.get('after'), card={fabryka:'tbc3',bobslej:'tbc4',palac:'tbc5'}[af], lv={fabryka:7,bobslej:8,palac:10}[af]; if(card){ $('title').classList.add('hidden'); $(card).classList.remove('hidden'); try{ if((+localStorage.getItem('pn-level')||1)<lv) localStorage.setItem('pn-level',lv); }catch(e){} } }
@@ -1012,7 +1018,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) pauseGame
 window.__pn={get P(){return P}, get state(){return state}, get boss(){return boss}, get houses(){return houses}, get foes(){return foes}, get score(){return score}, get delivered(){return delivered}, set lvlT(v){lvlT=v; while(waveIdx<L.waves.length&&L.waves[waveIdx][0]<v) waveIdx++;}, get lvlT(){return lvlT}, get lvl(){return lvl}, get trees(){return trees}, get TENT(){return TENT}, get G(){return G}, startTent, startCot, startFab, get FAB(){return FAB}, get FG(){return FG}, fabClick:(x,y)=>fabPointer(x,y), fabWin:()=>fabWon(), get COT(){return COT}, cotClick:(x,y)=>cotPointer(x,y), danceKey:d=>danceKey(d), gameClick:(x,y)=>gameClick(x,y), hubClick:(x,y)=>hubClick(x,y), strum:l=>strum(l), K, startLevel, startBoss, dropWindow, startCut, showIntro, levelDone:()=>levelDone()};
 
 // ---------- loop ----------
-let HOVANY=false, TOUCHHOLD=false; addEventListener('pointerdown',()=>TOUCHHOLD=true); addEventListener('pointerup',()=>TOUCHHOLD=false); addEventListener('pointercancel',()=>TOUCHHOLD=false);
+let JUMPBOSS=-1; let HOVANY=false, TOUCHHOLD=false; addEventListener('pointerdown',()=>TOUCHHOLD=true); addEventListener('pointerup',()=>TOUCHHOLD=false); addEventListener('pointercancel',()=>TOUCHHOLD=false);
 // one line along the very bottom with the keys for whatever is being played right now (kept on screen for the whole game)
 function controlsLine(){ const T=TOUCH, back=' · Esc — wróć';
   if(state==='play'){ if(boss&&boss.mode==='duel') return T?'Stukaj szybko w ekran — przepychaj różowy promień!':'Spacja / X / C — wciskaj szybko (albo przytrzymaj), żeby nos Rudolfa przepchnął różowy promień';
