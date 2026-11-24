@@ -630,7 +630,7 @@ function update(dt){
       else { e.mode=null; patrol(e,dt); } }
     if(e.k==='inez'){ e.t+=dt; const near=Math.abs(P.x-e.x)<420&&Math.abs((P.y+P.h)-(surfAt(e.x,e.y)||0))<200;
       if(near){ e.dir=Math.sign(P.x-e.x)||-1; e.cool-=dt; e.kissT=Math.max(0,(e.kissT||0)-dt);
-        if(e.cool<=0){ e.cool=2.3; e.kissT=.5; kisses.push({x:e.x+e.dir*30,y:(surfAt(e.x,e.y)||0)-120,vx:e.dir*230,t:3,ph:Math.random()*6}); if(inezCool<=0){ play('inez_kiss'); inezCool=14; } } }
+        if(e.cool<=0){ e.cool=2.3; e.kissT=.5; kisses.push({x:e.x+e.dir*30,y:(surfAt(e.x,e.y)||0)-120,vx:e.dir*260,t:3,ph:Math.random()*6,snow:true}); sfx('throw',.3); } }
       else patrol(e,dt); }
     if(e.k==='inez'||e.k==='gay'){ const who=e.k==='gay'?'Gayzilla':'Inez';
       const ey=surfAt(e.x,e.y)||VH; e.y=ey;
@@ -900,7 +900,7 @@ function draw(){ c.setTransform(RES,0,0,RES,0,0); if(shake>0) c.translate((Math.
     else if(e.k==='inez'){ const fl=e.dir<0; if(!(e.kissT>0?drawAnim('inez_kiss',X,e.y+2,0,fl,1-e.kissT/.5):drawAnim('inez_walk',X,e.y+2,e.t,fl))){ const im=e.kissT>0?IMG.inez_kiss:(Math.floor(e.t*5)%2?IMG.inez_walk1:IMG.inez_walk2); drawImg(im,X,e.y+2,128*CHAR,fl); } }
     else if(e.k==='spring') drawSpring(X,e.y,e.sq||0);
     else if(e.k==='icicle') drawIcicle(X,e.y,e.st==='shake'?Math.sin(t0*60)*3:0); });
-  kisses.forEach(k=>drawImg(IMG.it_kiss,k.x-cam,k.y+14,30));
+  kisses.forEach(k=>k.snow?drawImg(IMG.it_snow,k.x-cam,k.y+12,26):drawImg(IMG.it_kiss,k.x-cam,k.y+14,30));
   snowballs.forEach(b=>drawImg(IMG.it_snow,b.x-cam,b.y+12,24));
   phones.forEach(f=>{ c.save(); c.translate(f.x-cam,f.y); c.rotate(f.rot); drawImg(IMG.it_phone,0,18,36); c.restore(); });
   flyers.forEach(f=>{ c.save(); c.translate(f.x-cam,f.y-70); c.rotate(f.rot); c.globalAlpha=Math.min(1,f.t); drawImg(IMG.inez_kiss,0,70,144*CHAR,f.dir>0); c.restore(); });

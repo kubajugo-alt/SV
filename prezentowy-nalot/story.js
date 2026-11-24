@@ -29,6 +29,8 @@
 .st-t{font-family:Lobster,cursive;color:#c0392b;font-size:clamp(26px,3.6vw,44px);line-height:1.05;margin:.05em 0 .15em}
 .st-x{font-size:clamp(15px,1.7vw,21px);line-height:1.35;font-weight:600}.st-x span{opacity:0;transition:opacity .35s}.st-x span.on{opacity:1}
 .st-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px}.st-who{font-size:13px;opacity:.6}
+.st-play{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);width:150px;height:150px;border-radius:50%;border:5px solid #fff3d0;background:rgba(192,57,43,.92);color:#fff;font-size:64px;line-height:1;cursor:pointer;box-shadow:0 10px 40px rgba(0,0,0,.5);animation:stPulse 1.6s ease-in-out infinite;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-left:8px}
+.st-play small{font-size:13px;font-weight:700;margin-top:4px;padding-right:8px}@keyframes stPulse{50%{transform:translate(-50%,-50%) scale(1.07)}}
 .st-btn{font:inherit;font-weight:800;font-size:18px;border:0;border-radius:999px;padding:9px 22px;cursor:pointer;background:#c0392b;color:#fff;box-shadow:0 4px 0 #8a2418}`;
   const st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
   // Kaka's talking portrait (mouth shapes and closed eyes are the ones made for the platformer story card)
@@ -41,13 +43,15 @@
       <div class="st-card"><div class="st-face"><canvas width="256" height="256"></canvas></div><div class="st-txt"><div class="st-ch">Rozdział ${ROMAN[n]}</div><div class="st-t">${C.t}</div>
       <div class="st-x">${C.x.split(/(?<=[.!?…])\s+/).map(s=>`<span>${s} </span>`).join('')}</div><div class="st-row"><span class="st-who">Opowiada Kaka</span><button class="st-btn">Dalej ▶</button></div></div></div>`;
     document.body.appendChild(ov); requestAnimationFrame(()=>ov.classList.add('on'));
-    const spans=[...ov.querySelectorAll('.st-x span')], a=muted?null:new Audio(base+'audio/story/ch'+n+'.mp3'); if(a){ a.volume=.95; a.play().catch(()=>{ const b=document.createElement('button'); b.className='st-btn'; b.style.background='#2e7d4f'; b.style.boxShadow='0 4px 0 #1d5233'; b.textContent='🔊 Posłuchaj'; b.onclick=()=>{ a.play().catch(()=>{}); b.remove(); }; ov.querySelector('.st-row').insertBefore(b,ov.querySelector('.st-btn')); }); }
-    const t0=performance.now(), cues=F.L['ch'+n]||[], dur=()=>a&&a.duration&&isFinite(a.duration)?a.duration:spans.length*3.2;
+    const spans=[...ov.querySelectorAll('.st-x span')], a=muted?null:new Audio(base+'audio/story/ch'+n+'.mp3'); let waiting=false, wait0=0; const startRead=()=>{ if(!waiting) return; waiting=false; a.play().catch(()=>{}); const pr=ov.querySelector('.st-play'); if(pr) pr.remove(); };
+    // a fresh page load may not play sound until the player interacts: then the page waits behind a big start button and the text appears together with the voice
+    if(a){ a.volume=.95; a.play().catch(()=>{ waiting=true; wait0=performance.now(); const b=document.createElement('button'); b.className='st-play'; b.innerHTML='▶<small>Kaka czyta rozdział — kliknij</small>'; b.onclick=e=>{ e.stopPropagation(); startRead(); }; ov.appendChild(b); }); }
+    let t0=performance.now(); const cues=F.L['ch'+n]||[], dur=()=>a&&a.duration&&isFinite(a.duration)?a.duration:spans.length*3.2;
     const sn=ov.querySelector('.st-snow'), sg=sn.getContext('2d'), flakes=Array.from({length:90},()=>({x:Math.random(),y:Math.random(),r:1+Math.random()*2.4,s:.02+Math.random()*.05,d:Math.random()*6}));
     const fc=ov.querySelector('.st-face canvas').getContext('2d'); let raf, done=false;
-    function frame(){ if(done) return; const t=(performance.now()-t0)/1000, at=a&&!a.paused?a.currentTime:t;
+    function frame(){ if(done) return; const t=(performance.now()-t0)/1000, at=waiting?-1:a&&!a.paused?a.currentTime:a&&a.currentTime>0?a.duration:t;
       // sentences appear as they are read
-      spans.forEach((s,i)=>{ if(at>=i/spans.length*dur()*0.98) s.classList.add('on'); });
+      spans.forEach((s,i)=>{ if(waiting) s.classList.remove('on'); else if(at>=i/spans.length*dur()*0.98) s.classList.add('on'); });
       // snow
       if(sn.width!==sn.clientWidth){ sn.width=sn.clientWidth; sn.height=sn.clientHeight; } sg.clearRect(0,0,sn.width,sn.height); sg.fillStyle='rgba(255,255,255,.85)';
       flakes.forEach(f=>{ const y=((f.y+t*f.s)%1)*sn.height, x=((f.x+Math.sin(t*.7+f.d)*.01)%1)*sn.width; sg.beginPath(); sg.arc(x,y,f.r,0,6.29); sg.fill(); });
@@ -58,7 +62,7 @@
       raf=requestAnimationFrame(frame); }
     frame();
     const close=()=>{ if(done) return; done=true; cancelAnimationFrame(raf); if(a){ a.pause(); } removeEventListener('keydown',key,true); ov.classList.remove('on'); setTimeout(()=>ov.remove(),500); then&&then(); };
-    const key=e=>{ if(e.code==='Enter'||e.code==='Space'){ e.preventDefault(); e.stopPropagation(); if(performance.now()-t0>400) close(); } };
+    const key=e=>{ if(e.code==='Enter'||e.code==='Space'){ e.preventDefault(); e.stopPropagation(); if(waiting){ startRead(); return; } if(performance.now()-t0>400) close(); } };
     ov.querySelector('.st-btn').onclick=close; addEventListener('keydown',key,true); }
   window.STORY={show};
   // ?story=N shows chapter N on its own (to preview a page)
