@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Inez na łowach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{ --bg:#1a0f24; --pink:#ff5fa2; --gold:#ffd34e; --cream:#fff4e6; }
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ margin:0; height:100%; background:radial-gradient(ellipse at 50% 30%,#3a1a46 0%,#1a0f24 70%); color:var(--cream); font-family:"Baloo 2",system-ui,sans-serif; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; }
+#wrap{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+canvas{ display:block; border-radius:14px; box-shadow:0 0 0 2px rgba(255,95,162,.35),0 20px 60px rgba(0,0,0,.55); }
+.ov{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(16,8,24,.78); backdrop-filter:blur(3px); z-index:5; padding:16px; }
+.ov.hidden{ display:none; }
+.card{ background:linear-gradient(160deg,#40204f,#24122f); border:2px solid rgba(255,95,162,.5); border-radius:22px; padding:22px 26px; max-width:460px; width:100%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+.card h1{ margin:0; font-size:44px; line-height:1; color:var(--pink); text-shadow:0 0 18px rgba(255,95,162,.6); }
+.card h2{ margin:6px 0 0; font-size:30px; color:var(--gold); }
+.card p{ margin:10px 0; font-size:17px; line-height:1.35; }
+.card .row{ display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; margin:12px 0; }
+.card .row img{ height:46px; }
+button{ font:inherit; font-weight:800; font-size:22px; border:0; border-radius:14px; padding:10px 26px; background:var(--pink); color:#fff; cursor:pointer; box-shadow:0 5px 0 #b8336e; }
+button:active{ transform:translateY(3px); box-shadow:0 2px 0 #b8336e; }
+.small{ font-size:14px; opacity:.8; }
+#hudBtns{ position:fixed; top:10px; left:10px; display:flex; gap:8px; z-index:4; }
+#hudBtns button{ font-size:18px; padding:6px 12px; box-shadow:none; background:rgba(255,255,255,.14); }
+#pad{ position:fixed; bottom:14px; left:50%; transform:translateX(-50%); display:none; z-index:4; width:170px; height:170px; }
+#pad button{ position:absolute; width:58px; height:58px; padding:0; font-size:26px; background:rgba(255,95,162,.35); box-shadow:none; border-radius:16px; }
+#pu{ left:56px; top:0 } #pd{ left:56px; bottom:0 } #pl{ left:0; top:56px } #pr{ right:0; top:56px }
+@media (pointer:coarse){ #pad{ display:block; } }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv"></canvas></div>
+<div id="hudBtns"><button id="bMute" title="Dźwięk (M)">🔊</button><button id="bPause" title="Pauza (P)">⏸</button></div>
+<div id="pad"><button id="pu">▲</button><button id="pl">◀</button><button id="pr">▶</button><button id="pd">▼</button></div>
+
+<div class="ov" id="ovStart"><div class="card">
+  <h1>Inez na łowach</h1>
+  <p>Inez poluje na facetów, a złe węglowodany depczą jej po piętach!</p>
+  <div class="row"><img src="art/head_open.webp" alt=""><span>zjada</span><img src="art/guy0.webp" alt=""><img src="art/guy4.webp" alt=""><img src="art/guy5.webp" alt=""></div>
+  <div class="row"><span>uciekaj przed</span><img src="art/carb_pizza.webp" alt=""><img src="art/carb_donut.webp" alt=""><img src="art/carb_bread.webp" alt=""><img src="art/carb_fries.webp" alt=""></div>
+  <div class="row"><img src="art/hunk.webp" alt=""><span>Ciacho! Przez chwilę to Inez zjada węglowodany<br>(zero kalorii).</span></div>
+  <p class="small">Strzałki / WASD — ruch · P — pauza · M — dźwięk · na telefonie: przesuń palcem albo użyj strzałek</p>
+  <button id="bStart">Na łowy!</button>
+  <p class="small" id="best"></p>
+</div></div>
+
+<div class="ov hidden" id="ovEnd"><div class="card">
+  <h2 id="eTitle"></h2>
+  <p id="eTxt"></p>
+  <p id="eScore" style="font-size:24px;color:var(--gold)"></p>
+  <button id="bAgain">Jeszcze raz</button>
+</div></div>
+
+<div class="ov hidden" id="ovPause"><div class="card"><h2>Pauza</h2><p>Inez poprawia szminkę.</p><button id="bResume">Wracam!</button></div></div>
+
+<script>
+// ---------- maze ----------
+const MAZE=[
+"#####################",
+"#.........#.........#",
+"#.###.###.#.###.###.#",
+"#o###.###.#.###.###o#",
+"#...................#",
+"#.###.#.#####.#.###.#",
+"#.....#...#...#.....#",
+"#####.###.#.###.#####",
+"#####.#.......#.#####",
+"#####.#.##-##.#.#####",
+"......#.#HHH#.#......",
+"#####.#.#####.#.#####",
+"#####.#.......#.#####",
+"#####.#.#####.#.#####",
+"#.........#.........#",
+"#.###.###.#.###.###.#",
+"#o..#...........#..o#",
+"###.#.#.#####.#.#.###",
+"#.....#...#...#.....#",
+"#.#######.#.#######.#",
+"#...................#",
+"#####################"];
+const COLS=21, ROWS=MAZE.length, T=32, TOP=56, BOT=40, VW=COLS*T, VH=ROWS*T+TOP+BOT;
+const DOOR={x:10,y:9}, HOUSE={x:10,y:10}, OUT={x:10,y:8}, START={x:10,y:16}, TUN=10;
+const cv=document.getElementById('cv'), c=cv.getContext('2d'); let RES=1, SCALE=1;
+function fit(){ const sw=innerWidth-16, sh=innerHeight-16-(matchMedia('(pointer:coarse)').matches?150:0); SCALE=Math.min(sw/VW,sh/VH); cv.style.width=Math.floor(VW*SCALE)+'px'; cv.style.height=Math.floor(VH*SCALE)+'px';
+  const r=Math.min(2,Math.max(1,(devicePixelRatio||1)*SCALE)); if(r!==RES||!cv.width){ RES=r; cv.width=Math.round(VW*RES); cv.height=Math.round(VH*RES); mazeCache=null; } }
+addEventListener('resize',fit);
+
+// ---------- assets ----------
+const IMG={}; const img=n=>{ const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; return i; };
+['head_closed','head_open','carb_pizza','carb_donut','carb_bread','carb_fries','hunk'].forEach(img); for(let i=0;i<8;i++) img('guy'+i);
+let muted=false; try{ muted=localStorage.getItem('inez-mute')==='1'; }catch(e){}
+const music=new Audio('audio/music.mp3'); music.loop=true; music.volume=.35;
+const AUD={}; const aud=n=>{ if(!AUD[n]){ AUD[n]=new Audio('audio/'+n+'.mp3'); AUD[n].preload='auto'; } return AUD[n]; };
+['in_start','in_ciacho','in_caught','in_win','in_over','in_zero','sfx_defeat','sfx_hurt','sfx_ladle','sfx_win'].forEach(aud);
+let voice=null;
+function say(n){ if(muted) return; if(voice){ voice.pause(); } const a=aud(n); a.currentTime=0; a.volume=1; voice=a; music.volume=.12; a.onended=()=>{ if(voice===a){ voice=null; music.volume=.35; } }; a.play().catch(()=>{}); }
+function sfx(n,v=.7){ if(muted) return; const a=aud(n).cloneNode(); a.volume=v; a.play().catch(()=>{}); }
+let AC=null; function chomp(){ if(muted) return; try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); const t=AC.currentTime, o=AC.createOscillator(), g=AC.createGain(); o.type='triangle'; o.frequency.setValueAtTime(chompHi?520:390,t); o.frequency.exponentialRampToValueAtTime(chompHi?300:220,t+.07); g.gain.setValueAtTime(.12,t); g.gain.exponentialRampToValueAtTime(.001,t+.08); o.connect(g).connect(AC.destination); o.start(t); o.stop(t+.09); chompHi=!chompHi; }catch(e){} }
+let chompHi=false;
+
+// ---------- state ----------
+const DIRS={L:[-1,0],R:[1,0],U:[0,-1],D:[0,1]}, OPP={L:'R',R:'L',U:'D',D:'U'};
+let grid, dots, inez, carbs, score, lives, state='title', t0=0, fright=0, eatChain=0, readyT=0, deathT=0, popups=[], modeT=0, modeIdx=0, best=0, totalDots=0, levelTime=0;
+try{ best=+localStorage.getItem('inez-best')||0; }catch(e){}
+const MODES=[7,20,7,20,5,20,5,1e9]; // scatter / chase alternation (seconds)
+const CARB=[{n:'carb_pizza',corner:{x:19,y:-2},col:'#ff6b4a',wait:0},{n:'carb_donut',corner:{x:1,y:-2},col:'#ff8fd0',wait:2.5},{n:'carb_bread',corner:{x:20,y:23},col:'#e0a050',wait:5},{n:'carb_fries',corner:{x:0,y:23},col:'#ffd34e',wait:8}];
+function wall(x,y,isCarb,c0){ if(y===TUN&&(x<0||x>=COLS)) return false; if(x<0||x>=COLS||y<0||y>=ROWS) return true; const ch=grid[y][x]; if(ch==='#') return true; if(ch==='-') return !(isCarb&&c0&&(c0.st==='exit'||c0.st==='eyes')); if(ch==='H') return !(isCarb&&c0&&c0.st!=='out'&&c0.st!=='fright'); return false; }
+function reset(full){
+  if(full){ grid=MAZE.map(r=>r.split('')); dots=0; for(const r of grid) for(const ch of r) if(ch==='.'||ch==='o') dots++; totalDots=dots; score=0; lives=3; levelTime=0; }
+  inez={x:START.x,y:START.y,dir:'L',next:'L',spd:7.2,mouth:0,moving:true,face:-1,tilt:0};
+  carbs=CARB.map((d,i)=>({...d,i,x:i===0?OUT.x:9+(i-1),y:i===0?OUT.y:HOUSE.y,dir:i===0?'L':'U',st:i===0?'out':'house',wait:d.wait,fr:false,bob:i}));
+  fright=0; eatChain=0; modeT=0; modeIdx=0; readyT=2.2; popups=[]; }
+
+// ---------- movement on the grid ----------
+function step(e,dist,canTurn,isCarb){
+  let guard=0;
+  while(dist>1e-6&&guard++<8){
+    const [dx,dy]=DIRS[e.dir];
+    // distance to the next tile centre along the current direction
+    const cx=dx?(dx>0?Math.floor(e.x+1e-6)+1:Math.ceil(e.x-1e-6)-1):e.x, cy=dy?(dy>0?Math.floor(e.y+1e-6)+1:Math.ceil(e.y-1e-6)-1):e.y;
+    const atC=Math.abs(e.x-Math.round(e.x))<1e-6&&Math.abs(e.y-Math.round(e.y))<1e-6;
+    if(atC){ const tx=Math.round(e.x), ty=Math.round(e.y); canTurn(e,tx,ty); const [ddx,ddy]=DIRS[e.dir]; if(wall(tx+ddx,ty+ddy,isCarb,e)){ e.moving=false; return; } e.moving=true;
+      const m=Math.min(dist,1); e.x+=ddx*m; e.y+=ddy*m; dist-=m; }
+    else { const d=Math.abs(dx?cx-e.x:cy-e.y); const m=Math.min(dist,d); e.x+=dx*m; e.y+=dy*m; dist-=m; if(m===d){ e.x=Math.round(e.x*1e6)/1e6; e.y=Math.round(e.y*1e6)/1e6; e.x=Math.abs(e.x-Math.round(e.x))<1e-5?Math.round(e.x):e.x; e.y=Math.abs(e.y-Math.round(e.y))<1e-5?Math.round(e.y):e.y; } }
+    if(e.y===TUN||Math.round(e.y)===TUN){ if(e.x<-.5) e.x+=COLS; if(e.x>COLS-.5) e.x-=COLS; }
+  }
+}
+function inezTurn(e,tx,ty){ if(e.next&&!wall(tx+DIRS[e.next][0],ty+DIRS[e.next][1])) e.dir=e.next; }
+const d2=(ax,ay,bx,by)=>(ax-bx)**2+(ay-by)**2;
+function carbTarget(k){
+  if(k.st==='eyes') return OUT;
+  if(MODES.length&&modeIdx%2===0) return k.corner;
+  const ix=Math.round(inez.x), iy=Math.round(inez.y), [dx,dy]=DIRS[inez.dir];
+  if(k.i===0) return {x:ix,y:iy};
+  if(k.i===1) return {x:ix+dx*4,y:iy+dy*4};
+  if(k.i===2){ const p=carbs[0], ax=ix+dx*2, ay=iy+dy*2; return {x:ax*2-Math.round(p.x),y:ay*2-Math.round(p.y)}; }
+  return d2(k.x,k.y,ix,iy)>64?{x:ix,y:iy}:k.corner; }
+function carbTurn(k,tx,ty){
+  if(k.st==='eyes'&&tx===OUT.x&&ty===OUT.y){ k.st='enter'; return; }
+  const opts=['U','L','D','R'].filter(d=>d!==OPP[k.dir]&&!wall(tx+DIRS[d][0],ty+DIRS[d][1],true,k));
+  if(!opts.length){ k.dir=OPP[k.dir]; return; }
+  if(k.st==='fright'){ k.dir=opts[Math.floor(Math.random()*opts.length)]; return; }
+  const tg=carbTarget(k); let bd=opts[0], bv=1e9; for(const d of opts){ const v=d2(tx+DIRS[d][0],ty+DIRS[d][1],tg.x,tg.y); if(v<bv){ bv=v; bd=d; } } k.dir=bd; }
+
+// ---------- update ----------
+function update(dt){
+  t0+=dt; popups.forEach(p=>p.t-=dt); popups=popups.filter(p=>p.t>0);
+  if(state==='dying'){ deathT-=dt; if(deathT<=0){ if(lives<=0) return endGame(false); reset(false); state='play'; } return; }
+  if(state==='won'){ deathT-=dt; if(deathT<=0) endGame(true); return; }
+  if(state!=='play') return;
+  if(readyT>0){ readyT-=dt; return; }
+  levelTime+=dt;
+  if(fright>0){ fright-=dt; if(fright<=0){ carbs.forEach(k=>{ if(k.st==='fright') k.st='out'; }); eatChain=0; } }
+  else { modeT+=dt; if(modeT>MODES[modeIdx]){ modeT=0; modeIdx++; carbs.forEach(k=>{ if(k.st==='out') k.dir=OPP[k.dir]; }); } }
+  // Inez
+  step(inez,inez.spd*dt,inezTurn,false);
+  if(inez.moving) inez.mouth+=dt;
+  if(inez.dir==='L') inez.face=-1; else if(inez.dir==='R') inez.face=1;
+  inez.tilt+=((inez.dir==='U'?-.25:inez.dir==='D'?.25:0)*-inez.face-inez.tilt)*Math.min(1,dt*10);
+  const tx=Math.round(inez.x), ty=Math.round(inez.y);
+  if(Math.abs(inez.x-tx)<.35&&Math.abs(inez.y-ty)<.35&&grid[ty]&&(grid[ty][tx]==='.'||grid[ty][tx]==='o')){
+    const big=grid[ty][tx]==='o'; grid[ty][tx]=' '; dots--;
+    if(big){ score+=50; fright=7; eatChain=0; sfx('sfx_ladle',.6); say('in_ciacho'); popups.push({x:tx,y:ty,txt:'Ciacho! 😍',t:1.2,col:'#ffd34e'}); carbs.forEach(k=>{ if(k.st==='out'||k.st==='fright'){ k.st='fright'; k.dir=OPP[k.dir]; } }); }
+    else { score+=10; chomp(); }
+    if(dots<=0){ state='won'; deathT=2.6; music.pause(); sfx('sfx_win',.7); say('in_win'); return; } }
+  // carbs
+  const fast=levelTime>60?1.06:1;
+  carbs.forEach(k=>{
+    k.bob+=dt;
+    if(k.st==='house'){ k.wait-=dt; k.y=HOUSE.y+Math.sin(k.bob*6)*.18; if(k.wait<=0){ k.st='exit'; k.y=HOUSE.y; } return; }
+    if(k.st==='exit'){ // centre on the door column, then rise through it
+      if(Math.abs(k.x-HOUSE.x)>.01){ k.x+=Math.sign(HOUSE.x-k.x)*Math.min(Math.abs(HOUSE.x-k.x),3*dt); return; }
+      k.x=HOUSE.x; k.y-=3.5*dt; if(k.y<=OUT.y){ k.y=OUT.y; k.st=fright>0?'fright':'out'; k.dir=Math.random()<.5?'L':'R'; } return; }
+    if(k.st==='enter'){ k.x=OUT.x; k.y+=6*dt; if(k.y>=HOUSE.y){ k.y=HOUSE.y; k.st='exit'; k.fr=false; } return; }
+    const inTun=Math.round(k.y)===TUN&&(k.x<3||k.x>COLS-4);
+    const sp=k.st==='eyes'?13:k.st==='fright'?3.8:inTun?3.6:6.8*fast*(k.i===0&&dots<40?1.08:1);
+    step(k,sp*dt,carbTurn,true);
+    // collision with Inez
+    if(d2(k.x,k.y,inez.x,inez.y)<.42){
+      if(k.st==='fright'){ k.st='eyes'; eatChain++; const pts=200*2**(eatChain-1); score+=pts; popups.push({x:k.x,y:k.y,txt:'+'+pts,t:1,col:'#7dff9a'}); sfx('sfx_defeat',.6); if(eatChain===1||Math.random()<.35) say('in_zero'); }
+      else if(k.st==='out'){ lives--; state='dying'; deathT=2.2; sfx('sfx_hurt',.7); say(lives>0?'in_caught':'in_over'); }
+    } });
+}
+
+// ---------- drawing ----------
+let mazeCache=null;
+function buildMaze(){ const o=document.createElement('canvas'); o.width=cv.width; o.height=cv.height; const g=o.getContext('2d'); g.setTransform(RES,0,0,RES,0,0);
+  const W=(x,y)=>y>=0&&y<ROWS&&x>=0&&x<COLS&&MAZE[y][x]==='#';
+  const path=()=>{ g.beginPath(); for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++){ if(!W(x,y)) continue; const X=x*T, Y=y*T+TOP, p=7;
+      let l=X+p, r=X+T-p, t=Y+p, b=Y+T-p; if(W(x-1,y)) l=X; if(W(x+1,y)) r=X+T; if(W(x,y-1)) t=Y; if(W(x,y+1)) b=Y+T; g.rect(l,t,r-l,b-t);
+      if(W(x-1,y)&&W(x,y-1)&&W(x-1,y-1)) g.rect(X,Y,p,p); if(W(x+1,y)&&W(x,y-1)&&W(x+1,y-1)) g.rect(X+T-p,Y,p,p); if(W(x-1,y)&&W(x,y+1)&&W(x-1,y+1)) g.rect(X,Y+T-p,p,p); if(W(x+1,y)&&W(x,y+1)&&W(x+1,y+1)) g.rect(X+T-p,Y+T-p,p,p); } };
+  g.save(); g.shadowColor='rgba(255,95,162,.9)'; g.shadowBlur=14; path(); g.fillStyle='#ff5fa2'; g.fill(); g.restore();
+  path(); const gr=g.createLinearGradient(0,TOP,0,TOP+ROWS*T); gr.addColorStop(0,'#5a1f5f'); gr.addColorStop(1,'#3a1446'); g.save(); g.translate(0,0); g.fillStyle=gr; g.globalCompositeOperation='source-atop'; g.fill(); g.restore();
+  // inner fill slightly inset so the pink rim reads as a neon tube
+  g.save(); g.beginPath(); for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++){ if(!W(x,y)) continue; const X=x*T, Y=y*T+TOP, p=10; let l=X+p, r=X+T-p, t=Y+p, b=Y+T-p; if(W(x-1,y)) l=X; if(W(x+1,y)) r=X+T; if(W(x,y-1)) t=Y; if(W(x,y+1)) b=Y+T; g.rect(l,t,r-l,b-t); } g.fillStyle='#2a1034'; g.fill(); g.restore();
+  // carb house door
+  g.fillStyle='#ffd34e'; g.fillRect(DOOR.x*T+3,DOOR.y*T+TOP+T/2-3,T-6,6);
+  return o; }
+function drawSprite(im,x,y,h,flip,rot){ if(!im.complete||!im.naturalWidth) return; const w=h*im.naturalWidth/im.naturalHeight; c.save(); c.translate(x,y); if(rot) c.rotate(rot); if(flip) c.scale(-1,1); c.drawImage(im,-w/2,-h/2,w,h); c.restore(); }
+const P=(gx,gy)=>[gx*T+T/2,gy*T+T/2+TOP];
+function draw(){
+  c.setTransform(RES,0,0,RES,0,0); c.fillStyle='#1a0f24'; c.fillRect(0,0,VW,VH);
+  if(!mazeCache) mazeCache=buildMaze(); c.drawImage(mazeCache,0,0,VW,VH);
+  // guys and hunks
+  for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++){ const ch=grid[y][x]; if(ch!=='.'&&ch!=='o') continue; const [X,Y]=P(x,y);
+    if(ch==='.') drawSprite(IMG['guy'+((x*7+y*13)%8)],X,Y+Math.sin(t0*3+x+y)*1.2,20);
+    else { const s=1+Math.sin(t0*6)*.08; c.save(); c.globalAlpha=.35+.2*Math.sin(t0*6); c.fillStyle='#ffd34e'; c.beginPath(); c.arc(X,Y,20*s,0,Math.PI*2); c.fill(); c.restore(); drawSprite(IMG.hunk,X,Y,34*s); } }
+  // carbs
+  carbs.forEach(k=>{ const [X,Y]=P(k.x,k.y);
+    if(k.st==='eyes'||(k.st==='enter')){ for(const s of [-7,7]){ c.fillStyle='#fff'; c.beginPath(); c.ellipse(X+s,Y,6,8,0,0,Math.PI*2); c.fill(); const [dx,dy]=DIRS[k.dir]; c.fillStyle='#2b2bff'; c.beginPath(); c.arc(X+s+dx*2.5,Y+dy*3,3,0,Math.PI*2); c.fill(); } return; }
+    const fr=k.st==='fright'&&state!=='won', blink=fr&&fright<2&&Math.floor(t0*8)%2;
+    if(fr){ c.save(); c.globalAlpha=.55; c.fillStyle=blink?'#ffffff':'#3d7bff'; c.beginPath(); c.arc(X,Y-2,19,0,Math.PI*2); c.fill(); c.restore(); }
+    c.save(); if(fr){ c.filter=blink?'grayscale(1) brightness(1.6)':'hue-rotate(190deg) saturate(1.4) brightness(.9)'; }
+    const wob=fr?Math.sin(t0*18+k.i)*.15:Math.sin(t0*8+k.i)*.06; drawSprite(IMG[k.n],X,Y-2,fr?30:34,k.dir==='L',wob); c.restore();
+    if(fr){ c.font='700 13px "Baloo 2",sans-serif'; c.textAlign='center'; c.fillStyle='#fff'; c.fillText('😱',X+12,Y-14); } });
+  // Inez
+  { const [X,Y]=P(inez.x,inez.y); let h=40, rot=inez.tilt;
+    if(state==='dying'){ const k=1-Math.max(0,deathT-0.6)/1.6; rot=k*Math.PI*4; h=40*(1-k*.85); }
+    const open=state==='play'&&readyT<=0&&inez.moving&&Math.floor(inez.mouth*9)%2===0;
+    drawSprite(open?IMG.head_open:IMG.head_closed,X,Y-2,h,inez.face<0,rot); }
+  // popups
+  popups.forEach(p=>{ const [X,Y]=P(p.x,p.y); c.save(); c.globalAlpha=Math.min(1,p.t*2); c.font='800 18px "Baloo 2",sans-serif'; c.textAlign='center'; c.lineWidth=4; c.strokeStyle='rgba(0,0,0,.6)'; c.strokeText(p.txt,X,Y-20-(1-p.t)*20); c.fillStyle=p.col; c.fillText(p.txt,X,Y-20-(1-p.t)*20); c.restore(); });
+  // HUD
+  c.textBaseline='middle'; c.font='800 22px "Baloo 2",sans-serif'; c.textAlign='left'; c.fillStyle='#fff4e6'; c.fillText('Punkty: '+score,14,TOP/2);
+  c.textAlign='right'; c.fillStyle='#ff5fa2'; c.fillText('Inez na łowach',VW-14,TOP/2);
+  c.textAlign='left'; c.font='700 16px "Baloo 2",sans-serif'; c.fillStyle='rgba(255,244,230,.75)'; c.fillText('Faceci: '+(totalDots-dots)+' / '+totalDots,14,VH-BOT/2); for(let i=0;i<Math.min(lives,5);i++) drawSprite(IMG.head_closed,VW-24-i*30,VH-BOT/2,26,false);
+  if(fright>0&&state==='play'){ c.textAlign='center'; c.fillStyle='#ffd34e'; c.fillText('Ciacho-moc: '+Math.ceil(fright)+' s',VW/2,VH-BOT/2); }
+  if(state==='play'&&readyT>0){ const [X,Y]=P(10,12); c.textAlign='center'; c.font='800 30px "Baloo 2",sans-serif'; c.lineWidth=6; c.strokeStyle='rgba(0,0,0,.6)'; c.strokeText('Gotowa?',X,Y); c.fillStyle='#ffd34e'; c.fillText('Gotowa?',X,Y); }
+  if(state==='won'){ c.textAlign='center'; c.font='800 34px "Baloo 2",sans-serif'; c.lineWidth=6; c.strokeStyle='rgba(0,0,0,.6)'; const [X,Y]=P(10,12); c.strokeText('Wszyscy moi! 💋',X,Y); c.fillStyle='#ff5fa2'; c.fillText('Wszyscy moi! 💋',X,Y); }
+}
+
+// ---------- flow ----------
+const $=id=>document.getElementById(id);
+function showBest(){ $('best').textContent=best?'Najlepszy wynik: '+best:''; }
+function start(){ reset(true); state='play'; $('ovStart').classList.add('hidden'); $('ovEnd').classList.add('hidden'); if(!muted){ music.currentTime=0; music.volume=.35; music.play().catch(()=>{}); } say('in_start'); }
+function endGame(won){ state='end'; music.pause(); if(score>best){ best=score; try{ localStorage.setItem('inez-best',best); }catch(e){} }
+  $('eTitle').textContent=won?'Wszyscy moi! 💋':'Dieta od poniedziałku…'; $('eTxt').textContent=won?'Inez zjadła wszystkich facetów w labiryncie i ani grama węglowodanów nie poszło w biodra.':'Złe węglowodany dopadły Inez. Jutro (no, w poniedziałek) się uda!';
+  $('eScore').textContent='Punkty: '+score+(score>=best?' · nowy rekord!':' · rekord: '+best); $('ovEnd').classList.remove('hidden'); }
+function pause(on){ if(state!=='play'&&state!=='paused') return; state=on?'paused':'play'; $('ovPause').classList.toggle('hidden',!on); if(on){ music.pause(); } else if(!muted) music.play().catch(()=>{}); }
+function setMute(m){ muted=m; try{ localStorage.setItem('inez-mute',m?'1':'0'); }catch(e){} $('bMute').textContent=m?'🔇':'🔊'; if(m){ music.pause(); if(voice) voice.pause(); } else if(state==='play') music.play().catch(()=>{}); }
+$('bStart').onclick=start; $('bAgain').onclick=start; $('bResume').onclick=()=>pause(false); $('bPause').onclick=()=>pause(state==='play'); $('bMute').onclick=()=>setMute(!muted);
+setMute(muted); showBest();
+const KEYS={ArrowLeft:'L',ArrowRight:'R',ArrowUp:'U',ArrowDown:'D',a:'L',d:'R',w:'U',s:'D',A:'L',D:'R',W:'U',S:'D'};
+addEventListener('keydown',e=>{ if(KEYS[e.key]){ e.preventDefault(); if(inez){ inez.next=KEYS[e.key]; if(KEYS[e.key]===OPP[inez.dir]) inez.dir=KEYS[e.key]; } }
+  else if(e.key==='p'||e.key==='P'||e.key==='Escape') pause(state==='play'); else if(e.key==='m'||e.key==='M') setMute(!muted);
+  else if((e.key==='Enter'||e.key===' ')&&(state==='title'||state==='end')) start(); });
+const turn=d=>{ if(!inez) return; inez.next=d; if(d===OPP[inez.dir]) inez.dir=d; };
+[['pu','U'],['pd','D'],['pl','L'],['pr','R']].forEach(([id,d])=>$(id).addEventListener('pointerdown',e=>{ e.preventDefault(); turn(d); }));
+let sw=null; cv.addEventListener('touchstart',e=>{ const t=e.touches[0]; sw={x:t.clientX,y:t.clientY}; },{passive:true});
+cv.addEventListener('touchmove',e=>{ if(!sw) return; const t=e.touches[0], dx=t.clientX-sw.x, dy=t.clientY-sw.y; if(Math.hypot(dx,dy)>24){ turn(Math.abs(dx)>Math.abs(dy)?(dx>0?'R':'L'):(dy>0?'D':'U')); sw={x:t.clientX,y:t.clientY}; } },{passive:true});
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) pause(true); });
+window.__grid=()=>grid; window.__inez={get state(){return state}, get inez(){return inez}, get carbs(){return carbs}, get dots(){return dots}, get score(){return score}, get lives(){return lives}, set lives(v){lives=v}, start};
+
+let last=performance.now();
+function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now; let left=dt; while(left>0){ const s=Math.min(left,1/120); update(s); left-=s; } if(grid) draw(); requestAnimationFrame(loop); }
+fit(); reset(true); requestAnimationFrame(loop);
+</script>
+</body>
+</html>

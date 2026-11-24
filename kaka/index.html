@@ -1,0 +1,1196 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Świąteczne przygotowania Kaki</title>
+<meta name="description" content="Świąteczna gra przygodowa: pomóż Kace przygotować Wigilię — pierniczki, choinka, dwanaście potraw, stół, lampki, pociąg Mikołaja i quiz z Harry'ego Pottera.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://swieta-kaki.netlify.app/">
+<meta property="og:title" content="Świąteczne przygotowania Kaki">
+<meta property="og:description" content="Pomóż Kace przygotować Wigilię — siedem świątecznych mini-gier. 🎄">
+<meta property="og:image" content="https://swieta-kaki.netlify.app/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Plansza tytułowa: Świąteczne przygotowania Kaki">
+<meta property="og:locale" content="pl_PL">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://swieta-kaki.netlify.app/og.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&family=Lobster&subset=latin-ext&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#fbf3e4; --ink:#3b2a20; --red:#b8322a; --red-d:#8e211b; --green:#2f6b45; --gold:#e9b949;
+  --panel:#fffaf0; --shadow:0 10px 30px rgba(40,20,10,.35);
+}
+*{box-sizing:border-box}
+/* --vw/--vh = 1% of the game's (virtual) viewport, set from JS; on a phone held upright the whole game is turned sideways */
+:root{--vw:1vw;--vh:1vh}
+#rot{position:fixed;left:0;top:0;width:calc(100*var(--vw));height:calc(100*var(--vh));overflow:hidden}
+body.turned #rot{transform-origin:0 0;transform:translateX(var(--tx)) rotate(90deg)}
+html,body{margin:0;height:100%;background:#1c1410;color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;cursor:pointer}
+img{user-select:none;-webkit-user-drag:none}
+.hidden{display:none!important}
+#app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#stage{position:relative;width:min(calc(100*var(--vw)),calc(179.1*var(--vh)));aspect-ratio:1920/1072;background:#2a1d16 url(art/room.webp) center/cover;overflow:hidden;border-radius:6px;container-type:inline-size}
+/* window sky darkens as Wigilia approaches */
+#dusk{position:absolute;left:42%;top:16.5%;width:22.5%;height:37%;background:#0a1030;mix-blend-mode:multiply;opacity:0;transition:opacity 1.5s;pointer-events:none}
+#star{position:absolute;left:54.5%;top:25%;width:5%;aspect-ratio:1;border:0;background:none;padding:0;cursor:pointer;border-radius:50%}
+#star svg{width:100%;height:100%;animation:starTw 3.4s ease-in-out infinite}
+#star .rays{transform-origin:50% 50%;animation:starRot 9s ease-in-out infinite}
+@keyframes starTw{0%,100%{opacity:.85;transform:scale(.92)}23%{opacity:1;transform:scale(1.05)}41%{opacity:.8;transform:scale(.95)}67%{opacity:1;transform:scale(1.1)}83%{opacity:.88;transform:scale(.97)}}
+@keyframes starRot{50%{transform:rotate(8deg)}}
+#star:hover svg,#star:focus-visible svg{filter:drop-shadow(0 0 .8cqw #fff)}
+/* room objects */
+.obj{position:absolute;border:0;background:none;padding:0;cursor:pointer;transition:filter .2s,transform .2s}
+.obj img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transition:opacity .8s}
+.obj:hover,.obj:focus-visible{filter:drop-shadow(0 0 .6cqw #fff3a0) drop-shadow(0 0 .3cqw #ffd34e);outline:none}
+.obj .tag{position:absolute;left:50%;top:-1.2cqw;transform:translate(-50%,-100%);background:rgba(255,250,240,.95);color:var(--ink);font-weight:700;font-size:1.25cqw;padding:.25em .7em;border-radius:99px;white-space:nowrap;opacity:0;transition:opacity .2s;box-shadow:0 2px 8px rgba(0,0,0,.25);pointer-events:none}
+.obj:hover .tag,.obj:focus-visible .tag{opacity:1}
+.obj .todo{position:absolute;right:8%;top:6%;width:2.2cqw;height:2.2cqw;border-radius:50%;background:var(--red);color:#fff;font-size:1.3cqw;display:grid;place-items:center;font-weight:700;box-shadow:0 0 0 .25cqw #fff;animation:bob 1.6s ease-in-out infinite}
+.obj.done .todo{background:var(--green);animation:none;font-size:0}
+.obj.done .todo::after{content:"✓";font-size:1.4cqw;line-height:1}
+@media (hover:none){.obj:hover .tag{opacity:0}}
+@keyframes bob{50%{transform:translateY(-.4cqw)}}
+#oTree{left:.5%;bottom:10%;width:26%;height:68%}
+#oTree .todo{top:30%;right:18%}
+#oFire{left:16.5%;top:42%;width:21.5%;height:34%}
+#oMik{left:22.5%;bottom:13%;width:17%;aspect-ratio:900/745;z-index:3}
+#oMik img{filter:drop-shadow(0 .4cqw .6cqw rgba(0,0,0,.35))}
+/* Mikołaj plays: his head tilts and bobs while the train and track stay put */
+#oMik .mHead,#oMik .mCollar{height:auto;bottom:auto;filter:none}
+#oMik .mHead{transform-origin:52% 86%;animation:mHead 3.4s ease-in-out infinite}
+@keyframes mHead{0%,100%{transform:rotate(0) translateY(0)}18%{transform:rotate(-2.2deg)}36%{transform:rotate(-.6deg) translateY(-.8%)}44%{transform:rotate(.6deg) translateY(-2%)}52%{transform:rotate(.3deg) translateY(0)}72%{transform:rotate(2.4deg)}86%{transform:rotate(1deg)}}
+#oMik .todo{right:30%;top:0}
+#presents{position:absolute;left:4%;bottom:9%;width:15%;z-index:2;pointer-events:none;filter:drop-shadow(0 .3cqw .5cqw rgba(0,0,0,.3))}
+.trainCv{background:#b98352;touch-action:none;width:auto!important;max-width:100%;max-height:min(calc(52*var(--vh)),460px);margin:0 auto}
+.tpad{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(2,46px);gap:6px;justify-content:center;margin-top:8px}
+.tpad button{border:0;border-radius:12px;background:var(--green);color:#fff;font-size:22px;box-shadow:0 3px 0 #1d4a2e;touch-action:none}
+.tpad [data-d=up]{grid-column:2}.tpad [data-d=left]{grid-column:1;grid-row:2}.tpad [data-d=down]{grid-column:2;grid-row:2}.tpad [data-d=right]{grid-column:3;grid-row:2}
+#oFire .tag{top:1cqw}
+#oPoster{left:23.2%;top:11%;width:10.2%;height:28.2%;border-radius:.3cqw}
+.hotbox:hover,.hotbox:focus-visible{filter:none!important;box-shadow:0 0 0 .25cqw #ffd34e,0 0 1.6cqw .4cqw rgba(255,233,140,.75)}
+#oPoster .todo{right:-6%;top:-6%}
+.qz{display:grid;grid-template-columns:1fr minmax(120px,210px);gap:14px;align-items:center}
+@media (max-width:640px){body:not(.turned) .qz{grid-template-columns:1fr}body:not(.turned) .qz .qkz{max-width:170px;margin:0 auto}}
+.qmeta{display:flex;justify-content:space-between;font-weight:600;opacity:.75;font-size:14px;margin-bottom:6px}
+.qq{font-size:clamp(17px,calc(2.3*var(--vw)),22px);font-weight:600;margin:0 0 12px}
+.qopts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){body:not(.turned) .qopts{grid-template-columns:1fr}}
+.qopts button{border:0;border-radius:14px;padding:.75em .9em;font-size:clamp(14px,calc(1.8*var(--vw)),17px);background:#fff;box-shadow:0 3px 0 #d9c7a5;text-align:left}
+.qopts button.right{background:#dff1dc;box-shadow:0 3px 0 #9fcf9a}
+.qopts button.wrong{background:#fbdcd7;box-shadow:0 3px 0 #e8a69c}
+.qopts button:disabled{cursor:default;opacity:1;color:var(--ink)}
+.qopts button:disabled:not(.right):not(.wrong){opacity:.55}
+.qkz{position:relative}.qkz img{width:100%;display:block;transition:filter .3s}
+.qkz .bub{position:absolute;left:50%;top:-8%;transform:translateX(-50%);background:#fff;border-radius:14px;padding:.25em .6em;font-weight:700;font-size:14px;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.qnext{margin-top:12px}
+#stockings{position:absolute;inset:0;pointer-events:none;z-index:2}
+#stockings .st{position:absolute;top:46.5%;width:3.1%;transform-origin:50% 0;animation:sway 4s ease-in-out infinite;filter:drop-shadow(.1cqw .25cqw .2cqw rgba(60,30,10,.4))}
+#stockings .st1{left:21.6%}
+#stockings .st2{left:26.2%;top:46.9%;animation-duration:4.6s;animation-delay:-1.3s;filter:hue-rotate(115deg) saturate(.8) drop-shadow(.1cqw .25cqw .2cqw rgba(60,30,10,.4))}
+#stockings .st3{left:30.8%;animation-duration:3.7s;animation-delay:-2.2s;filter:hue-rotate(-18deg) brightness(1.08) drop-shadow(.1cqw .25cqw .2cqw rgba(60,30,10,.4))}
+@keyframes sway{50%{transform:rotate(3deg)}}
+#lightsWindow{position:absolute;left:37.1%;top:13.5%;width:31.5%;pointer-events:none;z-index:2}
+.twinkle{animation:tw 2.7s linear infinite}
+#lightsWindow.twinkle{animation-timing-function:ease-in-out;animation-duration:3.3s;animation-delay:-1.1s}
+@keyframes tw{0%,100%{filter:brightness(1.18) drop-shadow(0 0 .6cqw #ffd77a)}25%{filter:brightness(1.38) drop-shadow(0 0 1cqw #ffcf6a)}50%{filter:brightness(1.22) drop-shadow(0 0 .7cqw #ffd77a)}75%{filter:brightness(1.42) drop-shadow(0 0 1.1cqw #ffcf6a)}}
+#treeDeco{animation:treeglow 3.1s linear infinite}
+/* twinkling bulbs on the decorated tree (positions traced from the garland lights in tree_deco.webp) */
+#treeTw{position:absolute;top:0;bottom:0;left:50%;height:100%;aspect-ratio:611/1000;transform:translateX(-50%);pointer-events:none;transition:opacity .8s}
+#treeTw i{position:absolute;width:3.2%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,#fffbe6 0 22%,rgba(255,226,140,.75) 40%,rgba(255,200,90,0) 72%);mix-blend-mode:screen;animation:treeTw 2.4s ease-in-out infinite;opacity:.8}
+#treeTw i.w{background:radial-gradient(circle,#fff 0 22%,rgba(255,240,200,.7) 40%,rgba(255,230,170,0) 72%)}
+@keyframes treeTw{0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(.95)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}}
+@keyframes treeglow{0%,100%{filter:brightness(1)}18%{filter:brightness(1.12) drop-shadow(0 0 .6cqw rgba(255,220,130,.6))}35%{filter:brightness(1.02)}52%{filter:brightness(1.16) drop-shadow(0 0 .8cqw rgba(255,220,130,.7))}70%{filter:brightness(1.04)}86%{filter:brightness(1.1) drop-shadow(0 0 .5cqw rgba(255,220,130,.5))}}
+#snowWin{position:absolute;left:42%;top:16.5%;width:22.5%;height:37%;pointer-events:none}
+#snowWin,#dusk{-webkit-mask:url(art/window_mask.png) 0 0/100% 100% no-repeat;mask:url(art/window_mask.png) 0 0/100% 100% no-repeat}
+#fireglow{position:absolute;left:20%;top:49%;width:16%;height:28%;pointer-events:none;mix-blend-mode:screen;background:radial-gradient(ellipse at 50% 62%,rgba(255,180,70,.6),rgba(255,120,30,.28) 42%,transparent 70%);animation:fire 2.3s infinite}
+#fireCv{position:absolute;left:24.48%;top:52.24%;width:8.33%;height:16.32%;pointer-events:none;mix-blend-mode:screen;z-index:1;background:none!important;border-radius:0!important}
+@keyframes fire{0%{opacity:.7;transform:scale(1)}11%{opacity:1;transform:scale(1.06)}24%{opacity:.74;transform:scale(.99)}37%{opacity:.95;transform:scale(1.03)}49%{opacity:.62;transform:scale(.97)}63%{opacity:1;transform:scale(1.05)}77%{opacity:.8}90%{opacity:.92;transform:scale(1.02)}100%{opacity:.7;transform:scale(1)}}
+#kzSofa{transform-origin:40% 100%;animation:breathe 3.8s ease-in-out infinite}
+@keyframes breathe{50%{transform:scaleY(1.012)}}
+#snowTitle{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#snowWin,#snowTitle{background:none!important;border-radius:0!important}
+#title>*:not(canvas){position:relative}
+#oSofa{left:41.5%;top:42.5%;width:23%;height:29%}
+#oSofa .tag{top:1cqw}
+#zzz{position:absolute;left:30%;top:-2%;font-size:2.4cqw;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6);animation:zz 2.4s ease-in-out infinite;pointer-events:none}
+@keyframes zz{0%{opacity:0;transform:translateY(.5cqw)}50%{opacity:1}100%{opacity:0;transform:translateY(-1.5cqw)}}
+#oSideboard{left:66%;top:38%;width:17%;height:41%}
+#cookies{position:absolute;left:68.786%;top:46.680%;width:8.176%;pointer-events:none;z-index:2}
+#oKitchen{left:84.5%;top:9%;width:15.5%;height:70%}
+#oKaka{left:88.5%;bottom:2%;width:10%;height:66%;z-index:5}
+#oKaka .tag{top:-.5cqw}
+#stage:has(#oKaka:hover) #kaka{filter:drop-shadow(0 0 .6cqw #fff3a0) drop-shadow(0 0 .3cqw #ffd34e)}
+#oKitchen .tag{top:3cqw}
+#oTable{left:39%;bottom:1.5%;width:40%;height:41%}
+#oTree .tag{top:auto;bottom:-1cqw;transform:translate(-50%,100%)}
+#kaka{position:absolute;right:.5%;bottom:1.5%;height:71%;pointer-events:none;filter:drop-shadow(0 .6cqw .8cqw rgba(0,0,0,.35));z-index:4}
+#kaka{transform-origin:50% 100%;animation:kIdle 4.6s ease-in-out infinite}
+@keyframes kIdle{0%,100%{transform:rotate(0) scaleY(1)}25%{transform:rotate(-.7deg) scaleY(1.007)}50%{transform:rotate(0) scaleY(1)}75%{transform:rotate(.7deg) scaleY(1.007)}}
+#kaka.talk{animation:kTalk 2.6s ease-in-out infinite}
+/* talking: small, irregular nods and a slight lean, not a sway */
+@keyframes kTalk{0%,100%{transform:translateY(0) rotate(0)}14%{transform:translateY(-.25%) rotate(-.25deg)}26%{transform:translateY(0) rotate(-.1deg)}47%{transform:translateY(-.2%) rotate(.2deg)}58%{transform:translateY(0) rotate(.1deg)}78%{transform:translateY(-.3%) rotate(-.15deg)}88%{transform:translateY(0) rotate(0)}}
+#kaka.cheer{animation:kHop .5s ease-out 4}
+@keyframes kHop{0%,100%{transform:translateY(0) scaleY(1)}35%{transform:translateY(-7%) scaleY(1.03)}70%{transform:translateY(0) scaleY(.96)}}
+/* checklist */
+#list{position:absolute;left:1.2%;top:2.5%;width:21%;background:#fffdf6;border-radius:.8cqw;padding:.9cqw 1.1cqw;box-shadow:var(--shadow);font-size:1.25cqw;transform:rotate(-1.5deg);z-index:5}
+#list{width:auto!important;min-width:12%;padding:.5cqw .9cqw!important}
+#listToggle{border:0;background:none;font:inherit;font-weight:700;color:var(--red);font-size:1.2em;padding:.2em 0;display:flex;gap:.4em;align-items:center;cursor:pointer}
+#listToggle b{color:var(--ink);font-weight:600;font-size:.85em}
+#listToggle .chev{transition:transform .2s;color:var(--ink)}
+#list.open #listToggle .chev{transform:rotate(180deg)}
+#list:not(.open) #tasks{display:none}
+#list button{display:flex;align-items:center;gap:.5em;width:100%;text-align:left;border:0;background:none;padding:.2em .1em;color:var(--ink);font-size:1em;border-radius:6px}
+#list button:hover{background:#f6ead3}
+#list .box{width:1.1em;height:1.1em;border:2px solid var(--ink);border-radius:4px;flex:none;display:grid;place-items:center;font-size:.8em;color:var(--green)}
+#list .ok{text-decoration:line-through;opacity:.6}
+#toast{position:absolute;left:50%;top:12%;transform:translate(-50%,-10px);background:rgba(20,30,20,.85);color:#fff;font-weight:700;font-size:1.5cqw;padding:.4em 1em;border-radius:99px;opacity:0;pointer-events:none;z-index:15}
+#toast.show{animation:toastIn 3.2s ease both}
+@keyframes toastIn{0%{opacity:0;transform:translate(-50%,-10px)}10%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+#starhint{position:absolute;left:52%;top:3%;transform:translateX(-50%);background:var(--gold);color:var(--ink);padding:.4em 1em;border-radius:20px;font-weight:700;font-size:1.5cqw;box-shadow:var(--shadow);animation:bobx 1.6s ease-in-out infinite;z-index:5}
+@keyframes bobx{50%{transform:translate(-50%,-6px)}}
+#mute{position:absolute;right:1%;top:2%;z-index:10;border:0;background:rgba(255,250,240,.9);border-radius:50%;width:2.6em;height:2.6em;font-size:1.3cqw}
+/* dialogue */
+#dlg{position:absolute;left:3%;right:3%;bottom:3%;display:flex;gap:2%;align-items:center;background:rgba(255,250,240,.97);border-radius:1.2cqw;padding:1.2% 2%;box-shadow:var(--shadow);font-size:1.7cqw;cursor:pointer;z-index:20}
+#dlg .face{width:8.5%;aspect-ratio:1;border-radius:50%;background:#f1dfc0 no-repeat;flex:none;border:.25cqw solid var(--red)}
+#dlg .who{font-weight:700;color:var(--red);margin-bottom:.15em}
+#dlg .next{margin-left:auto;font-size:.8em;opacity:.6;white-space:nowrap}
+/* overlays */
+.ov{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(20,12,8,.65);padding:12px}
+.card{background:var(--panel);border-radius:18px;box-shadow:var(--shadow);width:min(960px,100%);max-height:100%;overflow:auto;padding:18px 20px;position:relative}
+.card h2{margin:0 0 4px;color:var(--red);font-size:clamp(20px,calc(3*var(--vw)),30px);padding-right:40px}
+.card .sub{margin:0 0 12px;opacity:.8}
+.x{position:absolute;right:12px;top:10px;border:0;background:#efe2c9;border-radius:50%;width:36px;height:36px;font-size:18px}
+.btn{background:var(--red);color:#fff;border:0;border-radius:999px;padding:.6em 1.4em;font-weight:600;font-size:clamp(15px,calc(2*var(--vw)),20px);box-shadow:0 4px 0 var(--red-d)}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--red-d)}
+.btn.alt{background:var(--green);box-shadow:0 4px 0 #1d4a2e}
+.msg{min-height:1.5em;font-weight:600;color:var(--green);margin-top:8px}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+/* title */
+#gate{z-index:50;background:radial-gradient(ellipse at 50% 35%,#2b3d6b,#0b1022 70%);color:#fff;text-align:center}
+.gWrap{display:flex;flex-direction:column;align-items:center;gap:16px;width:min(420px,calc(90*var(--vw)))}
+.gLogo{font-family:Lobster,cursive;font-size:clamp(28px,calc(5*var(--vw)),44px);color:#ffe9a8}.gLogo b{font-weight:400;color:#fff6dc}
+.gBar{width:100%;height:12px;background:rgba(255,255,255,.15);border-radius:99px;overflow:hidden}.gBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#e9b949,#ffe9a8);transition:width .2s}
+.gTxt{margin:0;opacity:.8;font-size:14px}
+#title{background:#0d1426 url(art/title.webp) center/cover;flex-direction:column;justify-content:space-between;color:#fff;text-align:center;padding:calc(4*var(--vh)) 16px calc(5*var(--vh))}
+#title::before{content:'';position:absolute;inset:0;background:linear-gradient(rgba(6,10,28,.72) 0%,rgba(6,10,28,.15) 32%,rgba(6,10,28,0) 55%,rgba(6,10,28,.55) 82%,rgba(6,10,28,.85) 100%);pointer-events:none}
+.tLogo{display:flex;flex-direction:column;align-items:center;line-height:.9;animation:logoIn 1.2s cubic-bezier(.2,.8,.2,1) both}
+.tLogo .tSmall{font-family:Lobster,cursive;font-size:clamp(22px,calc(3.6*var(--vw)),46px);color:#ffe9a8;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+.tLogo .tBig{font-family:Lobster,cursive;font-size:clamp(64px,calc(12*var(--vw)),150px);color:#fff6dc;text-shadow:0 .05em 0 #8e211b,0 .09em 0 #5e140f,0 0 .4em rgba(255,214,130,.55);letter-spacing:.01em}
+.tLogo .tStar{font-size:.35em;color:#ffe9a8;vertical-align:super;animation:spark 2.4s ease-in-out infinite;display:inline-block}
+@keyframes spark{50%{opacity:.4;transform:scale(.7) rotate(20deg)}}
+@keyframes logoIn{from{opacity:0;transform:translateY(-18px) scale(.96)}}
+.tBottom{display:flex;flex-direction:column;align-items:center;gap:12px;animation:logoIn 1.2s .3s cubic-bezier(.2,.8,.2,1) both}
+.tTop{display:flex;flex-direction:column;align-items:center;gap:clamp(6px,calc(1.2*var(--vh)),14px)}
+.tTag{margin:0;max-width:640px;font-size:clamp(13px,calc(1.7*var(--vw)),18px);line-height:1.35;text-shadow:0 1px 3px #000,0 2px 12px rgba(0,0,0,.9);opacity:.95;animation:logoIn 1.2s .3s cubic-bezier(.2,.8,.2,1) both}
+.tBtns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+#title .btn{font-size:clamp(17px,calc(2.2*var(--vw)),22px);padding:.65em 1.8em}
+.tProg{margin:0;font-size:14px;opacity:.85;text-shadow:0 1px 4px #000}
+/* minigames */
+canvas{display:block;width:100%;border-radius:12px;background:linear-gradient(#fff6e5,#f0d9b0);touch-action:none}
+.bar{height:16px;background:#ecdcbf;border-radius:10px;overflow:hidden;margin:8px 0}
+.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green),#56a46f);transition:width .2s}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (min-width:700px){.grid{grid-template-columns:repeat(6,1fr)}}
+body.turned .grid{grid-template-columns:repeat(6,1fr)}
+.mc{aspect-ratio:4/5;border:0;border-radius:12px;color:var(--ink);font-size:clamp(11px,calc(1.5*var(--vw)),15px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px;transition:transform .25s;
+  background:var(--red) radial-gradient(circle at 50% 50%,#d4483d 0 30%,transparent 31%) center/34px 34px;box-shadow:0 4px 0 var(--red-d),inset 0 0 0 4px #e9b949}
+.mc .back{font-size:2em;filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))}
+.mc img{width:88%;height:68%;object-fit:contain}
+.mc.up{background:#fff;box-shadow:0 4px 0 #d9c7a5,inset 0 0 0 3px #f0e2c4}
+.mc.got{background:#fdf0c9;box-shadow:inset 0 0 0 3px var(--gold);opacity:.85}
+.choices{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:10px 0}
+.chip{border:0;background:#fff;border-radius:14px;padding:.6em 1em;font-size:clamp(15px,calc(2*var(--vw)),20px);box-shadow:0 3px 0 #d9c7a5}
+.stack{display:flex;gap:8px;flex-wrap:wrap;min-height:46px;justify-content:center;align-items:center;background:#f5e7cc;border-radius:12px;padding:8px}
+.stack span{background:#fff;border-radius:10px;padding:.3em .7em}
+.seatplan{position:relative;width:min(540px,100%);aspect-ratio:16/9;margin:40px auto 52px}
+.seatplan .stol{position:absolute;left:20%;right:20%;top:28%;bottom:28%;background:#fffdf6;border:4px solid #8a5a3a;border-radius:14px;box-shadow:inset 0 0 0 6px #f3e6c8,0 6px 14px rgba(0,0,0,.2);display:grid;place-items:center;font-size:clamp(18px,calc(3*var(--vw)),28px)}
+.seatplan .side{position:absolute;pointer-events:none;font-size:clamp(11px,calc(1.6*var(--vw)),14px);font-weight:600;opacity:.75}
+.s-top{left:50%;top:-14%;transform:translateX(-50%)}.s-bot{left:50%;bottom:-14%;transform:translateX(-50%)}
+.s-l{left:-1%;top:22%}.s-r{right:-1%;top:22%}
+.seat{position:absolute;transform:translate(-50%,-50%);width:clamp(58px,14%,80px);aspect-ratio:1;border-radius:50%;border:3px dashed #c9a877;background:#fff8ea;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;font-size:clamp(10px,calc(1.4*var(--vw)),13px);line-height:1.1}
+.quip{display:flex;align-items:center;gap:.6em;max-width:min(560px,100%);margin:6px auto -6px;padding:.45em .8em;background:#fff;border-radius:16px;box-shadow:var(--shadow);font-size:clamp(12px,calc(1.6*var(--vw)),15px);line-height:1.25;opacity:0;transform:translateY(-4px);transition:opacity .25s,transform .25s;min-height:3.4em}
+.quip.on{opacity:1;transform:none}
+.quip .fc{flex:none;width:2.8em;height:2.8em}
+.quip b{color:var(--red)}
+.seat.taken{border-style:solid;border-color:var(--green);background:#fff}
+.seat.sel,.chip.guest.sel{box-shadow:0 0 0 4px var(--gold)}
+.seat .fc{width:3.3em;height:3.3em}
+.chip.guest .fc{width:2.8em;height:2.8em}
+.seat .free{font-size:22px;opacity:.5}
+.seat b,.chip.guest b{font-weight:600}
+.em{font-style:normal;font-size:1.7em;line-height:1}
+.fc{display:inline-block;width:2.2em;height:2.2em;border-radius:50%;background-repeat:no-repeat;border:2px solid var(--red)}
+.face-kaka{background-image:url(art/kaka_face.webp);background-size:cover;background-position:center}
+.face-kaczor{background-image:url(art/kaczor_face.webp);background-size:cover;background-position:center}
+.face-jugo{background:#fff url(art/guest/jugo.webp) 50% 22%/150% no-repeat}
+.face-gayzilla{background:#fff url(art/guest/gayzilla.webp) 50% 18%/150% no-repeat}
+.face-inez{background:#fff url(art/guest/inez.webp) 58% 22%/150% no-repeat}
+.face-q{background:radial-gradient(circle at 50% 40%,#5b3a7a,#2a1840);position:relative}
+.face-q::after{content:'?';position:absolute;inset:0;display:grid;place-items:center;color:#ffe9a8;font-weight:700;font-size:1.5em;font-style:normal;text-shadow:0 2px 4px rgba(0,0,0,.5)}
+.face-mikolaj{background-image:url(art/mikolaj.webp);background-size:280%;background-position:53% 6%;background-color:#fff}
+.chip.guest{display:flex;flex-direction:column;align-items:center;gap:2px;padding:.4em .7em;font-size:clamp(12px,calc(1.6*var(--vw)),15px)}
+.allin{opacity:.7;font-weight:600}
+.rules{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:4px;font-size:clamp(13px,calc(1.6*var(--vw)),15px)}
+.rules li{display:flex;gap:.5em;align-items:baseline;background:#f8eed9;border-radius:8px;padding:.3em .6em}
+.rules li span{font-weight:700;width:1em;flex:none}
+.rules li.ok{background:#e3f1e2}.rules li.ok span{color:var(--green)}
+.rules li.bad{background:#fbe1dd}.rules li.bad span{color:var(--red)}
+.need{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.nd{display:flex;align-items:center;gap:4px;background:#f3e6cc;border-radius:99px;padding:3px 10px 3px 4px;opacity:.55;filter:grayscale(.8);transition:all .25s;font-size:14px}
+.nd img{width:28px;height:28px;object-fit:contain}
+.nd.got{opacity:1;filter:none;background:#dff1dc}
+.nd.pulse{transform:scale(1.15)}
+.titem.deco{background:none;box-shadow:none;padding:2px;border-radius:50%}
+.titem.deco svg{width:48px;height:auto;display:block;filter:drop-shadow(0 3px 3px rgba(0,0,0,.25))}
+.titem.deco[data-kind=garland] svg{width:84px}.titem.deco[data-kind=star] svg{width:52px}
+.titem.deco.sel{box-shadow:0 0 0 3px var(--gold)}
+.titem.ghost.deco{background:none}
+.tz.solo{grid-template-columns:1fr}
+.tzTree .bb{transition:filter .12s,transform .12s;transform-box:fill-box;transform-origin:50% 60%}
+.tzTree .bb.on{filter:brightness(1.55) saturate(1.3) drop-shadow(0 0 4px #fff) drop-shadow(0 0 12px #ffe27a) drop-shadow(0 0 22px #ffd34e);transform:scale(1.35)}
+.tz{display:grid;grid-template-columns:1fr 210px;gap:14px;align-items:start}
+@media (max-width:640px){body:not(.turned) .tz{grid-template-columns:1fr}}
+.tzTree svg{width:min(330px,100%);display:block;margin:0 auto;touch-action:none}
+.tzSide{display:flex;flex-direction:column;gap:12px}
+.tzPlan{background:#fffdf6;border-radius:12px;padding:8px;box-shadow:0 3px 0 #e3d3b3;text-align:center;font-size:14px}
+.tzPlan svg{width:110px;display:block;margin:4px auto 0}
+.tzTray{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.bb2{display:inline-block;width:1.2em;height:1.2em;border-radius:50%;box-shadow:inset -3px -3px 0 rgba(0,0,0,.18),inset 3px 3px 0 rgba(255,255,255,.35)}
+.drop-in{animation:dropIn .35s ease-out}
+@keyframes dropIn{from{transform:translateY(-12px);opacity:0}}
+.tlay{display:grid;grid-template-columns:1fr 170px;gap:14px;align-items:center}
+@media (max-width:640px){body:not(.turned) .tlay{grid-template-columns:1fr}}
+.tdrop{position:relative;aspect-ratio:1100/649;border-radius:16px;background:radial-gradient(ellipse at 50% 60%,#fff8ea,#f1e2c4);border:3px dashed transparent;transition:border-color .2s,transform .2s}
+.tdrop.over{border-color:var(--gold);background:radial-gradient(ellipse at 50% 60%,#fffbe8,#f6e6b8)}
+.tdrop.pop{transform:scale(1.02)}
+.tdrop .tst{position:absolute;inset:4%;width:92%;height:92%;object-fit:contain}
+.tdrop .tnext{opacity:0;transition:opacity .6s}.tdrop .tnext.show{opacity:1}
+.tdrop .thint{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);font-size:13px;opacity:.5;pointer-events:none}
+.ttray{display:flex;flex-direction:column;gap:10px}
+@media (max-width:640px){body:not(.turned) .ttray{flex-direction:row;flex-wrap:wrap;justify-content:center}}
+.titem{display:flex;align-items:center;gap:.5em;border:0;background:#fff;border-radius:14px;padding:.55em .9em;font-size:clamp(15px,calc(1.9*var(--vw)),18px);box-shadow:0 3px 0 #d9c7a5;cursor:grab;touch-action:none;user-select:none}
+.titem .ti{font-size:1.4em}
+.titem .tic{width:56px;height:44px;object-fit:contain;pointer-events:none}
+.titem.sel{box-shadow:0 0 0 3px var(--gold),0 3px 0 #d9c7a5}
+.titem.lifted{opacity:.35}
+.titem.ghost{position:fixed;z-index:100;pointer-events:none;transform:translate(-50%,-50%) rotate(-4deg) scale(1.08);box-shadow:0 10px 24px rgba(0,0,0,.3);opacity:.95}
+.tablepic{display:block;width:min(520px,90%);margin:0 auto}
+#treeSvg{width:min(340px,75%);display:block;margin:0 auto}
+.bb{cursor:pointer;transition:filter .15s}
+.bb.on{filter:brightness(1.9) drop-shadow(0 0 10px #fff6a0)}
+.lwrap{display:flex;gap:12px;align-items:center}
+.lwrap canvas{flex:3;min-width:0;background:radial-gradient(ellipse at 50% 40%,#3b2a4a,#1e1630);}
+.lwrap .kzWrap{flex:1;width:auto;max-width:240px;padding-top:44px}
+.lwrap .kzWrap .bub{left:50%;top:0;transform:translateX(-50%);font-size:clamp(14px,calc(1.8*var(--vw)),19px);white-space:nowrap}
+@media (max-width:640px){body:not(.turned) .lwrap{flex-direction:column}body:not(.turned) .lwrap .kzWrap{max-width:200px}}
+.kzWrap{position:relative;width:min(520px,90%);margin:0 auto;cursor:pointer;user-select:none}
+.kzWrap img{width:100%;display:block;transition:filter .3s}
+.kzWrap.sleep img{filter:brightness(.75) saturate(.8)}
+.kzWrap .bub{position:absolute;left:18%;top:-4%;background:#fff;border-radius:16px;padding:.2em .6em;font-weight:700;font-size:clamp(18px,calc(3*var(--vw)),30px);box-shadow:0 3px 10px rgba(0,0,0,.25)}
+#end{background:#0d1426;overflow:hidden;padding:0;flex-direction:column;justify-content:space-between;color:#fff;text-align:center}
+.endBg{position:absolute;left:50%;top:50%;width:max(calc(100*var(--vw)),calc(178.6*var(--vh)));height:max(calc(100*var(--vh)),calc(56*var(--vw)));transform:translate(-50%,-50%);background:url(art/wigilia.webp) center/100% 100% no-repeat;animation:kenburns 26s ease-in-out infinite alternate}
+@keyframes kenburns{from{transform:translate(-50%,-50%) scale(1)}to{transform:translate(-47%,-51%) scale(1.09)}}
+.endGlow{position:absolute;left:86.5%;top:21%;width:5%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,#fff 0 6%,rgba(255,250,220,.75) 14%,rgba(200,215,255,.25) 40%,transparent 70%);animation:starTw 3s ease-in-out infinite;mix-blend-mode:screen}
+#end::after{content:'';position:absolute;inset:0;background:linear-gradient(rgba(6,10,28,.55),rgba(6,10,28,0) 30%,rgba(6,10,28,0) 52%,rgba(6,10,28,.8));pointer-events:none}
+#snowEnd{position:absolute;inset:0;width:100%;height:100%;background:none!important;border-radius:0!important;pointer-events:none;z-index:1}
+.endTop,.endCard{position:relative;z-index:2}
+.endTop{padding-top:calc(4*var(--vh))}
+.endTop h1{font-family:Lobster,cursive;font-weight:400;font-size:clamp(52px,calc(9*var(--vw)),120px);margin:0;color:#fff6dc;text-shadow:0 .05em 0 #8e211b,0 .09em 0 #5e140f,0 0 .5em rgba(255,214,130,.6);animation:logoIn 1.4s .2s both}
+.endTop .from{font-family:Lobster,cursive;font-size:clamp(18px,calc(2.6*var(--vw)),30px);color:#ffe9a8;margin:.2em 0 0;text-shadow:0 2px 8px #000;animation:logoIn 1.4s .6s both}
+.endCard{margin:0 auto calc(2*var(--vh));width:min(1100px,calc(100% - 24px));background:none;border:0;padding:0 12px;animation:logoIn 1.2s 1s both;text-shadow:0 1px 3px #000,0 2px 12px rgba(0,0,0,.9)}
+/* the summary sits low, over the table and floor, so faces stay visible */
+#end .endList{margin:0 0 6px;gap:6px}
+#end .endList li{background:rgba(12,16,36,.55);font-size:clamp(11px,calc(1.2*var(--vw)),14px);padding:.2em .7em}
+#end #endTxt{margin:0 auto 8px;max-width:900px;font-size:clamp(12px,calc(1.3*var(--vw)),16px);line-height:1.35}
+#end #againBtn{font-size:clamp(13px,calc(1.4*var(--vw)),17px);padding:.45em 1.3em}
+body.short .endTop h1{font-size:40px}
+body.short .endTop .from{font-size:15px}
+body.short #end #endTxt{font-size:11px;max-width:80%}
+body.short #end .endList li{font-size:10px}
+.endList{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.endList li{background:rgba(255,246,220,.12);border:1px solid rgba(255,233,168,.3);border-radius:99px;padding:.3em .8em;font-size:clamp(12px,calc(1.6*var(--vw)),15px);opacity:0;animation:chipIn .5s both}
+.endList li::before{content:'✔ ';color:#9be3a8;font-weight:700}
+@keyframes chipIn{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+#endTxt{margin:0 0 12px;font-size:clamp(14px,calc(1.8*var(--vw)),17px);line-height:1.45;opacity:.95}
+/* short screens (a phone on its side): compact cards so a whole mini-game fits without scrolling */
+body.short .ov{padding:6px}
+body.short .card{padding:8px 12px;border-radius:12px;width:min(960px,100%)}
+body.short .card h2{font-size:18px;margin:0 0 2px}
+body.short .card .sub{font-size:12px;line-height:1.25;margin:0 0 6px}
+body.short .x{width:30px;height:30px;font-size:15px;top:6px;right:8px}
+body.short .msg{margin-top:4px;font-size:13px;min-height:1.2em}
+body.short .card canvas{width:auto;max-width:100%;max-height:calc(100*var(--vh) - 160px);margin:0 auto}
+body.short .grid{width:min(100%,calc((100*var(--vh) - 96px)*2.3));margin:0 auto;gap:6px}
+body.short .trainCv{max-height:calc(100*var(--vh) - 112px)}
+body.short .tpad{position:absolute;right:14px;bottom:14px;margin:0;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(2,42px);z-index:2}
+body.short .tz{grid-template-columns:1fr 250px;gap:8px}
+body.short .tzTree svg{width:auto;max-width:100%;height:calc(100*var(--vh) - 110px)}
+body.short .tzSide{gap:6px}
+body.short .tzPlan{padding:4px;font-size:12px}
+body.short .tzPlan svg{width:54px}
+body.short .tzTray{gap:4px}
+body.short .titem.deco svg{width:40px}
+body.short .tlay{grid-template-columns:1fr 150px;gap:8px}
+body.short .tdrop{height:calc(100*var(--vh) - 110px);width:auto;max-width:100%;margin:0 auto}
+body.short .ttray{gap:5px}
+body.short .titem{padding:.25em .6em;font-size:13px}
+body.short .titem .tic{width:40px;height:30px}
+body.short .tablepic{width:auto;max-width:90%;max-height:calc(100*var(--vh) - 150px)}
+body.short .card .bar{margin:2px 0 6px}
+body.short .lwrap canvas{flex:none}
+body.short .btn{font-size:14px}
+body.short .tTag{max-width:min(640px,56%);font-size:12px}
+/* ---- arrival cinematic: the guests walk in through the hall door ---- */
+#stage.cine .obj{pointer-events:none}
+#stage.cine .obj .tag,#stage.cine .obj .todo,#stage.cine #list,#stage.cine #starhint{display:none!important}
+#cine{position:absolute;inset:0;z-index:12;pointer-events:none}
+#cine::before,#cine::after{content:'';position:absolute;left:0;right:0;height:0;background:#0b0806;transition:height .8s ease}
+#cine::before{top:0}#cine::after{bottom:0}
+#cine.on::before,#cine.on::after{height:7%}
+#cine .gw{position:absolute;bottom:3%;height:64%;transition:left 2.2s linear;will-change:left}
+#cine .gw img{height:100%;width:auto;display:block;filter:drop-shadow(0 .6cqw .8cqw rgba(0,0,0,.4))}
+#cine .gw.flip img{transform:scaleX(-1)}
+#cine .gw.walk img{animation:gwBob .42s ease-in-out infinite alternate}
+#cine .gw.flip.walk img{animation-name:gwBobF}
+@keyframes gwBob{from{transform:translateY(0) rotate(-1deg)}to{transform:translateY(-1.6%) rotate(1deg)}}
+@keyframes gwBobF{from{transform:scaleX(-1) translateY(0) rotate(-1deg)}to{transform:scaleX(-1) translateY(-1.6%) rotate(1deg)}}
+#cine .gb{position:absolute;left:50%;bottom:101%;transform:translate(-50%,6px) scale(.9);opacity:0;background:#fffdf6;color:var(--ink);font-weight:700;font-size:1.35cqw;line-height:1.3;padding:.5em .9em;border-radius:1cqw;width:max-content;max-width:24cqw;text-align:center;box-shadow:var(--shadow);transition:opacity .3s,transform .3s}
+#cine .gb::after{content:'';position:absolute;left:50%;top:100%;transform:translateX(-50%);border:.6cqw solid transparent;border-top-color:#fffdf6}
+#cine .gb.on{opacity:1;transform:translate(-50%,0) scale(1)}
+#cine .gb.sb{max-width:26cqw}
+#cine .gb.sb[style*="right"].on{transform:none}
+#cine .gb.sb[style*="right"]::after{left:80%}
+#cine .cap{position:absolute;left:50%;top:10%;transform:translateX(-50%);font-family:Lobster,cursive;font-size:4cqw;color:#fff6dc;text-shadow:0 .06em 0 #8e211b,0 0 .5em rgba(0,0,0,.7);opacity:0;transition:opacity .5s;white-space:nowrap}
+#cine .cap.on{opacity:1}
+#cine .fade{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .9s}
+#cine .fade.on{opacity:1}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="rot">
+<div id="app">
+  <div id="stage" aria-label="Salon Kaki">
+    <div id="dusk"></div>
+    <canvas id="snowWin" aria-hidden="true"></canvas>
+    <div id="fireglow" aria-hidden="true"></div>
+    <canvas id="fireCv" aria-hidden="true"></canvas>
+    <button id="star" class="hidden" aria-label="Pierwsza gwiazdka"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="sg"><stop offset="0" stop-color="#fff"/><stop offset=".12" stop-color="#fffbe8" stop-opacity=".95"/><stop offset=".35" stop-color="#dfe8ff" stop-opacity=".28"/><stop offset="1" stop-color="#dfe8ff" stop-opacity="0"/></radialGradient></defs><circle cx="50" cy="50" r="50" fill="url(#sg)"/><g class="rays" fill="#fff"><path d="M50 6 L51.2 48.8 L94 50 L51.2 51.2 L50 94 L48.8 51.2 L6 50 L48.8 48.8Z" opacity=".75"/><path d="M50 26 L50.7 49.3 L74 50 L50.7 50.7 L50 74 L49.3 50.7 L26 50 L49.3 49.3Z" opacity=".5" transform="rotate(45 50 50)"/></g><circle cx="50" cy="50" r="4.5" fill="#fff"/></svg></button>
+    <img id="lightsWindow" class="hidden twinkle" src="art/lights.webp" alt="">
+
+    <button class="obj" id="oTree" data-task="tree" aria-label="Choinka"><img id="treeBare" src="art/tree_bare.webp" alt=""><img id="treeDeco" src="art/tree_deco.webp" alt="" style="opacity:0"><span id="treeTw" aria-hidden="true" style="opacity:0"></span><span class="tag">🎄 Choinka</span><span class="todo">!</span></button>
+    <img id="presents" class="hidden" src="art/presents.webp" alt="Prezenty pod choinką">
+    <button class="obj" id="oMik" data-task="train" aria-label="Mikołaj: pociąg"><img src="art/mik_body.webp" alt="Mikołaj bawi się kolejką"><img class="mHead" src="art/mik_head.webp" alt=""><img class="mCollar" src="art/mik_collar.webp" alt=""><span class="tag">🚂 Pociąg Mikołaja</span><span class="todo">!</span></button>
+    <button class="obj" id="oFire" data-task="lights" aria-label="Kominek: lampki"><span class="tag">💡 Lampki z Kaczorem</span><span class="todo">!</span></button>
+    <button class="obj hotbox" id="oPoster" data-task="quiz" aria-label="Plakat z zamkiem: quiz"><span class="tag">🏰 Quiz z Kaczorem</span><span class="todo">!</span></button>
+    <div id="stockings" class="hidden" aria-label="Skarpety na kominku"><img class="st st1" src="art/stocking.webp" alt=""><img class="st st2" src="art/stocking.webp" alt=""><img class="st st3" src="art/stocking.webp" alt=""></div>
+    <button class="obj" id="oSofa" aria-label="Kaczor na kanapie"><img id="kzSofa" src="art/kaczor_sleep.webp" alt=""><span id="zzz">Zzz</span><span class="tag">💬 Kaczor</span></button>
+    <button class="obj" id="oSideboard" data-task="dishes" aria-label="Kredens: przepisy"><span class="tag">📖 Dwanaście potraw</span><span class="todo">!</span></button>
+    <img id="cookies" class="hidden" src="art/cookies_on_sideboard.webp" alt="Pierniczki na komodzie">
+    <button class="obj" id="oKitchen" data-task="bake" aria-label="Kuchnia: pierniczki"><span class="tag">🍪 Kuchnia</span><span class="todo">!</span></button>
+    <button class="obj" id="oTable" data-task="table" aria-label="Stół wigilijny"><img id="tableEmpty" src="art/table_empty.webp" alt=""><img id="tableSet" src="art/table_set.webp" alt="" style="opacity:0"><span class="tag">🍽️ Stół</span><span class="todo">!</span></button>
+    <img id="kaka" src="art/kaka.webp" alt="Kaka">
+    <button class="obj" id="oKaka" aria-label="Kaka"><span class="tag">💬 Kaka</span></button>
+
+    <div id="list" aria-label="Lista Kaki"><button id="listToggle" aria-expanded="false">📋 Lista Kaki <b id="listCount">0/6</b> <span class="chev">▾</span></button><div id="tasks"></div></div>
+    <div id="toast" role="status"></div>
+    <div id="starhint" class="hidden">⭐ Spójrz w okno!</div>
+    <button id="mute" title="Dźwięk">🔊</button>
+    <div id="dlg" class="hidden"><div class="face"></div><div><div class="who"></div><div class="txt"></div></div><div class="next">kliknij lub spacja ▸</div></div>
+  </div>
+</div>
+
+<div id="gate" class="ov">
+  <div class="gWrap"><div class="gLogo">Świąteczne przygotowania <b>Kaki</b></div>
+  <div class="gBar"><i id="gFill"></i></div><p class="gTxt" id="gTxt">Wczytywanie… 0%</p>
+  <button class="btn hidden" id="gBtn">▶ Wejdź 🎄</button></div>
+</div>
+<div id="title" class="ov">
+  <canvas class="snow" id="snowTitle" aria-hidden="true"></canvas>
+  <div class="tTop">
+    <div class="tLogo" role="heading" aria-level="1"><span class="tSmall">Świąteczne przygotowania</span><span class="tBig">Kaki<span class="tStar">✦</span></span></div>
+    <p class="tTag">Józefosław, tuż przed świętami. Kaka ma listę zadań, synka z kolejką i męża, który zaprzyjaźnił się z kanapą. Święta będą idealne — choćby nie wiem co.</p>
+  </div>
+  <div class="tBottom">
+    <div class="tBtns"><button class="btn" id="startBtn">Zaczynamy! 🎄</button><button class="btn alt hidden" id="resetBtn">Od nowa</button></div>
+    <p class="tProg hidden" id="tProg"></p>
+  </div>
+</div>
+
+<div id="game" class="ov hidden"><div class="card" id="gameCard"></div></div>
+
+<div id="end" class="ov hidden">
+  <div class="endBg" role="img" aria-label="Wigilia u Kaki: rodzina przy oknie patrzy na pierwszą gwiazdkę"><div class="endGlow"></div></div>
+  <canvas id="snowEnd" aria-hidden="true"></canvas>
+  <div class="endTop"><h1>Wesołych Świąt!</h1><p class="from">— Kaka, Kaczor i Mikołaj</p></div>
+  <div class="endCard">
+    <ul class="endList" id="endList"></ul>
+    <p id="endTxt"></p>
+    <button class="btn" id="againBtn">Zagraj jeszcze raz</button>
+  </div>
+</div>
+
+</div>
+<script>
+// ---------- phone held upright: turn the game sideways (works with rotation lock and on iPhone) ----------
+// Everything lives in #rot. When turned, pointer coordinates and getBoundingClientRect are mapped into the
+// game's landscape space so all the drag/canvas code keeps working unchanged.
+const TURN={on:false};
+(function(){
+  const root=document.documentElement, coarse=matchMedia('(pointer:coarse)');
+  function orient(){ const w=innerWidth, h=innerHeight, on=coarse.matches&&h>w&&w<=820;
+    TURN.on=on; if(document.body){ document.body.classList.toggle('turned',on); document.body.classList.toggle('short',(on?w:h)<560); }
+    root.style.setProperty('--vw',(on?h:w)/100+'px'); root.style.setProperty('--vh',(on?w:h)/100+'px'); root.style.setProperty('--tx',w+'px'); }
+  addEventListener('resize',orient); addEventListener('orientationchange',()=>setTimeout(orient,250)); document.addEventListener('DOMContentLoaded',orient); orient();
+  const gbr=Element.prototype.getBoundingClientRect;
+  Element.prototype.getBoundingClientRect=function(){ const r=gbr.call(this); if(!TURN.on) return r; return new DOMRect(r.top,innerWidth-r.right,r.height,r.width); };
+  const fix=e=>{ if(!TURN.on||e.__turned) return; const sx=e.clientX, sy=e.clientY; if(sx==null) return;
+    try{ Object.defineProperty(e,'clientX',{value:sy}); Object.defineProperty(e,'clientY',{value:innerWidth-sx}); Object.defineProperty(e,'__turned',{value:true}); }catch(_){} };
+  ['pointerdown','pointermove','pointerup','pointercancel','click','mousedown','mousemove','mouseup'].forEach(t=>addEventListener(t,fix,{capture:true,passive:true}));
+})();
+
+(()=>{
+const $=s=>document.querySelector(s);
+const TASKS=[
+  {id:'bake',  name:'Upiec pierniczki'},
+  {id:'tree',  name:'Ubrać choinkę'},
+  {id:'dishes',name:'Dwanaście potraw'},
+  {id:'table', name:'Nakryć do stołu'},
+  {id:'lights',name:'Lampki z Kaczorem'},
+  {id:'train', name:'Pociąg z Mikołajem'},
+  {id:'quiz',  name:'Quiz z Kaczorem'},
+];
+const LINES={
+  intro:['kaka','Kaczor! Święta tuż-tuż, a my mamy jedną listę i zero pierniczków. Święta będą idealne. Choćby nie wiem co.'],
+  kaczor_intro:['kaczor','Mhm. Idealne. Obudź mnie na karpia.'],
+  hub:['kaka','Wybierz zadanie, jakiekolwiek! No dobra… wszystkie siedem.'],
+  quiz:['kaka','Kaczor, wstawaj! Quiz z Harry’ego Pottera. Jak odpowiesz dobrze na siedem pytań z dziesięciu, możesz wrócić na kanapę.'],
+  quiz_ok:['kaczor','No przecież wiem. Jestem w Gryffindorze. … Kanapowym.'],
+  quiz_bad:['kaczor','Ten rozdział… chyba przespałem.'],
+  train:['kaka','Mikołaj, kochanie, prezenty rozjechały się po całym salonie! Poprowadź pociąg i zbierz je wszystkie pod choinkę. Tylko nie wjedź w kanapę taty!'],
+  bake:['kaka','Pierniczki! Łap miód, mąkę i przyprawy. Nie skarpetki. Skąd tu się wzięły skarpetki?'],
+  tree:['kaka','Choinka jest taka goła! Mam plan: najpierw ubierzemy ją według mojego szkicu, a potem sprawdzimy, czy zapamiętasz, które bombki błyszczą.'],
+  dishes:['kaka','Dwanaście potraw na Wigilię. Znajdź pary, zanim przyjdą goście! Bo kochanek Inez podobno je za trzech.'],
+  table:['kaka','Sianko pod obrus, opłatek na wierzch i jeden talerz więcej dla niespodziewanego gościa. W tym roku wiemy, kto to będzie… Inez przyprowadza swojego nieoczekiwanego, aktualnego… kochanka. Nie pytajcie, jak ma na imię. Ona też jeszcze nie jest pewna.'],
+  lights:['kaka','Kaczor rozplątuje lampki. Pod nadzorem. Za każdym razem, jak przyśnie, obudź go!'],
+  kaczor_awake:['kaczor','Nie śpię. Naprawdę nie śpię. Tylko oczy mi odpoczywają.'],
+  done_bake:['kaka','Pierniczki gotowe! Pachnie jak w prawdziwej piekarni. Tylko nie mów Kaczorowi, ile ich jest.'],
+  done_tree:['kaka','Choinka ubrana! Nawet gwiazda stoi prosto. … Prawie.'],
+  done_dishes:['kaka','Dwanaście potraw zapamiętane. Trzynasta to cierpliwość do Kaczora.'],
+  done_table:['kaka','Stół nakryty, plan miejsc gotowy. Teraz tylko żeby goście usiedli tam, gdzie im każę.'],
+  done_lights:['kaka','Lampki świecą! Kaczor, widzisz? … Nie widzi. Śpi.'],
+  done_train:['kaka','Brawo, maszynisto! Wszystkie prezenty dojechały pod choinkę.'],
+  done_quiz:['kaka','Zdał! Bywało gorzej. Zapisuję w kalendarzu.'],
+  retry:['kaka','Spokojnie! Święta wszystko wybaczą. Spróbuj jeszcze raz.'],
+  star:['kaka','Kaczor… patrz! Pierwsza gwiazdka. Wesołych Świąt, kochanie.'],
+  kaczor_star:['kaczor','Wesołych Świąt. … To co… już karp?'],
+  kk1:['kaka','Jugo zawsze mówi, że wpadnie na chwilę. Ostatnio wyszedł w Trzech Króli.'],
+  kk2:['kaka','Gayzilla przyniesie wino za dwieście złotych i będzie o nim opowiadał przez trzy godziny.'],
+  kk3:['kaka','Inez znowu ma nowy nos. Ciekawe, czy tym razem będzie pasował do twarzy.'],
+  kk4:['kaka','Kochanek Inez… mam nadzieję, że lubi barszcz. Poprzedni był weganinem. I zjadł karpia.'],
+  kk5:['kaka','Kaczor powiedział, że pomoże. To było w listopadzie. Nadal leży.'],
+  kk6:['kaka','Gdyby spanie na kanapie było sportem olimpijskim, Kaczor miałby trzy złote medale.'],
+  kk7:['kaka','Kaczor, to nie jest drzemka. Drzemka trwa dwadzieścia minut, a nie od obiadu.'],
+  kk8:['kaka','Dwanaście potraw. Nie jedenaście. Nie trzynaście. Dwanaście!'],
+  kk9:['kaka','Sprawdziłam listę cztery razy. Zaraz sprawdzę piąty. Tak na wszelki wypadek.'],
+  kk10:['kaka','Jeśli opłatek połamie się przed Wigilią, to ja połamię się razem z nim.'],
+  kk11:['kaka','Choinka musi stać idealnie prosto. Mierzyłam poziomicą. Dwa razy.'],
+  kk12:['kaka','Karp w wannie ma już imię. Tylko nie mówcie Mikołajowi.'],
+  kk13:['kaka','Jugo obiecał, że w tym roku przyniesie sałatkę. W zeszłym obiecał to samo. Przyniósł widelec.'],
+  kk14:['kaka','Jugo zawsze zjada cztery porcje pierogów, a potem mówi, że jest na diecie.'],
+  kk15:['kaka','Gayzilla zapowiedział, że przyjdzie w nowym swetrze. Już czuję, że przyćmi choinkę.'],
+  kk16:['kaka','Gayzilla zrobi zdjęcie każdej potrawie. Jedzenie wystygnie, ale na Instagramie będzie pięknie.'],
+  kk17:['kaka','Inez nie je karpia, bo ma za dużo ości. Ostatnio mówiła to samo o swoim byłym.'],
+  kk18:['kaka','Inez spóźni się godzinę. Ale wejdzie tak, jakby to był pokaz mody.'],
+  kk19:['kaka','Nieoczekiwany kochanek Inez… postawię mu talerz, ale bez wizytówki z imieniem. Na wszelki wypadek.'],
+  kk20:['kaka','Mam tylko nadzieję, że kochanek Inez nie przyjdzie z poprzednim kochankiem Inez.'],
+  kz11:['kaczor','Jugo przyjdzie z nalewką babci. Babcia nie wie.'],
+  kz12:['kaczor','Z Jugo zawsze kończy się tak samo. Śpiewamy kolędy o trzeciej w nocy. Fałszując.'],
+  kz13:['kaczor','Gayzilla ma więcej kremów do twarzy niż Kaka przypraw do pierników. A to dużo.'],
+  kz14:['kaczor','Gayzilla znowu zapyta, czy barszcz jest bezglutenowy. To jest buraczek, Gayzilla.'],
+  kz15:['kaczor','Kochanek Inez dostanie ode mnie prezent. Kalendarz. Żeby wiedział, ile mu zostało.'],
+  kz16:['kaczor','Inez mówi, że ma trzydzieści lat. Od dziesięciu lat.'],
+  kz17:['kaczor','Kaka ma listę zadań do listy zadań. Widziałem. Jest zalaminowana.'],
+  kz18:['kaczor','Kaka trzy razy przestawiała choinkę o dwa centymetry. Choinka chyba też ma dość.'],
+  kz19:['kaczor','Kaka śni o pierogach. Mówi przez sen: lepić, lepić, lepić.'],
+  kz1:['kaczor','Nie śpię. Ja tylko… testuję kanapę. Przed świętami musi być sprawdzona.'],
+  kz2:['kaczor','Kochanie, ja też mam listę. Punkt pierwszy: odpocząć. Punkt drugi: patrz punkt pierwszy.'],
+  kz3:['kaczor','Karp jest dopiero w Wigilię? To obudź mnie w Wigilię.'],
+  kz4:['kaczor','Jeśli nie będę się ruszał… Kaka mnie nie zauważy.'],
+  kz5:['kaczor','Przecież pomagam. Pilnuję kanapy, żeby nikt jej nie ukradł przed świętami.'],
+  kz6:['kaczor','Mikołaj, pociąg jedzie za szybko. … Nie, nie wstanę. Tylko mówię.'],
+  kz7:['kaczor','Inez mówi, że to tylko dobry krem. A ja mówię, że ten krem ma bardzo dobrego chirurga.'],
+  kz8:['kaczor','Inez się ostatnio zdziwiła. Chyba. Botoks nie pozwala stwierdzić na pewno.'],
+  kz9:['kaczor','Kochanek Inez? Który? Tego z zeszłego tygodnia chyba już nie liczymy.'],
+  kz10:['kaczor','Inez zmienia kochanków częściej niż ja pozycję na kanapie. A to naprawdę coś znaczy.'],
+};
+// portrait crops: [image, background-size, background-position]
+const FACES={kaka:['art/kaka_face.webp','cover','center'],kaczor:['art/kaczor_face.webp','cover','center']};
+const NAMES={kaka:'Kaka',kaczor:'Kaczor'};
+
+let done={}; try{done=JSON.parse(localStorage.getItem('kaka-done')||'{}')}catch(e){}
+// preview link: ?final opens the room with every task done and the first star waiting (nothing is saved)
+const FINAL_PREVIEW=new URLSearchParams(location.search).has('final'); if(FINAL_PREVIEW) TASKS.forEach(t=>done[t.id]=true);
+const save=()=>{ if(FINAL_PREVIEW) return; try{localStorage.setItem('kaka-done',JSON.stringify(done))}catch(e){}};
+let muted=false, cur=null;
+// background music: loops quietly, dips while someone is talking
+const TRACKS=['audio/music.mp3','audio/music2.mp3']; let track=0;
+const bgm=new Audio(TRACKS[0]); bgm.preload='auto';
+bgm.addEventListener('ended',()=>{ track=(track+1)%TRACKS.length; bgm.src=TRACKS[track]; if(!muted) bgm.play().catch(()=>{}); });
+const BGM_VOL=.32, BGM_DUCK=.1; let bgmTarget=BGM_VOL; bgm.volume=BGM_VOL;
+setInterval(()=>{ const v=bgm.volume, d=bgmTarget-v; if(Math.abs(d)>.005) bgm.volume=Math.max(0,Math.min(1,v+Math.sign(d)*.02)); },40);
+function startMusic(){ if(!muted) bgm.play().catch(()=>{}); }
+function duck(on){ bgmTarget=on?BGM_DUCK:BGM_VOL; }
+function play(key){ if(cur){cur.pause();cur=null} if(muted) return; const a=new Audio('audio/'+key+'.mp3'); cur=a;
+  duck(true); const up=()=>{ if(cur===a||!cur) duck(false); }; a.onended=up; a.onpause=up; a.onerror=up;
+  a.play().catch(up); return a; }
+$('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇':'🔊'; if(muted){ if(cur)cur.pause(); bgm.pause(); } else startMusic(); };
+
+// dialogue queue
+let dq=[], dcb=null;
+function say(keys,cb){ dq=keys.slice(); dcb=cb; nextLine(); }
+// Kaczor on the sofa wakes up only while he is talking, then dozes off again
+function kzWake(on){ $('#kzSofa').src=on?'art/kaczor.webp':'art/kaczor_sleep.webp'; $('#zzz').style.display=on?'none':''; }
+function nextLine(){
+  const d=$('#dlg');
+  if(!dq.length){ kzWake(false); d.classList.add('hidden'); if(cur)cur.pause(); $('#kaka').classList.remove('talk','cheer'); $('#kaka').src='art/kaka.webp'; const c=dcb; dcb=null; c&&c(); return; }
+  const k=dq.shift(), [who,txt]=LINES[k], f=FACES[who], face=d.querySelector('.face');
+  const worried=k.startsWith('kk');  // Kaka's fretting remarks get her worried face
+  face.style.backgroundImage=`url("${worried?'art/kaka_face_worry.webp':f[0]}")`; face.style.backgroundSize=f[1]; face.style.backgroundPosition=f[2];
+  kzWake(who==='kaczor');
+  const K=$('#kaka'); K.classList.remove('talk','cheer');
+  if(who==='kaka'&&(k.startsWith('done')||k==='star')){ K.src='art/kaka_cheer.webp'; void K.offsetWidth; K.classList.add('cheer'); }
+  else { K.src=worried?'art/kaka_worry.webp':'art/kaka.webp'; if(who==='kaka') K.classList.add('talk'); }
+  d.querySelector('.who').textContent=NAMES[who];
+  d.querySelector('.txt').textContent=txt;
+  d.classList.remove('hidden');
+  play(k);
+}
+// while a line is showing: click anywhere or press Space/Enter to continue (and don't let that click reach the room)
+const dlgOpen=()=>!$('#dlg').classList.contains('hidden') && $('#game').classList.contains('hidden');
+document.addEventListener('click',e=>{ if(!dlgOpen()||e.target.closest('#mute')) return; e.preventDefault(); e.stopPropagation(); nextLine(); },true);
+document.addEventListener('keydown',e=>{ if(!dlgOpen()||e.repeat) return; if(e.code==='Space'||e.key==='Enter'){ e.preventDefault(); nextLine(); } },true);
+
+// hub state
+function render(){
+  const t=$('#tasks'); t.innerHTML='';
+  TASKS.forEach(task=>{
+    const b=document.createElement('button');
+    b.innerHTML=`<span class="box">${done[task.id]?'✔':''}</span><span class="${done[task.id]?'ok':''}">${task.name}</span>`;
+    b.onclick=()=>open(task.id);
+    t.appendChild(b);
+  });
+  $('#listCount').textContent=`${TASKS.filter(x=>done[x.id]).length}/${TASKS.length}`;
+  const show=(sel,on)=>$(sel).classList.toggle('hidden',!on);
+  show('#cookies',done.bake); show('#presents',done.train); show('#stockings',done.lights); show('#lightsWindow',done.lights);
+  $('#treeDeco').style.opacity=done.tree?1:0; $('#treeTw').style.opacity=done.tree?1:0; $('#treeBare').style.opacity=done.tree?0:1;
+  $('#tableSet').style.opacity=done.table?1:0; $('#tableEmpty').style.opacity=done.table?0:1;
+  document.querySelectorAll('.obj[data-task]').forEach(o=>o.classList.toggle('done',!!done[o.dataset.task]));
+  const all=TASKS.every(x=>done[x.id]);
+  show('#star',all); show('#starhint',all);
+  $('#dusk').style.opacity=TASKS.filter(x=>done[x.id]).length/TASKS.length*.7;
+  // Kaczor dozes on the sofa the whole time; after the lights he goes straight back to sleep ("Nie widzi. Śpi.")
+  if($('#dlg').classList.contains('hidden')) kzWake(false);
+}
+document.querySelectorAll('.obj[data-task]').forEach(o=>o.addEventListener('click',()=>open(o.dataset.task)));
+$('#star').addEventListener('click',ending);
+$('#listToggle').onclick=()=>{ const o=$('#list').classList.toggle('open'); $('#listToggle').setAttribute('aria-expanded',o); };
+// Kaczor's one-liners: shuffled deck of all 19 (classic, guests, Kaka's obsession), no immediate repeats
+let kzBag=[], kzLast=0;
+function nextKz(){ if(!kzBag.length){ kzBag=shuffle(Array.from({length:19},(_,i)=>i+1)); if(kzBag[0]===kzLast) kzBag.push(kzBag.shift()); } kzLast=kzBag.shift(); return 'kz'+kzLast; }
+$('#oSofa').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say([nextKz()]); });
+// Kaka's remarks: guests, Kaczor, and her Christmas-prep obsession (shuffled deck, no immediate repeats)
+let kkBag=[], kkLast=0;
+function nextKk(){ if(!kkBag.length){ kkBag=shuffle(Array.from({length:20},(_,i)=>i+1)); if(kkBag[0]===kkLast) kkBag.push(kkBag.shift()); } kkLast=kkBag.shift(); return 'kk'+kkLast; }
+$('#oKaka').addEventListener('click',()=>{ if(!$('#dlg').classList.contains('hidden')) return; say([nextKk()]); });
+// idle: after 30 s with nothing happening in the room, Kaczor pipes up on his own (and the bubble closes itself)
+let idleSec=0;
+['pointerdown','pointermove','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{idleSec=0;},{passive:true,capture:true}));
+const roomFree=()=>['#title','#game','#end','#dlg'].every(id=>$(id).classList.contains('hidden'))&&!$('#cine');
+setInterval(()=>{
+  if(!roomFree()||document.hidden){ idleSec=0; return; }
+  if(++idleSec<30) return;
+  idleSec=0; say([nextKz()]);
+  const txt=$('#dlg .txt').textContent, a=cur;
+  const close=()=>setTimeout(()=>{ if(!$('#dlg').classList.contains('hidden') && $('#dlg .txt').textContent===txt) nextLine(); },1800);
+  if(a){ a.addEventListener('ended',close,{once:true}); a.addEventListener('error',close,{once:true}); } else setTimeout(close,5000);
+},1000);
+
+// ---------- minigame shell ----------
+let stopGame=null;
+function open(id){
+  if(!$('#dlg').classList.contains('hidden')) return;
+  const g=GAMES[id]; $('#game').classList.remove('hidden');
+  const card=$('#gameCard'); card.innerHTML='';
+  const x=document.createElement('button'); x.className='x'; x.textContent='✕'; x.title='Zamknij'; x.onclick=closeGame; card.appendChild(x);
+  play(id);
+  gameStart=performance.now();
+  stopGame=g(card,()=>finish(id))||null;
+}
+function closeGame(){ if(stopGame)stopGame(); stopGame=null; $('#game').classList.add('hidden'); if(cur)cur.pause(); }
+let gameStart=0;
+function finish(id){
+  const secs=Math.max(1,Math.round((performance.now()-gameStart)/1000));
+  let best={}; try{best=JSON.parse(localStorage.getItem('kaka-best')||'{}')}catch(e){}
+  const record=!best[id]||secs<best[id]; if(record){ best[id]=secs; try{localStorage.setItem('kaka-best',JSON.stringify(best))}catch(e){} }
+  setTimeout(()=>{
+    closeGame(); done[id]=true; save(); render();
+    toast(`⏱ ${secs} s${record?' — nowy rekord!':` (rekord: ${best[id]} s)`}`);
+    say(['done_'+id]);
+  },1100);
+}
+function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
+function el(html){const d=document.createElement('div');d.innerHTML=html.trim();return d.firstElementChild;}
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const loadImg=src=>{const i=new Image();i.src=src;return i;};
+
+const GAMES={
+// 1. catch ingredients
+bake(card,win){
+  card.append(el('<h2>🍪 Pierniczki</h2>'),el('<p class="sub">Przesuwaj miskę (palcem, myszką albo strzałkami). Złap 20 składników — w tym <b>przynajmniej po jednym z każdego</b> — i omijaj skarpetki Kaczora!</p>'));
+  const bar=el('<div class="bar"><i></i></div>'), cv=document.createElement('canvas'), msg=el('<div class="msg">&nbsp;</div>');
+  card.append(bar,cv,msg);
+  const W=800,H=460; cv.width=W; cv.height=H; const c=cv.getContext('2d');
+  const ING=[['miod','miód'],['maka','mąka'],['jajko','jajko'],['maslo','masło'],['orzechy','orzechy i przyprawy']];
+  const GOOD=ING.map(([n])=>loadImg('art/ing/'+n+'.webp')), BAD=loadImg('art/ing/skarpetka.webp'), BOWL=loadImg('art/bowl.webp'), have=ING.map(()=>0);
+  const need=el(`<div class="need">${ING.map(([n,l],i)=>`<span class="nd" data-i="${i}" title="${l}"><img src="art/ing/${n}.webp" alt="${l}"><b>0</b></span>`).join('')}</div>`);
+  card.insertBefore(need,card.querySelector('.msg'));
+  const missing=()=>ING.filter((_,i)=>!have[i]).map(x=>x[1]);
+  const NEED=20, caught=[]; let flyout=[], falls=[], sockN=0;
+  let bx=W/2, items=[], score=0, raf, last=performance.now(), keys={}, over=false;
+  const mv=e=>{const r=cv.getBoundingClientRect(); bx=(e.clientX-r.left)/r.width*W;};
+  cv.addEventListener('pointermove',mv); cv.addEventListener('pointerdown',mv);
+  const kd=e=>{keys[e.key]=e.type==='keydown'}; addEventListener('keydown',kd); addEventListener('keyup',kd);
+  const S=64;
+  function draw(img,x,y,rot){ if(!img.complete||!img.naturalWidth) return; const r=img.naturalWidth/img.naturalHeight, w=r>1?S:S*r, h=r>1?S/r:S;
+    c.save(); c.translate(x,y); c.rotate(rot); c.drawImage(img,-w/2,-h/2,w,h); c.restore(); }
+  function loop(now){
+    const dt=Math.min(.05,(now-last)/1000); last=now;
+    if(keys.ArrowLeft) bx-=600*dt; if(keys.ArrowRight) bx+=600*dt; bx=Math.max(80,Math.min(W-80,bx));
+    if(!over && Math.random()<dt*1.6){ const bad=Math.random()<.22; items.push({x:50+Math.random()*(W-100),y:-40,v:150+Math.random()*90+score*6,img:bad?BAD:GOOD[Math.random()*GOOD.length|0],bad,rot:0,vr:(Math.random()-.5)*2}); }
+    c.clearRect(0,0,W,H);
+    items.forEach(it=>{ it.y+=it.v*dt; it.rot+=it.vr*dt; draw(it.img,it.x,it.y,it.rot);
+      if(!it.hit && it.y>H-112 && it.y<H-62 && Math.abs(it.x-bx)<60){ it.hit=true;
+        if(it.bad){ const SOCK=[['sock1','„O! Tu jest moja skarpetka! Szukałem jej od listopada.”'],['sock2','„To nie moja. To znaczy… moja, ale czysta. Prawie.”'],['sock3','„Skarpetka w cieście? Dodaje charakteru.”']][sockN++%3];
+          play(SOCK[0]); msg.style.color='var(--red)';
+          if(caught.length){ const k=caught.pop(); score=Math.max(0,score-1); have[k]--; const nd=need.querySelector(`[data-i="${k}"]`); nd.querySelector('b').textContent=have[k]; if(!have[k]) nd.classList.remove('got');
+            flyout.push({img:GOOD[k],x:bx,y:H-86,vx:(Math.random()-.5)*260,vy:-420,rot:0,life:1});
+            msg.textContent=`Skarpetka wyrzuciła z miski: ${ING[k][1]}! Kaczor: ${SOCK[1]}`; }
+          else msg.textContent='Skarpetka Kaczora w pustej misce! Kaczor: '+SOCK[1]; }
+        else { score++; const k=GOOD.indexOf(it.img); have[k]++; caught.push(k); falls.push({img:it.img,dx:it.x-bx,y0:it.y,rot:it.rot,t:0}); const nd=need.querySelector(`[data-i="${k}"]`); nd.classList.add('got','pulse'); nd.querySelector('b').textContent=have[k]; setTimeout(()=>nd.classList.remove('pulse'),300);
+          msg.textContent=['Mniam!','Pięknie!','Jeszcze!','Tak trzymać!'][score%4]; msg.style.color='var(--green)';
+          if(score>=NEED&&missing().length){ msg.style.color='var(--red)'; msg.textContent='Ciasto prawie gotowe, ale brakuje: '+missing().join(', ')+'!'; } }
+      }});
+    items=items.filter(it=>!it.hit&&it.y<H+50);
+    // ingredients thrown out of the bowl by a sock
+    flyout.forEach(f=>{ f.vy+=900*dt; f.x+=f.vx*dt; f.y+=f.vy*dt; f.rot+=6*dt; f.life-=dt*.9; c.globalAlpha=Math.max(0,f.life); draw(f.img,f.x,f.y,f.rot); c.globalAlpha=1; });
+    flyout=flyout.filter(f=>f.life>0&&f.y<H+60);
+    // mixing bowl
+    if(BOWL.complete&&BOWL.naturalWidth){ const bw=150, bh=bw*BOWL.naturalHeight/BOWL.naturalWidth, top=H-6-bh;
+      c.save(); c.shadowColor='rgba(80,40,10,.3)'; c.shadowBlur=10; c.shadowOffsetY=4; c.drawImage(BOWL,bx-bw/2,top,bw,bh); c.restore();
+      // caught ingredients visibly drop into the bowl: clipped to the space above the rim + the opening, so they sink behind the front wall
+      const cy=top+bh*.17, rx=bw*.46, ry=bh*.12;
+      falls.forEach(f=>{ f.t+=dt; const p=Math.min(1,f.t/.38), e=p*p;
+        const y=f.y0+(cy+ry*2.6-f.y0)*e, x=bx+f.dx*(1-p)*.6, sc=1-.3*p;
+        c.save(); c.beginPath(); c.rect(0,0,W,cy); c.ellipse(bx,cy,rx,ry,0,0,Math.PI*2); c.clip();
+        c.translate(x,y); c.scale(sc,sc); draw(f.img,0,0,f.rot+p*1.5); c.restore(); });
+      falls=falls.filter(f=>f.t<.38); }
+    bar.firstChild.style.width=Math.min(100,score/NEED*100)+'%';
+    if(score>=NEED && !missing().length && !over){ over=true; msg.style.color='var(--green)'; msg.textContent='Ciasto gotowe! 🍪'; win(); }
+    raf=requestAnimationFrame(loop);
+  }
+  raf=requestAnimationFrame(loop);
+  return ()=>{cancelAnimationFrame(raf); removeEventListener('keydown',kd); removeEventListener('keyup',kd);};
+},
+// 2. decorate the tree by Kaka's plan: drag baubles onto matching hooks, then the garland, then the star
+tree(card,win){
+  card.append(el('<h2>🎄 Choinka</h2>'),el('<p class="sub tzSub">Poziom 1 z 2: Kaka ma plan! Przeciągnij bombki na haczyki w kolorach z jej szkicu, potem łańcuch, a na koniec gwiazdę na czubek. (Możesz też dotknąć rzeczy, a potem miejsca.)</p>'));
+  const COLS={red:['#c0392b','czerwoną'],gold:['#e9b949','złotą'],blue:['#2f6fd1','niebieską'],pink:['#d2569b','różową']};
+  const HOOKS=[[150,150],[118,215],[185,225],[95,295],[150,285],[208,300],[80,378],[220,382]];
+  const plan=shuffle(['red','red','gold','gold','blue','blue','pink','pink']);
+  const svgNS='http://www.w3.org/2000/svg';
+  const wrap=el(`<div class="tz"><svg width="0" height="0" style="position:absolute"><defs><radialGradient id="shade" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></radialGradient></defs></svg><div class="tzTree"><svg viewBox="0 0 300 490"><image href="art/tree_bare.webp" x="0" y="0" width="300" height="490" preserveAspectRatio="xMidYMid meet"/>
+      <g class="garland" opacity="0"><path d="M108 205 Q150 235 196 210 M84 290 Q150 325 218 290 M66 372 Q150 410 236 372" fill="none" stroke="#e9b949" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 7"/></g>
+      ${HOOKS.map((h,i)=>`<g class="hook" data-i="${i}"><circle cx="${h[0]}" cy="${h[1]}" r="17" fill="rgba(255,255,255,.18)" stroke="#fff7d6" stroke-width="2" stroke-dasharray="4 4"/></g>`).join('')}
+      <g class="topspot"><circle cx="150" cy="38" r="22" fill="rgba(255,255,255,.15)" stroke="#fff7d6" stroke-width="2" stroke-dasharray="4 4"/></g>
+      <g class="star" opacity="0"><path d="M150 12 L157 31 L177 32 L161 44 L167 63 L150 52 L133 63 L139 44 L123 32 L143 31Z" fill="#ffd34e" stroke="#c9961f" stroke-width="2"/></g>
+    </svg></div>
+    <div class="tzSide"><div class="tzPlan"><b>📝 Plan Kaki</b><svg viewBox="0 0 300 490"><path d="M150 40 L270 440 H30Z" fill="#2f6b45" opacity=".85"/>${HOOKS.map((h,i)=>`<circle cx="${h[0]}" cy="${h[1]}" r="20" fill="${COLS[plan[i]][0]}" stroke="#fff" stroke-width="3"/>`).join('')}<path d="M150 18 l8 18 20 2 -15 13 5 19 -18 -11 -18 11 5 -19 -15 -13 20 -2z" fill="#ffd34e"/></svg></div>
+    <div class="tzTray"></div></div></div>`);
+  const msg=el('<div class="msg">&nbsp;</div>'); card.append(wrap,msg);
+  const svg=wrap.querySelector('.tzTree svg'), tray=wrap.querySelector('.tzTray');
+  const hooks=[...svg.querySelectorAll('.hook')], filled=new Array(HOOKS.length).fill(false);
+  let phase='baubles', picked=null, timers=[];
+  const say2=(t,ok)=>{ msg.style.color=ok?'var(--green)':'var(--red)'; msg.textContent=t; };
+  function addItem(html,data){ const it=el(`<button class="titem deco">${html}</button>`); Object.assign(it.dataset,data); tray.append(it); bindDrag(it); return it; }
+  function fillTray(){ tray.innerHTML='';
+    if(phase==='baubles') shuffle(plan.slice()).forEach(c=>addItem(`<svg viewBox="0 0 40 48" aria-label="bombka"><rect x="15" y="1" width="10" height="7" rx="2" fill="#d4a53a" stroke="#9c7420"/><path d="M20 1 q-5 -1 -4 4" fill="none" stroke="#9c7420" stroke-width="1.5"/><circle cx="20" cy="28" r="17" fill="${COLS[c][0]}" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/><circle cx="20" cy="28" r="17" fill="url(#shade)"/><ellipse cx="13" cy="21" rx="4.5" ry="6" fill="#fff" opacity=".65" transform="rotate(25 13 21)"/></svg>`,{kind:'bauble',color:c}));
+    if(phase==='garland') addItem('<svg viewBox="0 0 90 40" aria-label="łańcuch"><path d="M4 8 Q45 46 86 8" fill="none" stroke="#e9b949" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 7"/><path d="M4 8 Q45 46 86 8" fill="none" stroke="#fff2b0" stroke-width="1.5" stroke-dasharray="1 8" opacity=".8"/></svg>',{kind:'garland'});
+    if(phase==='star') addItem('<svg viewBox="0 0 60 60" aria-label="gwiazda"><path d="M30 3 L37 22 L57 23 L41 35 L47 55 L30 43 L13 55 L19 35 L3 23 L23 22Z" fill="#ffd34e" stroke="#c9961f" stroke-width="2"/><path d="M30 12 L34 24 L30 30Z" fill="#fff6c8" opacity=".7"/></svg>',{kind:'star'}); }
+  function targetAt(x,y){
+    const box=svg.getBoundingClientRect(); if(x<box.left||x>box.right||y<box.top||y>box.bottom) return null;
+    const top=svg.querySelector('.topspot'); if(top){ const tr=top.getBoundingClientRect(); if(Math.hypot(x-(tr.left+tr.width/2),y-(tr.top+tr.height/2))<tr.width) return 'top'; }
+    let best=null,bd=1e9; hooks.forEach((h,i)=>{ if(filled[i]) return; const r=h.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2, d=Math.hypot(x-cx,y-cy); if(d<bd){bd=d;best=i;} });
+    if(best===null) return 'tree'; const r0=hooks[best].getBoundingClientRect(); return bd<r0.width*1.1?best:'tree'; }
+  function drop(it,t){
+    if(t===null) return;
+    const k=it.dataset.kind;
+    if(k==='bauble'){ if(typeof t!=='number'){ say2('Zawieś bombkę na wolnym haczyku.',false); return bounce(it); }
+      if(plan[t]!==it.dataset.color){ say2(`Kaka chce tu ${COLS[plan[t]][1]}!`,false); return bounce(it); }
+      filled[t]=true; it.remove(); picked=null;
+      const [x,y]=HOOKS[t], g=document.createElementNS(svgNS,'g'); g.innerHTML=`<line x1="${x}" y1="${y-24}" x2="${x}" y2="${y-16}" stroke="#c9961f" stroke-width="2"/><circle cx="${x}" cy="${y}" r="17" fill="${COLS[plan[t]][0]}" stroke="#fff6d8" stroke-width="2"/><circle cx="${x-6}" cy="${y-6}" r="4.5" fill="#fff" opacity=".7"/>`;
+      g.classList.add('drop-in','bb'); g.addEventListener('animationend',()=>g.classList.remove('drop-in'),{once:true}); g.dataset.i=t; hooks[t].replaceWith(g); hooks[t]=g;
+      const left=filled.filter(f=>!f).length; say2(left?`Pięknie! Jeszcze ${left}.`:'Wszystkie bombki wiszą! Teraz łańcuch.',true);
+      if(!left){ phase='garland'; timers.push(setTimeout(fillTray,500)); } }
+    else if(k==='garland'){ if(t==='top'){ say2('Łańcuch na gałęzie, nie na czubek.',false); return bounce(it); } svg.querySelector('.garland').setAttribute('opacity','1'); it.remove(); picked=null; say2('Łańcuch na miejscu! A teraz gwiazda na czubek.',true); phase='star'; timers.push(setTimeout(fillTray,500)); }
+    else if(k==='star'){ if(t!=='top'){ say2('Gwiazda idzie na sam czubek!',false); return bounce(it); }
+      svg.querySelector('.star').setAttribute('opacity','1'); svg.querySelector('.topspot').remove(); it.remove(); picked=null; phase='simon';
+      say2('Choinka ubrana! Teraz poziom 2…',true); timers.push(setTimeout(level2,1300)); } }
+  // level 2: the original memory game, on the tree the player has just decorated
+  function level2(){
+    wrap.querySelector('.tzSide').classList.add('hidden'); wrap.classList.add('solo');
+    card.querySelector('.tzSub').textContent='Poziom 2 z 2: patrz, które bombki zabłysną, i dotknij ich w tej samej kolejności. Trzy rundy.';
+    const balls=hooks; let round=0, seq=[], inp=0, busy=true; const LEN=[3,4,5];
+    const flash=i=>{ balls[i].classList.add('on'); timers.push(setTimeout(()=>balls[i].classList.remove('on'),430)); };
+    const show=()=>{ busy=true; inp=0; say2(`Runda ${round+1}/3 — patrz uważnie…`,true);
+      seq.forEach((b,k)=>timers.push(setTimeout(()=>flash(b),700+k*650))); timers.push(setTimeout(()=>{busy=false; say2('Teraz Ty!',true);},700+seq.length*650)); };
+    const newRound=()=>{ seq=Array.from({length:LEN[round]},()=>Math.random()*balls.length|0); show(); };
+    balls.forEach((b,i)=>{ b.style.cursor='pointer'; b.addEventListener('click',e=>{ e.stopPropagation(); if(busy) return; flash(i);
+      if(i===seq[inp]){ inp++; if(inp===seq.length){ round++; if(round===3){ busy=true; say2('Choinka błyszczy! ✨',true);
+            timers.push(setTimeout(()=>{ svg.querySelector('image').setAttribute('href','art/tree_deco.webp'); svg.querySelectorAll('g').forEach(g=>g.setAttribute('opacity','0')); },600)); win(); }
+          else { busy=true; say2('Brawo! Następna runda…',true); timers.push(setTimeout(newRound,900)); } } }
+      else { busy=true; say2('Ups, prawie! Pokażę jeszcze raz.',false); svg.classList.add('shake'); setTimeout(()=>svg.classList.remove('shake'),400); timers.push(setTimeout(show,1100)); } }); });
+    timers.push(setTimeout(newRound,900));
+  }
+  function bounce(it){ it.classList.add('shake'); setTimeout(()=>it.classList.remove('shake'),400); }
+  function bindDrag(it){
+    it.addEventListener('click',()=>{ if(it.dataset.dragged){ delete it.dataset.dragged; return; } tray.querySelectorAll('.titem').forEach(x=>x.classList.remove('sel')); picked=picked===it?null:it; if(picked) it.classList.add('sel'); });
+    it.addEventListener('pointerdown',e=>{ const sx=e.clientX, sy=e.clientY; let ghost=null;
+      const move=ev=>{ if(!ghost && Math.hypot(ev.clientX-sx,ev.clientY-sy)<8) return;
+        if(!ghost){ ghost=it.cloneNode(true); ghost.classList.add('ghost'); $('#rot').append(ghost); it.classList.add('lifted'); }
+        ghost.style.left=ev.clientX+'px'; ghost.style.top=ev.clientY+'px'; };
+      const up=ev=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); removeEventListener('pointercancel',up);
+        if(!ghost) return; ghost.remove(); it.classList.remove('lifted'); it.dataset.dragged='1'; drop(it,targetAt(ev.clientX,ev.clientY)); };
+      addEventListener('pointermove',move); addEventListener('pointerup',up); addEventListener('pointercancel',up); }); }
+  svg.addEventListener('click',e=>{ if(!picked) return; drop(picked,targetAt(e.clientX,e.clientY)); });
+  fillTray();
+  return ()=>timers.forEach(clearTimeout);
+},
+// 3. memory pairs of the twelve dishes
+dishes(card,win){
+  const ALL=[['Barszcz','barszcz'],['Uszka','uszka'],['Pierogi','pierogi'],['Karp','karp'],['Śledź','sledz'],['Ryba po grecku','ryba'],['Kapusta z grochem','kapusta'],['Zupa grzybowa','grzybowa'],['Kutia','kutia'],['Makowiec','makowiec'],['Piernik','piernik'],['Kompot z suszu','kompot']];
+  card.append(el('<h2>📖 Dwanaście potraw</h2>'),el('<p class="sub">Odkrywaj karty i znajdź pary. Dwie tury po sześć potraw.</p>'));
+  const msg=el('<div class="msg">&nbsp;</div>'), grid=el('<div class="grid"></div>'); card.append(grid,msg);
+  let part=0, open=[], lock=false, got=0, timers=[];
+  const BACK='<span class="back">⭐</span>';
+  function deal(){
+    const set=ALL.slice(part*6,part*6+6); got=0; grid.innerHTML='';
+    shuffle([...set,...set]).forEach(([n,f])=>{
+      const b=el(`<button class="mc" aria-label="karta">${BACK}</button>`); b.dataset.n=n;
+      b.onclick=()=>{ if(lock||b.classList.contains('up')||b.classList.contains('got')) return;
+        b.classList.add('up'); b.innerHTML=`<img src="art/dish/${f}.webp" alt=""><span>${n}</span>`; open.push(b);
+        if(open.length===2){ lock=true; const [a,c]=open;
+          if(a.dataset.n===c.dataset.n){ a.classList.add('got'); c.classList.add('got'); open=[]; lock=false; got++; msg.textContent=`${n} ✔ (${part*6+got}/12)`;
+            if(got===6){ if(part===0){ part=1; msg.textContent='Połowa! Teraz desery i reszta…'; timers.push(setTimeout(deal,1200)); } else { msg.textContent='Wszystkie dwanaście! 🍽️'; win(); } } }
+          else timers.push(setTimeout(()=>{[a,c].forEach(x=>{x.classList.remove('up');x.innerHTML=BACK}); open=[]; lock=false;},900));
+        }
+      };
+      grid.appendChild(b);
+    });
+  }
+  deal();
+  return ()=>timers.forEach(clearTimeout);
+},
+// 4. set the table: lay it in the right order, then solve the Wigilia seating plan
+table(card,win){
+  card.append(el('<h2>🍽️ Nakrywamy do stołu</h2>'));
+  const sub=el('<p class="sub">Krok 1 z 2: przeciągnij rzeczy na stół we właściwej kolejności — od samego dołu. (Albo dotknij rzeczy, a potem stołu.)</p>');
+  const lay=el('<div class="tlay"><div class="tdrop" aria-label="Stół"><img class="tst" src="art/table/t0_empty.webp" alt=""><img class="tst tnext" alt=""><span class="thint">upuść tutaj</span></div><div class="ttray" role="list"></div></div>');
+  const msg=el('<div class="msg">&nbsp;</div>');
+  card.append(sub,lay,msg);
+  const drop=lay.querySelector('.tdrop'), tray=lay.querySelector('.ttray'), cur=lay.querySelector('.tst'), nxt=lay.querySelector('.tnext');
+  const ORDER=[['Sianko','art/tico/sianko.webp','art/table/t1_hay.webp'],['Obrus','art/tico/obrus.webp','art/table/t2_cloth.webp'],['Opłatek','art/tico/oplatek.webp','art/table/t3_wafer.webp'],['Talerze','art/tico/talerze.webp','art/table/t4_plates.webp'],['Świeca','art/tico/swieca.webp','art/table/t5_candle.webp']];
+  ORDER.forEach(o=>loadImg(o[2]));
+  const HINT={Sianko:'Najpierw sianko — kładziemy je na gołym stole.',Obrus:'Teraz obrus — przykrywa sianko.',Opłatek:'Opłatek kładziemy na obrusie, na środku.',Talerze:'Talerze — i jeden więcej dla niespodziewanego gościa!',Świeca:'Na koniec świeca, dla nastroju.'};
+  let step=0, timers=[], picked=null;
+  function place(name,elm){
+    if(step>=ORDER.length) return;
+    if(name!==ORDER[step][0]){ elm.classList.add('shake'); setTimeout(()=>elm.classList.remove('shake'),400); msg.style.color='var(--red)'; msg.textContent='Hmm, jeszcze nie. '+HINT[ORDER[step][0]]; return; }
+    const src=ORDER[step][2]; step++; elm.remove(); picked=null;
+    nxt.src=src; nxt.classList.add('show'); timers.push(setTimeout(()=>{ cur.src=src; nxt.classList.remove('show'); },650));
+    drop.classList.add('pop'); setTimeout(()=>drop.classList.remove('pop'),400);
+    msg.style.color='var(--green)'; msg.textContent=['Pięknie!','Tak jest!','Właśnie tak!','Cudnie!','Gotowe!'][step-1];
+    if(step===ORDER.length){ msg.textContent='Stół nakryty! Teraz najtrudniejsze — kto gdzie siedzi…'; timers.push(setTimeout(seating,1600)); }
+  }
+  shuffle(ORDER.slice()).forEach(([n,e])=>{
+    const it=el(`<button class="titem" role="listitem"><img class="tic" src="${e}" alt="" draggable="false">${n}</button>`); tray.append(it); it.dataset.name=n;
+    // tap → select, then tap the table
+    it.addEventListener('click',()=>{ if(it.dataset.dragged){ delete it.dataset.dragged; return; } tray.querySelectorAll('.titem').forEach(x=>x.classList.remove('sel')); picked=picked===it?null:it; if(picked) it.classList.add('sel'); });
+    // drag (mouse or finger)
+    it.addEventListener('pointerdown',e=>{
+      const sx=e.clientX, sy=e.clientY; let ghost=null;
+      const move=ev=>{ if(!ghost && Math.hypot(ev.clientX-sx,ev.clientY-sy)<8) return;
+        if(!ghost){ ghost=it.cloneNode(true); ghost.classList.add('ghost'); $('#rot').append(ghost); it.classList.add('lifted'); }
+        ghost.style.left=ev.clientX+'px'; ghost.style.top=ev.clientY+'px';
+        const r=drop.getBoundingClientRect(); drop.classList.toggle('over',ev.clientX>r.left&&ev.clientX<r.right&&ev.clientY>r.top&&ev.clientY<r.bottom); };
+      const up=ev=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up); removeEventListener('pointercancel',up);
+        if(!ghost) return; ghost.remove(); it.classList.remove('lifted'); it.dataset.dragged='1';
+        const over=drop.classList.contains('over'); drop.classList.remove('over'); if(over) place(n,it); };
+      addEventListener('pointermove',move); addEventListener('pointerup',up); addEventListener('pointercancel',up);
+    });
+  });
+  drop.addEventListener('click',()=>{ if(picked) place(picked.dataset.name,picked); });
+  function seating(){
+    lay.remove(); msg.innerHTML='&nbsp;';
+    sub.textContent='Krok 2 z 2: rozsadź gości przy wigilijnym stole. Dotknij osoby, potem miejsca. Spełnij wszystkie życzenia rodziny!';
+    const G={kaka:['Kaka','face-kaka'],kaczor:['Kaczor','face-kaczor'],mikolaj:['Mikołaj','face-mikolaj'],jugo:['Jugo','face-jugo'],gay:['Gayzilla','face-gayzilla'],inez:['Inez','face-inez'],kochanek:['kochanek Inez','face-q']};
+    const SEATS={t1:[28,13],t2:[50,13],t3:[72,13],R:[92,50],b2:[64,87],b1:[36,87],L:[8,50]};
+    const RING=['t1','t2','t3','R','b2','b1','L'], WIN=['t1','t2','t3'], N=RING.length;
+    const adj=(a,b)=>{const i=RING.indexOf(a),j=RING.indexOf(b);return (i-j+N)%N===1||(j-i+N)%N===1;};
+    const RULES=[
+      [['kochanek'],s=>s.kochanek==='R','Talerz dla „Nieoczekiwanego aktualnego kochanka Inez” stoi przy drzwiach — w razie czego szybko się ewakuuje.'],
+      [['kaka'],s=>s.kaka==='L','Kaka siedzi przy kuchni — będzie donosić potrawy.'],
+      [['kaczor','kaka'],s=>WIN.includes(s.kaczor)&&adj(s.kaczor,s.kaka),'Kaczor siedzi obok Kaki, przy oknie — żeby nie zasnął.'],
+      [['mikolaj','kaka'],s=>adj(s.mikolaj,s.kaka),'Mikołaj siedzi obok mamy — ktoś musi mu obrać karpia z ości.'],
+      [['jugo','mikolaj'],s=>adj(s.jugo,s.mikolaj),'Jugo siedzi obok Mikołaja — obiecał mu pokazać sztuczkę z opłatkiem.'],
+      [['gay'],s=>WIN.includes(s.gay),'Gayzilla musi siedzieć przy oknie — tam jest najlepsze światło do selfie.'],
+      [['inez','kochanek'],s=>!adj(s.inez,s.kochanek),'Inez nie siedzi obok swojego kochanka — przy wszystkich udają, że się nie znają.'],
+    ];
+    const box=el('<div class="seatplan"><div class="stol">🕯️ ✨</div><span class="side s-top">🪟 okno</span><span class="side s-bot">🎄 choinka</span><span class="side s-l">🍳 kuchnia</span><span class="side s-r">🚪 drzwi</span></div>');
+    const pool=el('<div class="choices pool"></div>'), rl=el('<ul class="rules"></ul>'), quip=el('<div class="quip" aria-live="polite"></div>');
+    // a funny remark from Kaka or Kaczor every time someone is seated
+    const QUIP={kaka:['kaczor','Kaka przy kuchni. Jakby co, ja nic nie gotuję.'],kaczor:['kaka','Kaczor, siedzisz prosto i nie śpisz. To nie była prośba.'],
+      mikolaj:['kaka','Mikołaj, karp nie jest do zabawy. Ości też nie.'],jugo:['kaczor','Jugo przy stole? Trzeba będzie schować nalewkę.'],
+      gay:['kaka','Gayzilla przy oknie. Już widzę, jak będzie robił selfie z opłatkiem.'],inez:['kaczor','Inezie trzeba dać miejsce z dala od świeczek. Nie wszystko u niej jest ognioodporne.'],
+      kochanek:['kaka','Kochanek Inez… ciekawe, jak ten będzie miał na imię. Nieważne. Za rok i tak będzie inny.']};
+    function remark(k){ const [who,txt]=QUIP[k]; quip.innerHTML=`<i class="fc face-${who}"></i><span><b>${who==='kaka'?'Kaka':'Kaczor'}:</b> ${txt}</span>`; quip.classList.add('on'); play('seat_'+k); }
+    card.insertBefore(quip,msg); card.insertBefore(box,msg); card.insertBefore(pool,msg); card.insertBefore(rl,msg);
+    const seatOf={}, at={}; let sel=null, solved=false;
+    const token=k=>{ const [n,f]=G[k]; const ic=f.startsWith('face-')?`<i class="fc ${f}"></i>`:`<i class="em">${f}</i>`; return `${ic}<b>${n}</b>`; };
+    const seatEls={};
+    Object.entries(SEATS).forEach(([id,[x,y]])=>{ const b=el(`<button class="seat" style="left:${x}%;top:${y}%" aria-label="miejsce"></button>`); b.onclick=()=>tapSeat(id); box.append(b); seatEls[id]=b; });
+    function tapSeat(id){ if(solved) return;
+      if(sel){ const prev=seatOf[sel], other=at[id];
+        if(prev) delete at[prev];
+        if(other){ if(prev){ at[prev]=other; seatOf[other]=prev; } else delete seatOf[other]; }
+        at[id]=sel; seatOf[sel]=id; remark(sel); sel=null; }
+      else if(at[id]){ sel=at[id]; }
+      draw(); }
+    function draw(){
+      Object.entries(seatEls).forEach(([id,b])=>{ const k=at[id]; b.innerHTML=k?token(k):'<span class="free">+</span>'; b.classList.toggle('sel',!!k&&k===sel); b.classList.toggle('taken',!!k); });
+      pool.innerHTML=''; Object.keys(G).filter(k=>!seatOf[k]).forEach(k=>{ const b=el(`<button class="chip guest">${token(k)}</button>`); b.classList.toggle('sel',k===sel); b.onclick=()=>{ if(solved) return; sel=sel===k?null:k; draw(); }; pool.append(b); });
+      if(!pool.children.length) pool.append(el('<span class="allin">Wszyscy siedzą — sprawdź życzenia poniżej.</span>'));
+      let ok=0; rl.innerHTML='';
+      RULES.forEach(([who,test,txt])=>{ const ready=who.every(k=>seatOf[k]); const pass=ready&&test(seatOf); if(pass) ok++;
+        rl.append(el(`<li class="${ready?(pass?'ok':'bad'):''}"><span>${ready?(pass?'✔':'✘'):'○'}</span>${txt}</li>`)); });
+      const all=Object.keys(G).every(k=>seatOf[k]);
+      if(all&&ok===RULES.length&&!solved){ solved=true; msg.style.color='var(--green)'; msg.textContent='Idealnie! Plan miejsc gotowy — wszyscy będą zadowoleni, nawet kochanek Inez. 🎉'; win(); }
+      else if(all){ msg.style.color='var(--red)'; msg.textContent='Prawie! Ktoś jeszcze marudzi — zamień miejsca (dotknij osoby przy stole, potem innego miejsca).'; }
+      else { msg.style.color='var(--ink)'; msg.textContent=sel?`Gdzie posadzić: ${G[sel][0]}?`:'Wybierz osobę.'; }
+    }
+    draw();
+  }
+  return ()=>timers.forEach(clearTimeout);
+},
+// 5. untangle the lights (no crossing wires) while keeping Kaczor from rolling onto the cable
+lights(card,win){
+  card.append(el('<h2>💡 Lampki z Kaczorem</h2>'),el('<p class="sub">Przeciągaj żarówki tak, żeby żaden kabel się nie krzyżował. I pilnuj Kaczora — jak przyśnie, przewróci się na kabel i znów go poplącze!</p>'));
+  const wrap=el('<div class="lwrap"></div>'), cv=document.createElement('canvas');
+  const kz=el('<div class="kzWrap" role="button" tabindex="0" aria-label="Kaczor"><img src="art/kaczor.webp" alt="Kaczor"><span class="bub">🧶</span></div>');
+  const msg=el('<div class="msg">&nbsp;</div>');
+  wrap.append(cv,kz); card.append(wrap,msg);
+  const W=800,H=500,R=19; cv.width=W; cv.height=H; const c=cv.getContext('2d');
+  const COL=['#ff5a4e','#ffd34e','#5ad1ff','#7dff7a','#ff8ad8','#ffa64e'];
+  // planar graphs: a loop of bulbs plus chords that do not cross in circle order
+  const LEVELS=[{n:6,ch:[[0,2],[3,5]]},{n:9,ch:[[0,3],[3,6],[6,0],[1,3],[4,6]]},{n:12,ch:[[0,4],[4,8],[8,0],[1,3],[1,4],[5,7],[9,11],[8,11]]}];
+  let lvl=0, nodes=[], edges=[], drag=null, solved=false, dead=false, raf, last=performance.now(), timers=[];
+  const cross=(a,b,c2,d)=>{ const o=(p,q,r)=>Math.sign((q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x)); return o(a,b,c2)*o(a,b,d)<0 && o(c2,d,a)*o(c2,d,b)<0; };
+  function crossings(){ const bad=new Set(); let n=0;
+    for(let i=0;i<edges.length;i++) for(let j=i+1;j<edges.length;j++){ const [a,b]=edges[i],[p,q]=edges[j];
+      if(a===p||a===q||b===p||b===q) continue;
+      if(cross(nodes[a],nodes[b],nodes[p],nodes[q])){ n++; bad.add(i); bad.add(j); } }
+    return {n,bad}; }
+  function scramble(){ for(let t=0;t<80;t++){ nodes.forEach(nd=>{nd.x=60+Math.random()*(W-120); nd.y=50+Math.random()*(H-100);}); if(crossings().n>=nodes.length/2) return; } }
+  function load(){ const L=LEVELS[lvl]; solved=false;
+    nodes=Array.from({length:L.n},(_,i)=>({x:0,y:0,c:COL[i%COL.length]}));
+    edges=[...Array.from({length:L.n},(_,i)=>[i,(i+1)%L.n]),...L.ch];
+    scramble(); msg.style.color='var(--ink)'; msg.textContent=`Sznur ${lvl+1}/${LEVELS.length} — rozplącz lampki!`; }
+  const pt=e=>{const r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)/r.width*W, y:(e.clientY-r.top)/r.height*H};};
+  cv.addEventListener('pointerdown',e=>{ if(solved) return; const p=pt(e); let best=null,bd=44*44;
+    nodes.forEach(nd=>{const d=(nd.x-p.x)**2+(nd.y-p.y)**2; if(d<bd){bd=d;best=nd;}}); if(best){drag=best; cv.setPointerCapture(e.pointerId);} });
+  cv.addEventListener('pointermove',e=>{ if(!drag) return; const p=pt(e); drag.x=Math.max(R,Math.min(W-R,p.x)); drag.y=Math.max(R,Math.min(H-R,p.y)); });
+  const up=()=>{ if(!drag) return; drag=null; if(crossings().n===0) solve(); };
+  cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up);
+  function solve(){ solved=true;
+    if(lvl<LEVELS.length-1){ msg.style.color='var(--green)'; msg.textContent=lvl===0?'Świeci! Teraz dłuższy sznur…':'Pięknie! Ostatni, najdłuższy sznur…'; timers.push(setTimeout(()=>{ if(dead) return; lvl++; load(); },1400)); }
+    else { msg.style.color='var(--green)'; msg.textContent='Wszystkie lampki świecą! 💡'; kzState('done'); win(); } }
+  // Kaczor: awake → drowsy (tap him!) → rolls onto the cable and tangles two bulbs
+  const bub=kz.querySelector('.bub'); let kState='awake', kTime=7+Math.random()*4, wokeOnce=false;
+  const kzImg=kz.querySelector('img');
+  function kzState(s){ kState=s; kzImg.src=s==='drowsy'?'art/kaczor_sleep.webp':'art/kaczor.webp';
+    bub.textContent={awake:'🧶 trzymam…',drowsy:'😴 Zzz… (dotknij!)',oops:'😳 ups…',done:'💡 Ładne!'}[s]; }
+  function poke(){ if(kState==='drowsy'){ kzState('awake'); kTime=7+Math.random()*4; msg.style.color='var(--green)'; msg.textContent=['Pobudka!','Kaczor, trzymaj kabel!','Hej, nie śpimy!'][Math.random()*3|0];
+      if(!wokeOnce){ wokeOnce=true; play('kaczor_awake'); } }
+    else if(kState==='awake'){ msg.style.color='var(--ink)'; msg.textContent='Na razie trzyma. Pilnuj go dalej.'; } }
+  kz.onclick=poke; kz.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')poke()};
+  function tangle(){ const n=nodes.length; for(let t=0;t<20;t++){ const a=Math.random()*n|0, b=Math.random()*n|0; if(a===b) continue;
+      [nodes[a].x,nodes[b].x]=[nodes[b].x,nodes[a].x]; [nodes[a].y,nodes[b].y]=[nodes[b].y,nodes[a].y]; if(crossings().n>0) break; }
+    drag=null; msg.style.color='var(--red)'; msg.textContent='Kaczor przewrócił się na kabel! Trochę się poplątało…'; cv.classList.add('shake'); setTimeout(()=>cv.classList.remove('shake'),400); }
+  function draw(){ const {bad}=crossings(); c.clearRect(0,0,W,H);
+    edges.forEach(([a,b],i)=>{ const A=nodes[a],B=nodes[b], mx=(A.x+B.x)/2, my=(A.y+B.y)/2+18;
+      c.strokeStyle=solved?'#9be3a8':(bad.has(i)?'#ff5a4e':'#e9dcb8'); c.lineWidth=bad.has(i)&&!solved?5:4;
+      c.beginPath(); c.moveTo(A.x,A.y); c.quadraticCurveTo(mx,my,B.x,B.y); c.stroke(); });
+    nodes.forEach(nd=>{ c.save(); c.translate(nd.x,nd.y);
+      if(solved){ c.shadowColor=nd.c; c.shadowBlur=28; }
+      c.fillStyle='#3a3a3a'; c.fillRect(-7,-R-8,14,10);
+      c.globalAlpha=solved?1:.6; c.fillStyle=nd.c; c.beginPath(); c.ellipse(0,2,R*.8,R,0,0,Math.PI*2); c.fill();
+      c.globalAlpha=1; c.shadowBlur=0; c.fillStyle='rgba(255,255,255,.65)'; c.beginPath(); c.ellipse(-5,-4,4,6,-.4,0,Math.PI*2); c.fill();
+      if(nd===drag){ c.strokeStyle='#fff'; c.lineWidth=3; c.beginPath(); c.arc(0,2,R+5,0,Math.PI*2); c.stroke(); }
+      c.restore(); }); }
+  function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now;
+    if(!solved && kState!=='done'){ kTime-=dt;
+      if(kTime<=0){ if(kState==='awake'){ kzState('drowsy'); kTime=3.2; }
+        else if(kState==='drowsy'){ tangle(); kzState('oops'); kTime=1.5; }
+        else { kzState('awake'); kTime=7+Math.random()*4; } } }
+    draw(); raf=requestAnimationFrame(loop); }
+  load(); kzState('awake'); raf=requestAnimationFrame(loop);
+  return ()=>{dead=true; cancelAnimationFrame(raf); timers.forEach(clearTimeout);};
+},
+// 6. Mikołaj's train: steer it around the floor, pick up presents (each adds a wagon)
+train(card,win){
+  card.append(el('<h2>🚂 Pociąg Mikołaja</h2>'),el('<p class="sub">Steruj pociągiem strzałkami, przesuwając palcem albo przyciskami. Zbierz 20 prezentów — każdy doczepia wagonik. Uważaj na ściany i własne wagoniki!</p>'));
+  const bar=el('<div class="bar"><i></i></div>'), cv=document.createElement('canvas'), msg=el('<div class="msg">&nbsp;</div>');
+  const pad=el('<div class="tpad"><button data-d="up">▲</button><button data-d="left">◀</button><button data-d="down">▼</button><button data-d="right">▶</button></div>');
+  card.append(bar,cv,pad,msg);
+  const C=50, COLS=16, ROWS=10, W=C*COLS, H=C*ROWS; cv.width=W; cv.height=H; cv.classList.add('trainCv'); const c=cv.getContext('2d');
+  const GOAL=20, giftImg=loadImg('art/gift.webp'), locoImg=loadImg('art/loco_top.webp'), wagonImg=loadImg('art/wagon_top.webp');
+  const D={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+  let body, prev, dir, queue=[], gift, got=0, acc=0, pause=0, over=false, raf, last=performance.now(), crashFlash=0;
+  function reset(len){ body=[]; for(let i=0;i<len;i++) body.push({x:7-i,y:5}); prev=body.map(p=>({...p})); dir='right'; queue=[]; }
+  function placeGift(){ for(let t=0;t<500;t++){ const g={x:1+Math.random()*(COLS-2)|0,y:1+Math.random()*(ROWS-2)|0}; if(!body.some(b=>b.x===g.x&&b.y===g.y)&&Math.abs(g.x-body[0].x)+Math.abs(g.y-body[0].y)>3){gift=g;return;} } }
+  reset(1); placeGift();
+  const opposite={up:'down',down:'up',left:'right',right:'left'};
+  function turn(d){ if(over) return; const lastDir=queue.length?queue[queue.length-1]:dir; if(d===lastDir||(d===opposite[lastDir]&&body.length>1)) return; if(queue.length<2) queue.push(d); }
+  const KEYS={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right'};
+  const kd=e=>{ const d=KEYS[e.key]; if(d){ e.preventDefault(); turn(d);} }; addEventListener('keydown',kd);
+  pad.querySelectorAll('button').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault(); turn(b.dataset.d);}));
+  let sw=null; cv.addEventListener('pointerdown',e=>{sw={x:e.clientX,y:e.clientY};});
+  cv.addEventListener('pointerup',e=>{ if(!sw) return; const dx=e.clientX-sw.x, dy=e.clientY-sw.y; sw=null; if(Math.max(Math.abs(dx),Math.abs(dy))<18) return; turn(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up')); });
+  function crash(){ const keep=Math.max(1,body.length-2); const lost=body.length-keep; reset(keep); pause=1.1; crashFlash=.4;
+    msg.style.color='var(--red)'; msg.textContent=lost?`Ups! Pociąg się wykoleił — odpadły ${lost===1?'wagonik':'dwa wagoniki'}.`:'Ups! Pociąg się wykoleił.';
+    cv.classList.add('shake'); setTimeout(()=>cv.classList.remove('shake'),400); }
+  function step(){ if(queue.length) dir=queue.shift(); const [dx,dy]=D[dir], h=body[0], n={x:h.x+dx,y:h.y+dy};
+    prev=body.map(p=>({...p}));
+    const willEat=gift&&n.x===gift.x&&n.y===gift.y;
+    const hitsSelf=body.some((b,i)=>b.x===n.x&&b.y===n.y&&(willEat||i<body.length-1));
+    if(n.x<0||n.y<0||n.x>=COLS||n.y>=ROWS||hitsSelf){ crash(); return; }
+    body.unshift(n); prev.unshift({...h});
+    if(willEat){ got++; bar.firstChild.style.width=got/GOAL*100+'%'; msg.style.color='var(--green)';
+      msg.textContent=got>=GOAL?'Wszystkie prezenty jadą pod choinkę! 🎁':['Hura!','Jeszcze jeden wagonik!','Ciuch-ciuch!','Brawo, maszynisto!'][got%4]+` (${got}/${GOAL})`;
+      if(got>=GOAL){ over=true; win(); } else placeGift(); }
+    else { body.pop(); }
+    while(prev.length>body.length) prev.pop(); }
+  function seg(i,t){ const a=prev[i]||body[i], b=body[i]; return {x:(a.x+(b.x-a.x)*t+.5)*C, y:(a.y+(b.y-a.y)*t+.5)*C}; }
+  function drawFloor(){ c.fillStyle='#b98352'; c.fillRect(0,0,W,H);
+    for(let y=0;y<ROWS;y++){ c.fillStyle=y%2?'#b07a4a':'#bd8a58'; c.fillRect(0,y*C,W,C); c.fillStyle='rgba(80,45,20,.25)'; c.fillRect(0,y*C,W,2);
+      for(let x=(y%2)*3;x<COLS;x+=6) c.fillRect(x*C,y*C,2,C); }
+    c.strokeStyle='rgba(255,240,210,.18)'; c.lineWidth=1; }
+  function drawGift(g){ const x=(g.x+.5)*C, y=(g.y+.5)*C, s=C*1.05+Math.sin(performance.now()/250)*2;
+    if(giftImg.complete&&giftImg.naturalWidth) c.drawImage(giftImg,x-s/2,y-s/2,s,s);
+    else { c.fillStyle='#c0392b'; c.fillRect(x-14,y-14,28,28); c.fillStyle='#e9b949'; c.fillRect(x-3,y-14,6,28); c.fillRect(x-14,y-3,28,6); } }
+  const sprite=(img,p,ang,len)=>{ if(!img.complete||!img.naturalWidth) return false; const w=len, h=len*img.naturalHeight/img.naturalWidth;
+    c.save(); c.translate(p.x,p.y); c.rotate(ang); c.shadowColor='rgba(40,20,5,.35)'; c.shadowBlur=6; c.shadowOffsetY=3; c.drawImage(img,-w/2,-h/2,w,h); c.restore(); return true; };
+  function drawLoco(p,ang){ p={x:p.x+Math.cos(ang)*C*.22,y:p.y+Math.sin(ang)*C*.22}; if(sprite(locoImg,p,ang,C*1.6)) return;
+    c.save(); c.translate(p.x,p.y); c.rotate(ang); c.fillStyle='#c0392b'; c.beginPath(); c.roundRect(-20,-13,40,26,6); c.fill(); c.restore(); }
+  function drawWagon(p,ang,i){ if(sprite(wagonImg,p,ang,C*1.08)) return;
+    c.save(); c.translate(p.x,p.y); c.rotate(ang); c.fillStyle='#2f6b45'; c.beginPath(); c.roundRect(-15,-12,30,24,4); c.fill(); c.restore(); }
+  function drawRails(t){ if(body.length<1) return; const pts=[]; for(let i=body.length-1;i>=0;i--) pts.push(seg(i,t));
+    const h=body[0], [dx,dy]=D[dir]; const last=pts[pts.length-1]; pts.push({x:last.x+dx*C*.55,y:last.y+dy*C*.55});
+    c.save(); c.lineCap='round';
+    for(let k=1;k<pts.length;k++){ const a=pts[k-1], b=pts[k], ang=Math.atan2(b.y-a.y,b.x-a.x), len=Math.hypot(b.x-a.x,b.y-a.y), nx=-Math.sin(ang), ny=Math.cos(ang);
+      c.strokeStyle='#6b4a2e'; c.lineWidth=6; for(let s2=5;s2<len;s2+=C*.26){ const sx=a.x+Math.cos(ang)*s2, sy=a.y+Math.sin(ang)*s2; c.beginPath(); c.moveTo(sx-nx*C*.3,sy-ny*C*.3); c.lineTo(sx+nx*C*.3,sy+ny*C*.3); c.stroke(); }
+      c.strokeStyle='#a7adb3'; c.lineWidth=3.5; for(const o of [-C*.2,C*.2]){ c.beginPath(); c.moveTo(a.x+nx*o,a.y+ny*o); c.lineTo(b.x+nx*o,b.y+ny*o); c.stroke(); } }
+    c.restore(); }
+  function angle(i,t){ const a=seg(i,t), b=i>0?seg(i-1,t):null; if(b) return Math.atan2(b.y-a.y,b.x-a.x); const [dx,dy]=D[dir]; return Math.atan2(dy,dx); }
+  function render(t){ drawFloor(); if(gift&&!over) drawGift(gift);
+    drawRails(t);
+    for(let i=body.length-1;i>=1;i--){ const a=seg(i,t), b=seg(i-1,t); c.strokeStyle='#3a2a1a'; c.lineWidth=3; c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); }
+    for(let i=body.length-1;i>=1;i--) drawWagon(seg(i,t),angle(i,t),i);
+    drawLoco(seg(0,t),angle(0,t));
+    if(crashFlash>0){ c.fillStyle=`rgba(255,80,60,${crashFlash})`; c.fillRect(0,0,W,H); } }
+  function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now; crashFlash=Math.max(0,crashFlash-dt);
+    const speed=Math.max(.13,.24-got*.01);
+    if(!over){ if(pause>0) pause-=dt; else { acc+=dt; while(acc>=speed){ acc-=speed; step(); if(pause>0||over){acc=0;break;} } } }
+    render(over||pause>0?1:Math.min(1,acc/speed)); raf=requestAnimationFrame(loop); }
+  msg.textContent='Ciuch-ciuch! Jedź po pierwszy prezent.';
+  raf=requestAnimationFrame(loop);
+  return ()=>{ cancelAnimationFrame(raf); removeEventListener('keydown',kd); };
+},
+// 7. Kaka quizzes Kaczor on Harry Potter (answer for him; 7/10 to pass)
+quiz(card,win){
+  // pool of hard questions (first answer is correct); each game draws 10
+  const Q=([
+    ['Jakim hasłem Harry po raz pierwszy wchodzi do pokoju wspólnego Gryffindoru?',['Caput Draconis','Fortuna Major','Świński ryj','Mimbulus mimbletonia']],
+    ['Z jakiego drewna jest różdżka Harry’ego?',['z ostrokrzewu','z cisu','z winorośli','z jesionu']],
+    ['Jaką postać przybiera patronus Hermiony?',['wydry','łani','zająca','teriera']],
+    ['Jak brzmi drugie imię Harry’ego?',['James','Albus','Syriusz','Artur']],
+    ['Jak nazywa się pies Hagrida?',['Kieł','Puszek','Hardodziob','Norbert']],
+    ['Co powstaje według Snape’a z korzenia asfodelusa i naparu z piołunu?',['Wywar Żywej Śmierci','Eliksir Wielosokowy','Felix Felicis','Amortencja']],
+    ['Jak brzmi pełne imię Dumbledore’a?',['Albus Percival Wulfric Brian','Albus Brian Percival Wulfric','Albus Wulfric Percival Brian','Albus Percival Brian Wulfric']],
+    ['W jakie zwierzę zmienia się animag profesor McGonagall?',['w pręgowanego kota','w sowę','w charta','w wydrę']],
+    ['Kto zabija Nagini?',['Neville Longbottom','Ron Weasley','Hermiona Granger','Harry Potter']],
+    ['W którym roku urodził się Harry?',['1980','1981','1979','1982']],
+    ['Jak nazywa się gospoda w Hogsmeade prowadzona przez Aberfortha?',['Pod Świńskim Łbem','Pod Trzema Miotłami','Dziurawy Kocioł','Miodowe Królestwo']],
+    ['Jaki rdzeń ma Czarna Różdżka?',['włos z ogona testrala','pióro feniksa','włókno ze smoczego serca','włos jednorożca']],
+    ['Które zaklęcie Księcia Półkrwi rani jak niewidzialny miecz?',['Sectumsempra','Levicorpus','Muffliato','Langlock']],
+    ['Jak nazywa się skrzat domowy rodu Blacków?',['Stworek','Zgredek','Mrużka','Hokey']],
+    ['Kto napisał „Historię magii”?',['Bathilda Bagshot','Gilderoy Lockhart','Newt Scamander','Rita Skeeter']],
+  ]);
+  const OK=['„No przecież wiem.”','„Widziałem wszystkie filmy. Z zamkniętymi oczami.”','„Proste. Następne.”','„Dziesięć punktów dla Kanapowego Gryffindoru!”'];
+  const BAD=['„Ten rozdział przespałem.”','„To było w filmie? Bo ja chyba drzemałem.”','„Mogę zadzwonić do przyjaciela? Do Jugo?”','„Sprawdzam tylko, czy uważasz.”'];
+  card.append(el('<h2>🏰 Quiz z Kaczorem</h2>'),el('<p class="sub">Kaka jest ekspertką od Harry’ego Pottera i nie bierze jeńców. Odpowiadasz za Kaczora — 7 z 10, żeby wrócił na kanapę!</p>'));
+  const wrap=el('<div class="qz"><div><div class="qmeta"><span class="qn"></span><span class="qs"></span></div><p class="qq"></p><div class="qopts"></div><div class="msg">&nbsp;</div><button class="btn qnext hidden">Dalej ▸</button></div><div class="qkz"><img src="art/kaczor.webp" alt="Kaczor"><span class="bub">🤓 Pytaj!</span></div></div>');
+  card.append(wrap);
+  const $q=sel=>wrap.querySelector(sel), img=$q('.qkz img'), bub=$q('.bub'), msg=$q('.msg'), next=$q('.qnext');
+  let order, i, score, saidOk=false, saidBad=false, timers=[];
+  function start(){ order=shuffle(Q.map((_,k)=>k)).slice(0,10); i=0; score=0; img.src='art/kaczor.webp'; bub.textContent='🤓 Pytaj!'; show(); }
+  function show(){ const [q,ans]=Q[order[i]]; $q('.qn').textContent=`Pytanie ${i+1} z ${order.length}`; $q('.qs').textContent=`Kaczor: ${score} pkt`;
+    $q('.qq').textContent=q; msg.innerHTML='&nbsp;'; next.classList.add('hidden');
+    const box=$q('.qopts'); box.innerHTML='';
+    shuffle(ans.map((a,k)=>[a,k===0])).forEach(([a,right])=>{ const b=el(`<button></button>`); b.textContent=a; b.dataset.right=right?'1':'';
+      b.onclick=()=>pick(b,right); box.append(b); }); }
+  function pick(b,right){ const all=[...$q('.qopts').children]; all.forEach(x=>{x.disabled=true; if(x.dataset.right) x.classList.add('right');});
+    if(right){ score++; img.src='art/kaczor.webp'; bub.textContent='😎 Wiedziałem!'; msg.style.color='var(--green)'; msg.textContent='Kaczor: '+OK[Math.random()*OK.length|0];
+      if(!saidOk){ saidOk=true; play('quiz_ok'); } }
+    else { b.classList.add('wrong'); bub.textContent='🤔 Hmm…'; msg.style.color='var(--red)'; msg.textContent='Kaczor: '+BAD[Math.random()*BAD.length|0];
+      if(!saidBad){ saidBad=true; play('quiz_bad'); } }
+    $q('.qs').textContent=`Kaczor: ${score} pkt`;
+    next.textContent=i===order.length-1?'Wynik ▸':'Dalej ▸'; next.classList.remove('hidden'); next.focus(); }
+  next.onclick=()=>{ i++; if(i<order.length) return show(); finishQuiz(); };
+  function finishQuiz(){ $q('.qopts').innerHTML=''; next.classList.add('hidden'); $q('.qn').textContent='Koniec quizu'; $q('.qs').textContent='';
+    if(score>=7){ img.src='art/kaczor.webp'; bub.textContent='🏆 '+score+'/10'; $q('.qq').textContent=`Kaczor zdał! ${score} na 10. Dziesięć punktów dla Gryffindoru — i powrót na kanapę.`; msg.innerHTML='&nbsp;'; win(); }
+    else { bub.textContent='😅 '+score+'/10'; $q('.qq').textContent=`Tylko ${score} na 10. Kaka nie odpuszcza — jeszcze raz!`; msg.innerHTML='&nbsp;';
+      const again=el('<button class="btn">Jeszcze raz 🔄</button>'); again.onclick=()=>{ again.remove(); start(); }; $q('.qopts').append(again); } }
+  start();
+  return ()=>timers.forEach(clearTimeout);
+},
+};
+
+// ---------- ending ----------
+// doorbell: two soft bell tones (Web Audio, no file needed)
+function doorbell(){ if(muted) return; try{ const A=window.AudioContext||window.webkitAudioContext, ac=new A(), t0=ac.currentTime;
+  [[659.3,0],[523.3,.55]].forEach(([f,d])=>{ [1,2.76].forEach((m,i)=>{ const o=ac.createOscillator(), g=ac.createGain(); o.type='sine'; o.frequency.value=f*m;
+    g.gain.setValueAtTime(0,t0+d); g.gain.linearRampToValueAtTime(i?.05:.22,t0+d+.01); g.gain.exponentialRampToValueAtTime(.0001,t0+d+1.6); o.connect(g).connect(ac.destination); o.start(t0+d); o.stop(t0+d+1.7); }); });
+  setTimeout(()=>ac.close(),2600); }catch(e){} }
+// the guests arrive: Jugo, Gayzilla, Inez and her unexpected lover walk in from the left (past the tree) one by one, each with a voiced hello
+function arrival(next){
+  const st=$('#stage'), cv=document.createElement('div'); cv.id='cine'; st.append(cv); st.classList.add('cine');
+  const G=[['jugo',64,false,'Cześć, kochani! Wpadłem tylko na chwilę. Przyniosłem nalewkę babci… i widelec. Gdzie są pierogi?'],
+           ['gayzilla',54,true,'Nie ruszajcie się! Selfie z choinką! A barszcz jest gourmet? Z organicznych buraków, prawda?'],
+           ['inez',32.5,false,'Przepraszam za spóźnienie, kochani! Nowy nos jeszcze nie przywykł do mrozu. Ale patrzcie, jak zajebiście wyglądam!'],
+           ['kochanek',9,false,'Dobry wieczór. Jestem… z Inez. Mam nadzieję, że jeszcze do Sylwestra.']];
+  const cap=document.createElement('div'); cap.className='cap'; const fade=document.createElement('div'); fade.className='fade';
+  cv.append(cap,fade); let over=false;
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  // play a line and resolve when it ends (or after a fallback when muted / blocked)
+  const speak=key=>new Promise(r=>{ play(key); const a=cur; let d=false; const go=()=>{ if(!d){ d=true; r(); } };
+    if(a){ a.addEventListener('ended',()=>setTimeout(go,200)); a.addEventListener('error',go); setTimeout(go,10000); } else setTimeout(go,3800); });
+  function finish(){ if(over) return; over=true; if(cur) cur.pause(); fade.classList.add('on');
+    setTimeout(()=>{ next(); setTimeout(()=>{ cv.remove(); st.classList.remove('cine'); kzWake(false); $('#kaka').src='art/kaka.webp'; $('#kaka').classList.remove('cheer'); },400); },900); }
+  const ws=G.map(([id,x,flip])=>{ const w=document.createElement('div'); w.className='gw'+(flip?' flip':''); w.style.left='-24%';
+    w.innerHTML=`<img src="art/guest/walk_${id}.webp" alt=""><div class="gb"></div>`; cv.insertBefore(w,cap); return w; });
+  requestAnimationFrame(()=>cv.classList.add('on'));
+  (async()=>{
+    await wait(500); if(over) return; doorbell(); cap.textContent='Dzyń, dzyń!'; cap.classList.add('on'); kzWake(true);
+    await wait(1700); if(over) return; cap.classList.remove('on');
+    for(let i=0;i<G.length;i++){ const [id,x,,hi]=G[i], w=ws[i];
+      const dur=1.4+(x+24)*.012; w.style.transitionDuration=dur+'s'; w.classList.add('walk'); w.style.left=x+'%'; await wait(dur*1000); if(over) return;
+      w.classList.remove('walk'); const b=w.querySelector('.gb'); b.textContent=hi; b.classList.add('on');
+      await speak('hi_'+id); if(over) return; b.classList.remove('on'); }
+    // closing lines: Kaka is thrilled, Kaczor tries to get up (the sofa won't let him)
+    const say2=async(key,txt,pos)=>{ const b=document.createElement('div'); b.className='gb sb'; Object.assign(b.style,pos); b.textContent=txt; cv.insertBefore(b,cap);
+      requestAnimationFrame(()=>b.classList.add('on')); await speak(key); b.classList.remove('on'); setTimeout(()=>b.remove(),400); };
+    const K=$('#kaka'); K.src='art/kaka_cheer.webp'; K.classList.add('cheer');
+    await say2('fin_kaka','Wszyscy są! Barszcz gorący, karp ma imię, a lista… odhaczona. Wesołych Świąt, kochani!',{left:'auto',right:'1%',bottom:'74%',transform:'none'}); if(over) return;
+    await say2('fin_kaczor','No dobra, goście są. Wstaję! …Pomoże mi ktoś? Kanapa mnie nie puszcza.',{left:'53%',bottom:'64%'}); if(over) return;
+    cap.textContent='Wesołych Świąt! ✨'; cap.classList.add('on');
+    await wait(2600); finish(); })();
+}
+let endingStarted=false;
+function ending(){ if(endingStarted) return; endingStarted=true; document.activeElement&&document.activeElement.blur&&document.activeElement.blur(); say(['star','kaczor_star'],()=>arrival(showEnd)); }
+function showEnd(){
+  {
+    $('#end').classList.remove('hidden');
+    const items=['🍪 pierniczki','🎄 choinka','📖 12 potraw','🍽️ stół i goście','💡 lampki','🚂 prezenty','🏰 quiz zdany'];
+    $('#endList').innerHTML=items.map((t,i)=>`<li style="animation-delay:${1.4+i*.18}s">${t}</li>`).join('');
+    $('#endTxt').textContent='Pierwsza gwiazdka zabłysła. Wszystko gotowe: Kaczor nawet nie zasnął przy barszczu (prawie), Mikołaj dowiózł prezenty pod choinkę, Kaczor zdał quiz z Harry’ego Pottera, a nieoczekiwany kochanek Inez zjadł za trzech.';
+  }
+}
+$('#againBtn').onclick=()=>{endingStarted=false;done={};save();render();$('#end').classList.add('hidden');say(['hub']);};
+
+// ---------- title ----------
+const started=Object.keys(done).length>0;
+if(started){ $('#startBtn').textContent='Graj dalej 🎄'; $('#resetBtn').classList.remove('hidden'); const n=TASKS.filter(t=>done[t.id]).length; $('#tProg').textContent=`Gotowe: ${n} z ${TASKS.length} zadań`; $('#tProg').classList.remove('hidden'); }
+$('#resetBtn').onclick=()=>{done={};save();render();go(true)};
+$('#startBtn').onclick=()=>go(!started);
+// full screen + landscape on phones/tablets (best effort; ignored where unsupported)
+function goFull(){ if(!matchMedia('(pointer:coarse)').matches) return; const d=document.documentElement, rq=d.requestFullscreen||d.webkitRequestFullscreen;
+  try{ const p=rq&&rq.call(d,{navigationUI:'hide'}); if(p&&p.then) p.then(()=>screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})).catch(()=>{}); }catch(e){} }
+// preload the art and the first voice lines, then one tap enters (that tap also unlocks the title music)
+// ---------- fireplace: flickering flame tongues (cheap particle loop, paused when hidden) ----------
+(function(){
+  const cv=$('#fireCv'), c=cv.getContext('2d'), W=cv.width=160, H=cv.height=175, BX=70, BY=142;
+  const ps=[]; let last=performance.now();
+  function spawn(){ const s=Math.random(); ps.push({x:BX+(Math.random()-.5)*70*(1-s*.4), y:BY+Math.random()*6, vx:(Math.random()-.5)*10, vy:-(38+Math.random()*55), r:10+Math.random()*12, life:0, max:.7+Math.random()*.7, ph:Math.random()*6}); }
+  function loop(now){ requestAnimationFrame(loop); if(document.hidden||cv.offsetParent===null) { last=now; return; }
+    const dt=Math.min(.05,(now-last)/1000); last=now;
+    for(let i=0;i<3;i++) spawn();
+    c.clearRect(0,0,W,H); c.globalCompositeOperation='lighter';
+    for(let i=ps.length-1;i>=0;i--){ const p=ps[i]; p.life+=dt; if(p.life>p.max){ ps.splice(i,1); continue; }
+      const t=p.life/p.max; p.x+=(p.vx+Math.sin(now/180+p.ph)*14)*dt; p.x+=(BX-p.x)*dt*1.2; p.y+=p.vy*dt;
+      const r=p.r*(1-t*.75), a=(t<.15?t/.15:1-t)*.55;
+      const g=c.createRadialGradient(p.x,p.y,0,p.x,p.y,r);
+      g.addColorStop(0,`rgba(255,${235-t*120|0},${150-t*140|0},${a})`); g.addColorStop(.5,`rgba(255,${150-t*90|0},20,${a*.55})`); g.addColorStop(1,'rgba(200,40,0,0)');
+      c.fillStyle=g; c.beginPath(); c.ellipse(p.x,p.y,r*.7,r,0,0,Math.PI*2); c.fill(); }
+    c.globalCompositeOperation='source-over'; }
+  requestAnimationFrame(loop);
+})();
+// tree lights: one twinkle per traced bulb, each with its own rhythm
+(function(){ const P=[[75.6, 74.7], [39.6, 32.5], [51.6, 47.5], [82.5, 74.9], [79.7, 55.5], [18.1, 76.5], [12.5, 71.4], [37.5, 55.4], [84.9, 71.6], [63.7, 38.4], [46.7, 36.3], [45.1, 50.3], [56.9, 39.4], [71.1, 61.4], [34.8, 49.3], [42.5, 58.2], [28.4, 74.4], [78.8, 57.6], [47.4, 64.0], [57.6, 76.4], [43.4, 79.2], [48.4, 38.4], [76.2, 59.0], [55.1, 24.7], [53.9, 61.0], [51.5, 77.3], [23.1, 55.6], [33.6, 58.7], [67.1, 62.1], [39.8, 64.1], [66.4, 75.0], [60.1, 25.0], [63.3, 58.8], [57.6, 46.0], [48.6, 60.9], [35.3, 75.8], [16.0, 73.8], [38.8, 61.6], [56.6, 59.0], [50.0, 24.5], [53.4, 38.2], [30.3, 59.8], [61.7, 63.2], [61.6, 73.5], [67.0, 36.0], [48.8, 18.4], [51.5, 17.4], [52.4, 29.0], [27.2, 35.8], [76.9, 67.2], [65.0, 80.2], [15.7, 63.0], [78.8, 39.5], [46.4, 59.6], [48.9, 56.0], [87.3, 62.4], [25.1, 80.8], [73.6, 76.0], [57.5, 32.5], [53.4, 53.5], [75.6, 56.6], [48.7, 30.3], [34.9, 67.1], [37.6, 77.2], [44.5, 20.9], [54.4, 27.4], [70.8, 65.5], [24.2, 76.5], [42.2, 63.1]], box=$('#treeTw');
+  P.forEach(([x,y],i)=>{ const e=document.createElement('i'); e.style.left=x+'%'; e.style.top=y+'%';
+    if(i%3===0) e.className='w'; e.style.animationDuration=(1.6+Math.random()*2.4).toFixed(2)+'s'; e.style.animationDelay=(-Math.random()*4).toFixed(2)+'s'; box.append(e); }); })();
+(function preload(){
+  const imgs=['room','title','stocking','loco_top','wagon_top','kaka','kaka_face','kaczor_face','kaka_cheer','kaka_worry','kaka_face_worry','kaczor','kaczor_sleep','mikolaj','bowl','mik_body','mik_head','mik_collar','guest/walk_jugo','guest/walk_gayzilla','guest/walk_inez','guest/walk_kochanek','tree_bare','tree_deco','table_empty','table_set','lights','presents','gift','cookies_on_sideboard','wigilia'].map(n=>'art/'+n+'.webp');
+  const auds=['audio/music.mp3','audio/intro.mp3','audio/kaczor_intro.mp3','audio/hub.mp3'];
+  let ok=0; const total=imgs.length+auds.length;
+  const tick=()=>{ ok++; const pct=Math.round(ok/total*100); $('#gFill').style.width=pct+'%'; $('#gTxt').textContent=`Wczytywanie… ${pct}%`; if(ok===total) ready(); };
+  imgs.forEach(src=>{ const i=new Image(); i.onload=i.onerror=tick; i.src=src; });
+  auds.forEach(src=>{ fetch(src).then(r=>r.blob()).then(tick,tick); });
+  setTimeout(()=>{ if(ok<total) ready(); },15000);
+  let isReady=false; function ready(){ if(isReady) return; isReady=true; $('#gTxt').textContent='Gotowe!'; $('#gBtn').classList.remove('hidden'); $('#gBtn').focus(); }
+})();
+$('#gBtn').onclick=()=>{ $('#gate').classList.add('hidden'); startMusic(); };
+// falling snow (window and title screen); skipped for reduced-motion users
+function snowfall(cv,count,size){ const c=cv.getContext('2d'); let W=0,H=0,flakes=[];
+  function fit(){ const r=cv.getBoundingClientRect(), d=Math.min(2,devicePixelRatio||1); W=Math.max(1,r.width*d); H=Math.max(1,r.height*d); cv.width=W; cv.height=H;
+    flakes=Array.from({length:count},()=>({x:Math.random()*W,y:Math.random()*H,r:(.6+Math.random()*1.6)*size*d,v:(.25+Math.random()*.6)*size*d,ph:Math.random()*6.28})); }
+  fit(); addEventListener('resize',fit);
+  let last=performance.now();
+  (function tick(now){ const dt=Math.min(.05,(now-last)/1000)*60; last=now;
+    if(!document.hidden && cv.offsetParent!==null){ const r=cv.getBoundingClientRect(), d=Math.min(2,devicePixelRatio||1); if(Math.abs(r.width*d-W)>2||Math.abs(r.height*d-H)>2) fit(); c.clearRect(0,0,W,H); c.fillStyle='rgba(255,255,255,.9)';
+      for(const f of flakes){ f.y+=f.v*dt; f.ph+=.02*dt; f.x+=Math.sin(f.ph)*.35*size*dt; if(f.y>H+5){f.y=-5;f.x=Math.random()*W;}
+        c.globalAlpha=.55+.45*(f.r/(2.2*size)); c.beginPath(); c.arc(f.x,f.y,f.r,0,6.283); c.fill(); }
+      c.globalAlpha=1; }
+    requestAnimationFrame(tick); })(last);
+}
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches){ snowfall($('#snowWin'),55,1); snowfall($('#snowTitle'),140,1.6); snowfall($('#snowEnd'),120,1.5); }
+function go(fresh){ $('#title').classList.add('hidden'); startMusic(); goFull(); render(); say(fresh?['intro','kaczor_intro','hub']:['hub']); }
+render();
+})();
+</script>
+</body>
+</html>

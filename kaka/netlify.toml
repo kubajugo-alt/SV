@@ -1,0 +1,11 @@
+# Static game, no build step.
+[build]
+  publish = "."
+  command = ""
+
+# the platformer moved to its own Netlify project
+[[redirects]]
+  from = "/kaczor/*"
+  to = "https://kaczor-do-sauny.netlify.app/:splat"
+  status = 301
+  force = true
