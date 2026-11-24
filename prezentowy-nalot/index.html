@@ -495,6 +495,9 @@ function resumeGame(){ if(state!=='pause') return; state='play'; $('pause').clas
 function toMenu(){ document.body.classList.remove('playing'); $('bSkip').style.display='none'; ['pause','over','win','intro'].forEach(id=>$(id).classList.add('hidden')); state='title'; if(voice){ voice.onended=null; voice.pause(); voice=null; } sub=null; setMusic('music_title.mp3'); bgm.volume=bgmVol; $('title').classList.remove('hidden'); }
 function setMute(m){ muted=m; try{ localStorage.setItem('pn-mute',m?'1':'0'); }catch(e){} $('bMute').textContent=m?'🔇':'🔊'; if(m){ bgm.pause(); if(voice) voice.pause(); } else if(state!=='pause') bgm.play().catch(()=>{}); }
 $('bPlay').onclick=()=>{ ac(); setMusic('music_title.mp3'); showIntro(0); };
+// test links: ?tent opens Maryańska's tent, ?cut the landing cutscene (the button gives the browser the click it needs for sound)
+const QS=new URLSearchParams(location.search); const QTENT=QS.has('tent'), QCUT=QS.has('cut');
+if(QTENT||QCUT){ const go=$('bPlay').onclick; $('bPlay').onclick=()=>{ ac(); QTENT?startTent():startCut(); }; }
 $('bLvl2').onclick=()=>{ ac(); showIntro(1); };
 $('bNext').onclick=()=>{ ac(); startCut(); }; showLvlBtn();
 $('bGo').onclick=startLevel; $('bRetry').onclick=startLevel; $('bAgain').onclick=startLevel; $('bRestart').onclick=startLevel;
@@ -509,7 +512,7 @@ function loop(now){ let dt=Math.min(.05,(now-last)/1000); last=now; if(state==='
   else if(state==='tent') updateTent(dt);
   else if(state==='win'||state==='over'){ t0+=dt; parts.forEach(p=>{ p.t-=dt; }); }
   if(state==='cut') drawCut(); else if(state==='tent') drawTent(); else if(P) draw(); requestAnimationFrame(loop); }
-ready.then(()=>Promise.all(['bg_night','sleigh','house1','plane_inez'].map(n=>IMG[n].decode?IMG[n].decode().catch(()=>{}):0))).then(()=>{ reset(); $('bPlay').disabled=false; $('bPlay').textContent='Graj ▶'; requestAnimationFrame(loop); });
+ready.then(()=>Promise.all(['bg_night','sleigh','house1','plane_inez'].map(n=>IMG[n].decode?IMG[n].decode().catch(()=>{}):0))).then(()=>{ reset(); $('bPlay').disabled=false; $('bPlay').textContent=QTENT?'Do namiotu Maryańskiej ▶':QCUT?'Lądowanie u Maryańskiej ▶':'Graj ▶'; requestAnimationFrame(loop); });
 </script>
 </body>
 </html>

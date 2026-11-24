@@ -24,7 +24,7 @@ After the landing Maryańska invites the family into her tent (a hub like the li
 "Pomiń minigry" goes straight to level 2; when all three are done Maryańska sends the family off.
 
 ## Level 2: Leśne gobliny
-A night forest. Presents go to beaver lodges (stick chimney) and badger setts (stone chimney pipe); a delivered home's animal pops out hugging its present and thanks the family. Tall snowy trees stand between the homes: their crowns hurt the sleigh (crown shapes in `art/trees.json`), so the sleigh flies high and dives between trees to drop presents. Green goblins in rusty planes throw lumps of coal, some of them in arcs; the boss is the Grinch in his patched plane, throwing coal. Level 2 can also be picked on the title screen once unlocked (or with `?level=2`).
+A night forest. Presents go to beaver lodges (stick chimney) and badger setts (stone chimney pipe); a delivered home's animal pops out hugging its present and thanks the family. Tall snowy trees stand between the homes: their crowns hurt the sleigh (crown shapes in `art/trees.json`), so the sleigh flies high and dives between trees to drop presents. Green goblins in rusty planes throw lumps of coal, some of them in arcs; the boss is the Grinch in his patched plane, throwing coal. Level 2 can also be picked on the title screen once unlocked (or with `?level=2`). Test links: `?tent` opens Maryańska's tent, `?cut` plays the landing cutscene.
 
 ## Assets
 - Art by Gemini (`art/`): sleigh with the family and Rudolf in strict side view (Kaczor flies bare-headed), the three pilots on parachutes, three enemy planes, four houses with chimney positions in `houses.json`, a seamless night panorama, presents, power-ups and title art. The Grinch is an original grumpy green goblin design.
