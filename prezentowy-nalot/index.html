@@ -419,9 +419,8 @@ function draw(){
   // happy beavers and badgers pop up with their present
   pops.forEach(q=>{ const up=Math.min(1,q.t*3), a=q.t>1.7?Math.max(0,1-(q.t-1.7)*2):1; drawImg(q.img,q.x,q.y-30-up*55,86,Math.sin(q.t*6)*.06,a); });
   // items
-  items.forEach(it=>{ c.globalAlpha=it.t>12?(Math.floor(it.t*8)%2?.3:1):1; if(it.balloon){ // painted gift balloon: balloon and basket behind, the booster inside, then the basket's front wall over the booster's lower half
-      const im=IMG.gift_balloon; if(ok(im)){ const h=150, w=h*im.naturalWidth/im.naturalHeight, k=h/im.naturalHeight, rim=203; /* the basket's front wall starts here in gift_balloon.webp; the opening is between y≈188 and 203 */ c.save(); c.translate(it.x,it.y+35); c.rotate(Math.sin(it.t*2.2)*.06);
-        c.drawImage(im,-w/2,-h,w,h); drawImg(it.kind,0,-h+rim*k-(it.kind==='candy'?4:2),it.kind==='candy'?30:38); c.drawImage(im,0,rim,im.naturalWidth,im.naturalHeight-rim,-w/2,-h+rim*k,w,(im.naturalHeight-rim)*k); c.restore(); } }
+  items.forEach(it=>{ c.globalAlpha=it.t>12?(Math.floor(it.t*8)%2?.3:1):1; if(it.balloon){ // painted gift balloon: the booster hangs on the end of its ribbon and the whole thing sways
+      const im=IMG.gift_balloon; c.save(); c.translate(it.x,it.y); c.rotate(Math.sin(it.t*2.2)*.07); if(ok(im)){ const h=112, w=h*im.naturalWidth/im.naturalHeight; c.drawImage(im,-w/2-1,-h-14,w,h); } drawImg(it.kind,0,0,it.kind==='candy'?30:42); c.restore(); }
     else { const gl=c.createRadialGradient(it.x,it.y,4,it.x,it.y,30); gl.addColorStop(0,'rgba(255,200,80,.35)'); gl.addColorStop(1,'rgba(255,200,80,0)'); c.fillStyle=gl; c.fillRect(it.x-30,it.y-30,60,60); drawImg(it.kind,it.x,it.y,it.kind==='candy'?26:44); }
     c.globalAlpha=1; });
   // planes falling
