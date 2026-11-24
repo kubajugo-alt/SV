@@ -1029,11 +1029,12 @@ function start(i){ $('#title').classList.add('hidden'); if(!muted) bgm.play().ca
   if(matchMedia('(pointer:coarse)').matches){ const d=document.documentElement,rq=d.requestFullscreen||d.webkitRequestFullscreen; try{ const p=rq&&rq.call(d); p&&p.then&&p.then(()=>screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})).catch(()=>{}); }catch(e){} } }
 const qs=new URLSearchParams(location.search), qlv=+qs.get('level');
 const SAVE=loadSave(); let resume=null;
-if(SAVE&&SAVE.cp&&!qlv&&!qs.has('boss')&&!qs.has('ending')){ $('#play').textContent=`Graj dalej — poziom ${SAVE.lvl+1}, punkt kontrolny ▶`; $('#fresh').classList.remove('hidden'); }
+const QLV0=qlv?Math.min(qlv,LEVELS.length)-1:0, RESUME_OK=SAVE&&SAVE.cp&&SAVE.lvl===QLV0&&!qs.has('boss')&&!qs.has('ending'); // a checkpoint is offered only for the level this link opens
+if(RESUME_OK){ $('#play').textContent=`Graj dalej — poziom ${SAVE.lvl+1}, punkt kontrolny ▶`; $('#fresh').classList.remove('hidden'); }
 else if(false){ $('#play').textContent=`Graj dalej — poziom ${best+1} ▶`; $('#fresh').classList.remove('hidden'); }
 const QBOSS=qs.has('boss')||qs.has('ending'), QEND=qs.has('ending'), QBL=qlv?Math.min(qlv,LEVELS.length)-1:0; // ?level=N&boss: straight to that level's boss // ?ending: Kaka already beaten, straight to the finale // ?boss: jump straight to the final duel with Kaka
-$('#play').onclick=()=>{ if(SAVE&&SAVE.cp&&!qlv&&!QBOSS){ resume=SAVE; start(SAVE.lvl); vihta=SAVE.vihta||0; return; } start(QBOSS?(QEND?LEVELS.length-1:QBL):qlv?Math.min(qlv,LEVELS.length)-1:(0)); };
-$('#fresh').onclick=()=>{ try{ localStorage.removeItem('kz-save'); }catch(e){} resume=null; start(0); };
+$('#play').onclick=()=>{ if(RESUME_OK){ resume=SAVE; start(SAVE.lvl); vihta=SAVE.vihta||0; return; } start(QBOSS?(QEND?LEVELS.length-1:QBL):qlv?Math.min(qlv,LEVELS.length)-1:(0)); };
+$('#fresh').onclick=()=>{ try{ localStorage.removeItem('kz-save'); }catch(e){} resume=null; start(QLV0); };
 function renderLevels(){ $('#lvls').innerHTML=''; LEVELS.forEach((D,i)=>{ const bt=document.createElement('button'); const st=STARS[i]||0; bt.textContent=`${i+1}. ${D.name}${st?' '+'★'.repeat(st):''}`; bt.disabled=i>Math.min(best,LEVELS.length-1); bt.onclick=()=>start(i); $('#lvls').append(bt); }); }
 renderLevels(); renderDiff('tDiff'); renderDiff('pDiff');
 // ---------- pause menu: Esc / P, the ⏸ button, or the tab losing focus ----------
