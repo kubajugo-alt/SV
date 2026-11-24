@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Magazyn zabawek — Prezentowy nalot</title>
+<meta name="description" content="Prezentowy nalot: Kaczor skrada się przez magazyn zabawek Inez, omija różowe kamery i elfy-strażników i szuka klucza do bramy z bobslejem.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Lobster&subset=latin-ext&display=swap" rel="stylesheet">
+<style>
+:root{--red:#c0392b;--green:#2f6b45;--ink:#2b1d14}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#1a120c;overflow:hidden;font-family:'Baloo 2',system-ui,sans-serif;color:var(--ink);user-select:none;-webkit-tap-highlight-color:transparent}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:50% 50%;overflow:hidden;background:#000}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+.hidden{display:none!important}
+.ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;z-index:5;background:rgba(15,8,4,.55)}
+.card{background:rgba(255,248,234,.96);border-radius:22px;padding:22px 34px;max-width:780px;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+.card h2{font-family:Lobster,cursive;font-weight:400;color:var(--red);font-size:46px;margin:0 0 6px}
+.card p{font-size:19px;line-height:1.35;margin:6px 0 12px}
+.face{width:84px;height:84px;border-radius:50%;margin:0 auto 4px;background:#f1dfc0 center/cover;border:4px solid var(--red)}
+.btn{background:var(--red);color:#fff;border:0;border-radius:999px;padding:.45em 1.4em;font:700 21px 'Baloo 2';box-shadow:0 4px 0 #8e211b;cursor:pointer}
+.btn.alt{background:var(--green);box-shadow:0 4px 0 #1d4a2e}
+.row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.help{font-size:15px!important;color:#5a4a3a}
+#back{position:absolute;left:12px;top:10px;z-index:6;color:#fff;font-size:15px;text-decoration:none;background:rgba(10,6,4,.55);padding:.2em .8em;border-radius:99px}
+#mute{position:absolute;right:12px;top:10px;z-index:6;border:0;background:rgba(255,250,240,.85);border-radius:50%;width:44px;height:44px;font-size:20px;cursor:pointer}
+#pad{position:absolute;left:24px;bottom:24px;width:210px;height:210px;z-index:4}
+#pad button{position:absolute;width:70px;height:70px;border-radius:18px;border:3px solid rgba(255,255,255,.7);background:rgba(20,10,6,.4);color:#fff;font-size:30px;touch-action:none}
+#pU{left:70px;top:0}#pD{left:70px;top:140px}#pL{left:0;top:70px}#pR{left:140px;top:70px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="cv" width="1280" height="720"></canvas>
+  <div id="pad" class="hidden"><button id="pU">▲</button><button id="pL">◀</button><button id="pR">▶</button><button id="pD">▼</button></div>
+  <a id="back" href="../index.html">← Prezentowy nalot</a><button id="mute" title="Dźwięk (M)">🔊</button>
+  <div id="intro" class="ov"><div class="card"><div class="face" style="background-image:url(art/face_kaczor.webp)"></div><h2>Magazyn zabawek</h2>
+    <p>Za halą produkcyjną jest magazyn Inez — a za nim brama, za którą czeka bobslej z armatką śnieżną. Bramę zamyka <b>złoty klucz</b>, ukryty gdzieś między regałami.</p>
+    <p>Pilnują go <b>różowe kamery</b> i <b>elfy-strażnicy</b> z latarkami. Nie wchodź w ich światło! Chowaj się za regałami albo w <b>kartonach</b> — stój w kartonie bez ruchu, a nikt cię nie zauważy. Jeśli ktoś cię dostrzeże, wyje syrena i nadlatują zabawkowe samoloty.</p>
+    <p class="help">Strzałki / WASD — skradanie · Shift — szybszy krok (ale głośniej) · M — dźwięk</p>
+    <button class="btn" id="bGo">Na palcach… 🤫</button></div></div>
+  <div id="end" class="ov hidden"><div class="card"><h2 id="eH"></h2><p id="eTxt"></p><div class="row" id="eRow"></div></div></div>
+</div>
+<script>
+// =====================================================================================
+//  Magazyn zabawek — a top-down stealth maze: vision cones cast against the shelves,
+//  hiding in cardboard boxes, an alarm that sends guards and toy planes after you.
+// =====================================================================================
+const stage=document.getElementById('stage'), cv=document.getElementById('cv'), c=cv.getContext('2d'), VW=1280, VH=720, $=id=>document.getElementById(id);
+function fit(){ const s=Math.min(innerWidth/VW,innerHeight/VH); stage.style.transform=`translate(-50%,-50%) scale(${s})`; }
+addEventListener('resize',fit); fit();
+const TOUCH=matchMedia('(pointer:coarse)').matches;
+const IMG={}; ['kaczor','elf','cam','plane','box','key','gate','shelf'].forEach(n=>{ const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; });
+const ok=i=>i&&i.complete&&i.naturalWidth;
+
+// ---------- audio ----------
+let muted=false; try{ muted=localStorage.getItem('pn-mute')==='1'; }catch(e){}
+const bgm=new Audio('audio/music.mp3'); bgm.loop=true; bgm.volume=.25; let AC=null;
+function sfx(n,v=.5){ if(muted) return; const a=new Audio('audio/'+n+'.mp3'); a.volume=v; a.play().catch(()=>{}); }
+function beep(f,d=.15,v=.08,type='square'){ if(muted||!AC) return; const o=AC.createOscillator(), g=AC.createGain(); o.type=type; o.frequency.value=f; g.gain.setValueAtTime(v,AC.currentTime); g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime+d); }
+function setMute(m){ muted=m; try{ localStorage.setItem('pn-mute',m?'1':'0'); }catch(e){} $('mute').textContent=m?'🔇':'🔊'; if(m) bgm.pause(); else if(state==='play') bgm.play().catch(()=>{}); }
+$('mute').onclick=()=>setMute(!muted);
+
+// ---------- the map: # shelves, B cardboard box (hide), S start, K key, E exit gate ----------
+const MAP=[
+'##############################',
+'#S....#.........#......B.....#',
+'#.....#..B......#............#',
+'#..####.....#####..####..###.#',
+'#.....#.....#.......#......#.#',
+'#.B...#.....#...B...#..K...#.#',
+'#.....###.###.......#......#.#',
+'#...........#####.###.######.#',
+'###.###.........#............#',
+'#.....#..####...#..######..###',
+'#..B..#..#..#...#..#....#....#',
+'#.....#..#..#.......#.B..#...#',
+'#.###.#..#..####....#....###.#',
+'#.#.......#.....#...#........#',
+'#.#..B....#.....#...######...#',
+'#.#####...#..B..#.......#....#',
+'#.........#.....######..#..B.#',
+'#..####...#.............#....#',
+'#.........#....B........#...E#',
+'##############################'];
+const T=64, MW=MAP[0].length, MH=MAP.length, WW=MW*T, WH=MH*T;
+const at=(tx,ty)=>(tx<0||ty<0||tx>=MW||ty>=MH)?'#':MAP[ty][tx];
+const wall=(tx,ty)=>at(tx,ty)==='#';
+const solidAt=(x,y)=>wall(Math.floor(x/T),Math.floor(y/T));
+let START={x:0,y:0}, KEYP=null, EXIT=null; const BOXES=[];
+MAP.forEach((row,ty)=>[...row].forEach((ch,tx)=>{ const p={x:tx*T+T/2,y:ty*T+T/2}; if(ch==='S') START=p; if(ch==='K') KEYP=p; if(ch==='E') EXIT=p; if(ch==='B') BOXES.push(p); }));
+// grid path (BFS) used by the guards
+function path(ax,ay,bx,by){ const s=[Math.floor(ax/T),Math.floor(ay/T)], g=[Math.floor(bx/T),Math.floor(by/T)], prev=new Map(), k=(x,y)=>y*MW+x, q=[s]; prev.set(k(...s),null);
+  while(q.length){ const [x,y]=q.shift(); if(x===g[0]&&y===g[1]) break; for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const nx=x+dx, ny=y+dy; if(wall(nx,ny)||prev.has(k(nx,ny))) continue; prev.set(k(nx,ny),[x,y]); q.push([nx,ny]); } }
+  const out=[]; let cur=g; if(!prev.has(k(...g))) return out; while(cur){ out.unshift({x:cur[0]*T+T/2,y:cur[1]*T+T/2}); cur=prev.get(k(...cur)); } return out; }
+// line of sight through the grid
+function los(ax,ay,bx,by){ const d=Math.hypot(bx-ax,by-ay), n=Math.ceil(d/16); for(let i=1;i<n;i++){ const x=ax+(bx-ax)*i/n, y=ay+(by-ay)*i/n; if(solidAt(x,y)) return false; } return true; }
+function rayLen(x,y,a,max){ for(let d=8;d<max;d+=8){ if(solidAt(x+Math.cos(a)*d,y+Math.sin(a)*d)) return d; } return max; }
+
+// ---------- watchers: pink cameras on the shelves and patrolling elves ----------
+const tc=(tx,ty)=>({x:tx*T+T/2,y:ty*T+T/2});
+const CAMS=[[6,4,0,.9],[12,4,Math.PI,.8],[20,9,Math.PI/2,.9],[16,13,Math.PI,.9],[25,12,Math.PI/2,.8],[3,12,0,.7],[22,3,Math.PI/2,.7]].map(([tx,ty,a,sw])=>({...tc(tx,ty),a0:a,sw,a,len:300,half:.42,sus:0,ph:Math.random()*6,cam:true}));
+const GUARDS=[[[2,4],[10,4],[10,1],[2,1]],[[13,8],[13,11],[18,11],[18,8]],[[21,1],[28,1],[28,7],[21,7]],[[1,13],[1,18],[9,18],[9,13]],[[17,17],[23,17],[23,15],[17,15]],[[26,10],[28,10],[28,18],[26,15]]].map(wp=>{ const pts=wp.map(([x,y])=>tc(x,y)); return {x:pts[0].x,y:pts[0].y,wp:pts,wi:1,route:[],a:0,len:250,half:.55,sus:0,t:0,look:0}; });
+
+// ---------- state ----------
+let state='intro', P, hearts, hasKey, alarm, planes, toasts, sh, t0=0, cp, msgSeen={}, last=performance.now();
+const K={};
+function resetRun(){ hearts=3; hasKey=false; cp={...START}; respawn(); }
+function respawn(){ P={x:cp.x,y:cp.y,vx:0,vy:0,face:1,still:0,hidden:false,inv:1.5,step:0}; alarm=0; planes=[]; toasts=toasts||[]; GUARDS.forEach(g=>{ g.x=g.wp[0].x; g.y=g.wp[0].y; g.wi=1; g.route=[]; g.sus=0; g.chase=false; }); CAMS.forEach(k=>k.sus=0); }
+toasts=[]; resetRun();
+const toast=(t,col='#fff')=>toasts.push({t,col,ttl:2.6});
+
+// ---------- input ----------
+const MAPK={ArrowLeft:'L',KeyA:'L',ArrowRight:'R',KeyD:'R',ArrowUp:'U',KeyW:'U',ArrowDown:'D',KeyS:'D',ShiftLeft:'F',ShiftRight:'F'};
+addEventListener('keydown',e=>{ const k=MAPK[e.code]; if(k){ e.preventDefault(); K[k]=true; } if(e.code==='KeyM') setMute(!muted); if((e.code==='Enter'||e.code==='Space')&&state!=='play'){ const b=[...document.querySelectorAll('.ov:not(.hidden) .btn')][0]; if(b&&!e.repeat){ e.preventDefault(); b.click(); } } });
+addEventListener('keyup',e=>{ const k=MAPK[e.code]; if(k) K[k]=false; });
+if(TOUCH) $('pad').classList.remove('hidden');
+[['pU','U'],['pD','D'],['pL','L'],['pR','R']].forEach(([id,k])=>{ const b=$(id); b.addEventListener('pointerdown',e=>{ e.preventDefault(); K[k]=true; }); ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>K[k]=false)); });
+
+function start(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); }catch(e){} $('intro').classList.add('hidden'); $('end').classList.add('hidden'); resetRun(); state='play'; if(!muted){ bgm.currentTime=0; bgm.play().catch(()=>{}); } toast('Znajdź złoty klucz 🔑 i dojdź do bramy','#ffe27a'); }
+$('bGo').onclick=start;
+function finish(win){ state='end'; for(const k in K) K[k]=false; const row=$('eRow'); row.innerHTML=''; bgm.volume=.12;
+  if(win){ $('eH').textContent='Magazyn przejęty! 🔑'; $('eTxt').innerHTML='Brama otwarta — a za nią czeka bobslej z armatką śnieżną. Inez właśnie odpycha się kijkami po lodowym torze!'; sfx('win',.6);
+    const b=document.createElement('button'); b.className='btn'; b.textContent='Do pościgu ➜'; b.onclick=()=>{ location.href='../bobslej/'; }; row.append(b); }
+  else { $('eH').textContent='Złapany!'; $('eTxt').innerHTML='Elfy Inez wyprowadziły Kaczora z magazynu. Skradaj się wolniej, chowaj się w kartonach i patrz, dokąd świecą latarki.'; }
+  const b2=document.createElement('button'); b2.className='btn'+(win?' alt':''); b2.textContent='Jeszcze raz'; b2.onclick=start; row.append(b2); $('end').classList.remove('hidden'); }
+
+// ---------- simulation ----------
+function moveWithWalls(o,dx,dy,r){ o.x+=dx; if(solidAt(o.x+r*Math.sign(dx||1),o.y-r*.6)||solidAt(o.x+r*Math.sign(dx||1),o.y+r*.6)) o.x-=dx; o.y+=dy; if(solidAt(o.x-r*.6,o.y+r*Math.sign(dy||1))||solidAt(o.x+r*.6,o.y+r*Math.sign(dy||1))) o.y-=dy; }
+function inBox(x,y){ return BOXES.find(b=>Math.abs(b.x-x)<26&&Math.abs(b.y-y)<26); }
+function hurt(why){ if(P.inv>0) return; hearts--; sfx('kz_hurt1',.6); sh=.4; toast(why,'#ffb0b0'); if(hearts<=0){ finish(false); return; } respawn(); }
+function sees(w){ if(P.hidden) return 0; const dx=P.x-w.x, dy=P.y-w.y, d=Math.hypot(dx,dy); if(d>w.len) return 0; let da=Math.atan2(dy,dx)-w.a; da=Math.atan2(Math.sin(da),Math.cos(da)); if(Math.abs(da)>w.half) return 0; if(!los(w.x,w.y,P.x,P.y)) return 0; return 1-d/w.len*.6; }
+function raiseAlarm(){ if(alarm<=0){ toast('ALARM! Zabawkowe samoloty! ✈','#ff8a8a'); for(let k=0;k<3;k++){ const a=Math.random()*6.28; planes.push({x:P.x+Math.cos(a)*700,y:P.y+Math.sin(a)*500,a:a+Math.PI,t:0}); } } alarm=9; }
+function update(dt){ t0+=dt; sh=Math.max(0,(sh||0)-dt); P.inv=Math.max(0,P.inv-dt); toasts.forEach(t=>t.ttl-=dt); toasts=toasts.filter(t=>t.ttl>0);
+  // Kaczor sneaks; Shift is faster but makes noise that guards nearby hear
+  const ix=(K.R?1:0)-(K.L?1:0), iy=(K.D?1:0)-(K.U?1:0), n=Math.hypot(ix,iy)||1, sp=K.F?300:190; const mv=ix||iy;
+  P.vx+=(ix/n*sp-P.vx)*Math.min(1,dt*12); P.vy+=(iy/n*sp-P.vy)*Math.min(1,dt*12); moveWithWalls(P,P.vx*dt,P.vy*dt,20); if(ix) P.face=ix;
+  P.still=mv?0:P.still+dt; const bx=inBox(P.x,P.y); P.hidden=!!bx&&P.still>.25&&alarm<=0; if(bx&&!msgSeen.box){ msgSeen.box=1; toast('Karton! Stój bez ruchu, a nikt cię nie zobaczy 📦','#ffe27a'); }
+  if(mv){ P.step+=dt*(K.F?9:6); if(Math.floor(P.step)!==Math.floor(P.step-dt*(K.F?9:6))&&K.F) sfx('step_wood',.15); }
+  if(KEYP&&!hasKey&&Math.hypot(P.x-KEYP.x,P.y-KEYP.y)<40){ hasKey=true; cp={x:KEYP.x,y:KEYP.y}; sfx('pick',.6); toast('Złoty klucz! Teraz do bramy 🔑','#ffe27a'); }
+  if(Math.hypot(P.x-EXIT.x,P.y-EXIT.y)<56){ if(hasKey){ finish(true); return; } else if(!msgSeen.lock){ msgSeen.lock=1; toast('Zamknięte na kłódkę — potrzebny złoty klucz 🔒','#ffe27a'); } } else msgSeen.lock=0;
+  // cameras sweep
+  CAMS.forEach(k=>{ k.a=k.a0+Math.sin(t0*.7+k.ph)*k.sw; const s=sees(k); k.sus=s?Math.min(1.2,k.sus+dt*(1.1+s)):Math.max(0,k.sus-dt*.6); if(k.sus>=1) raiseAlarm(); });
+  // guards patrol along their waypoints; during an alarm they run to Kaczor; running nearby is heard
+  GUARDS.forEach(g=>{ g.t+=dt; const s=sees(g), heard=K.F&&mv&&Math.hypot(P.x-g.x,P.y-g.y)<220; g.sus=s?Math.min(1.2,g.sus+dt*(1.4+s)):heard?Math.min(1.2,g.sus+dt*.9):Math.max(0,g.sus-dt*.5); if(g.sus>=1) raiseAlarm();
+    let tx,ty,spd=95; if(alarm>0){ spd=170; if(!g.route.length||g.t%1<dt) g.route=path(g.x,g.y,P.x,P.y).slice(1); }
+    else if(!g.route.length){ g.route=path(g.x,g.y,g.wp[g.wi].x,g.wp[g.wi].y).slice(1); if(!g.route.length){ g.wi=(g.wi+1)%g.wp.length; g.look=1; } }
+    if(g.look>0){ g.look-=dt; g.a+=dt*2.2; return; }
+    const nx=g.route[0]; if(nx){ const dx=nx.x-g.x, dy=nx.y-g.y, d=Math.hypot(dx,dy); if(d<6) g.route.shift(); else { g.x+=dx/d*spd*dt; g.y+=dy/d*spd*dt; const ta=Math.atan2(dy,dx); let da=Math.atan2(Math.sin(ta-g.a),Math.cos(ta-g.a)); g.a+=da*Math.min(1,dt*6); } }
+    if(Math.hypot(P.x-g.x,P.y-g.y)<38) hurt('Elf-strażnik cię złapał! 🧝'); });
+  // alarm: siren, toy planes homing in
+  if(alarm>0){ alarm-=dt; if(Math.floor(alarm*2)!==Math.floor((alarm+dt)*2)) beep(alarm*2%2<1?880:660,.4,.05,'sawtooth'); if(alarm<=0){ planes=[]; GUARDS.forEach(g=>{ g.route=[]; g.sus=0; }); CAMS.forEach(k=>k.sus=0); toast('Cisza… alarm ucichł','#cfe6ff'); } }
+  planes.forEach(p=>{ p.t+=dt; const ta=Math.atan2(P.y-p.y,P.x-p.x); let da=Math.atan2(Math.sin(ta-p.a),Math.cos(ta-p.a)); p.a+=Math.max(-2.2*dt,Math.min(2.2*dt,da)); p.x+=Math.cos(p.a)*260*dt; p.y+=Math.sin(p.a)*260*dt; if(Math.hypot(P.x-p.x,P.y-p.y)<34){ p.hit=1; hurt('Trafił cię zabawkowy samolot! ✈'); } });
+  planes=planes.filter(p=>!p.hit); }
+
+// ---------- drawing ----------
+let FLOOR=null;
+function floorPat(){ if(FLOOR) return FLOOR; const o=document.createElement('canvas'); o.width=o.height=128; const g=o.getContext('2d'); g.fillStyle='#b98a5a'; g.fillRect(0,0,128,128);
+  for(let y=0;y<128;y+=32){ g.fillStyle=['#c29364','#b2834f','#c99d6d','#ad7f4d'][y/32]; g.fillRect(0,y+1,128,30); g.fillStyle='rgba(60,30,10,.35)'; g.fillRect(0,y,128,2); g.fillRect((y*37)%128,y,2,32); for(let k=0;k<6;k++){ g.fillStyle='rgba(90,50,20,.12)'; g.fillRect(Math.random()*128,y+4+Math.random()*24,20+Math.random()*30,2); } }
+  return FLOOR=c.createPattern(o,'repeat'); }
+function drawImg(im,x,y,h,flip,rot){ if(!ok(im)) return; const w=h*im.naturalWidth/im.naturalHeight; c.save(); c.translate(x,y); if(rot) c.rotate(rot); if(flip) c.scale(-1,1); c.drawImage(im,-w/2,-h,w,h); c.restore(); }
+function cone(w,col){ const n=22, pts=[]; for(let i=0;i<=n;i++){ const a=w.a-w.half+2*w.half*i/n, d=rayLen(w.x,w.y,a,w.len); pts.push([w.x+Math.cos(a)*d,w.y+Math.sin(a)*d]); }
+  const g=c.createRadialGradient(w.x,w.y,10,w.x,w.y,w.len); g.addColorStop(0,col.replace('A','.42')); g.addColorStop(1,col.replace('A','.06')); c.fillStyle=g; c.beginPath(); c.moveTo(w.x,w.y); pts.forEach(p=>c.lineTo(p[0],p[1])); c.closePath(); c.fill(); }
+function txt(s,x,y,size,col,al){ c.font=`800 ${size}px "Baloo 2",sans-serif`; c.textAlign=al||'left'; c.textBaseline='middle'; c.lineWidth=Math.max(3,size/5); c.strokeStyle='rgba(20,10,6,.75)'; c.strokeText(s,x,y); c.fillStyle=col; c.fillText(s,x,y); }
+function draw(){ c.setTransform(1,0,0,1,0,0); c.fillStyle='#000'; c.fillRect(0,0,VW,VH);
+  const cx=Math.max(0,Math.min(WW-VW,P.x-VW/2)), cy=Math.max(0,Math.min(WH-VH,P.y-VH/2)); c.save(); if(sh>0) c.translate((Math.random()-.5)*12*sh,(Math.random()-.5)*12*sh); c.translate(-cx,-cy);
+  c.fillStyle=floorPat(); c.fillRect(0,0,WW,WH);
+  // shelves: the top of each shelf block, with a darker front face where the floor is below (a little depth)
+  for(let ty=0;ty<MH;ty++) for(let tx=0;tx<MW;tx++){ if(!wall(tx,ty)) continue; const x=tx*T, y=ty*T;
+    if(ok(IMG.shelf)) c.drawImage(IMG.shelf,(tx%4)*64,(ty%4)*64,64,64,x,y-14,T,T); else { c.fillStyle='#6b4428'; c.fillRect(x,y-14,T,T); }
+    if(!wall(tx,ty+1)){ c.fillStyle='#4a2c16'; c.fillRect(x,y+T-14,T,14); c.fillStyle='rgba(0,0,0,.22)'; c.fillRect(x,y+T,T,8); } }
+  // exit gate and key
+  if(ok(IMG.gate)) drawImg(IMG.gate,EXIT.x,EXIT.y+30,90); if(!hasKey&&KEYP){ drawImg(IMG.key,KEYP.x,KEYP.y+16+Math.sin(t0*3)*4,44); const g=c.createRadialGradient(KEYP.x,KEYP.y,4,KEYP.x,KEYP.y,50); g.addColorStop(0,'rgba(255,226,122,.5)'); g.addColorStop(1,'rgba(255,226,122,0)'); c.fillStyle=g; c.fillRect(KEYP.x-50,KEYP.y-50,100,100); }
+  // vision cones under everything that moves
+  CAMS.forEach(k=>cone(k,k.sus>.4||alarm>0?'rgba(255,60,60,A)':'rgba(255,120,200,A)'));
+  GUARDS.forEach(g=>cone(g,g.sus>.4||alarm>0?'rgba(255,60,60,A)':'rgba(255,240,150,A)'));
+  // sprites, sorted by y
+  const L=[]; BOXES.forEach(b=>L.push({y:b.y+20,f:()=>drawImg(IMG.box,b.x,b.y+26,62)}));
+  GUARDS.forEach(g=>L.push({y:g.y,f:()=>{ drawImg(IMG.elf,g.x,g.y+30,74,Math.cos(g.a)<0); if(g.sus>.05&&alarm<=0) txt(g.sus>.6?'!':'?',g.x,g.y-56,30,g.sus>.6?'#ff5050':'#ffe27a','center'); }}));
+  L.push({y:P.y+(P.hidden?40:0),f:()=>{ if(P.hidden){ drawImg(IMG.box,P.x,P.y+26,62); c.fillStyle='#fff'; c.beginPath(); c.arc(P.x-7,P.y-10,4,0,6.29); c.arc(P.x+7,P.y-10,4,0,6.29); c.fill(); c.fillStyle='#222'; c.beginPath(); c.arc(P.x-7+Math.sin(t0*2)*1.5,P.y-10,2,0,6.29); c.arc(P.x+7+Math.sin(t0*2)*1.5,P.y-10,2,0,6.29); c.fill(); return; }
+    if(P.inv>0&&Math.floor(P.inv*10)%2) return; const bob=Math.abs(Math.sin(P.step*Math.PI))*4; drawImg(IMG.kaczor,P.x,P.y+30-bob,72,P.face<0); }});
+  L.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
+  CAMS.forEach(k=>{ drawImg(IMG.cam,k.x,k.y+18,40,false,k.a); c.fillStyle=Math.sin(t0*8)>0?'#ff3040':'#801020'; c.beginPath(); c.arc(k.x,k.y-6,4,0,6.29); c.fill(); if(k.sus>.05&&alarm<=0) txt(k.sus>.6?'!':'?',k.x,k.y-40,28,k.sus>.6?'#ff5050':'#ffe27a','center'); });
+  planes.forEach(p=>drawImg(IMG.plane,p.x,p.y+20,54,false,p.a));
+  c.restore();
+  if(alarm>0){ c.fillStyle=`rgba(255,0,40,${.12+.1*Math.sin(t0*10)})`; c.fillRect(0,0,VW,VH); txt('ALARM!',VW/2,90,44,'#ff6060','center'); }
+  // HUD
+  for(let k=0;k<3;k++){ c.globalAlpha=k<hearts?1:.25; txt('❤',30+k*40,78,30,'#ff5c7a'); } c.globalAlpha=1;
+  txt(hasKey?'🔑 Klucz: jest!':'🔑 Klucz: szukaj',30,118,22,hasKey?'#ffe27a':'#fff');
+  if(P.hidden) txt('📦 Ukryty',30,150,22,'#9be38c');
+  // minimap
+  const ms=6, mx=VW-MW*ms-20, my=60; c.fillStyle='rgba(20,10,6,.6)'; c.fillRect(mx-6,my-6,MW*ms+12,MH*ms+12); for(let ty=0;ty<MH;ty++) for(let tx=0;tx<MW;tx++) if(wall(tx,ty)){ c.fillStyle='#8a5a36'; c.fillRect(mx+tx*ms,my+ty*ms,ms,ms); }
+  c.fillStyle='#ffe27a'; c.beginPath(); c.arc(mx+P.x/T*ms,my+P.y/T*ms,4,0,6.29); c.fill(); if(!hasKey){ c.fillStyle='#ffd34e'; c.fillRect(mx+KEYP.x/T*ms-3,my+KEYP.y/T*ms-3,6,6); } c.fillStyle='#7dff7a'; c.fillRect(mx+EXIT.x/T*ms-3,my+EXIT.y/T*ms-3,6,6);
+  GUARDS.forEach(g=>{ c.fillStyle='#ff7070'; c.fillRect(mx+g.x/T*ms-2,my+g.y/T*ms-2,4,4); });
+  toasts.forEach((t,i)=>{ c.globalAlpha=Math.min(1,t.ttl*2); txt(t.t,VW/2,VH-60-i*36,26,t.col,'center'); c.globalAlpha=1; }); }
+function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now; if(state==='play') update(dt); else t0+=dt; draw(); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+window.__mag={get P(){return P}, get state(){return state}, get alarm(){return alarm}, get hasKey(){return hasKey}, GUARDS, CAMS, KEYP:()=>KEYP, EXIT:()=>EXIT, start, path};
+</script>
+</body>
+</html>
