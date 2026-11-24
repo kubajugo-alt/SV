@@ -205,11 +205,11 @@ function draw(){ c.setTransform(1,0,0,1,0,0); c.fillStyle='#000'; c.fillRect(0,0
   GUARDS.forEach(g=>cone(g,g.st==='chase'||g.sus>.4?'rgba(255,60,60,A)':'rgba(255,240,150,A)'));
   // sprites, sorted by y
   const L=[]; BOXES.forEach(b=>L.push({y:b.y+20,f:()=>drawImg(IMG.box,b.x,b.y+26,62)}));
-  GUARDS.forEach(g=>L.push({y:g.y,f:()=>{ if(!(g.mv?drawStrip('elf_walk',g.x,g.y+30,74,g.t*(g.st==='chase'?1.7:1),Math.cos(g.a)<0):false)) drawImg(IMG.elf,g.x,g.y+30,74,Math.cos(g.a)<0); const ic=g.st==='chase'?'!':g.st==='sus'||g.st==='inv'||g.st==='search'||g.sus>.05?'?':''; if(ic) txt(ic,g.x,g.y-58+Math.sin(t0*8)*3,ic==='!'?36:30,ic==='!'?'#ff5050':'#ffe27a','center');
+  GUARDS.forEach(g=>L.push({y:g.y,f:()=>{ if(!(g.mv?drawStrip('elf_walk',g.x,g.y+30,64,g.t*(g.st==='chase'?1.7:1),Math.cos(g.a)<0):false)) drawImg(IMG.elf,g.x,g.y+30,64,Math.cos(g.a)<0); const ic=g.st==='chase'?'!':g.st==='sus'||g.st==='inv'||g.st==='search'||g.sus>.05?'?':''; if(ic) txt(ic,g.x,g.y-58+Math.sin(t0*8)*3,ic==='!'?36:30,ic==='!'?'#ff5050':'#ffe27a','center');
     if(g.say){ c.globalAlpha=Math.min(1,g.say.ttl*3); c.font='800 18px "Baloo 2",sans-serif'; const w=c.measureText(g.say.t).width+20; c.fillStyle='rgba(255,255,255,.92)'; c.beginPath(); c.roundRect(g.x-w/2,g.y-112,w,30,10); c.fill(); c.beginPath(); c.moveTo(g.x-6,g.y-82); c.lineTo(g.x+6,g.y-82); c.lineTo(g.x,g.y-72); c.fill(); c.fillStyle='#5a1a2a'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(g.say.t,g.x,g.y-97); c.globalAlpha=1; } }}));
   balls.forEach(o=>L.push({y:o.y,f:()=>{ c.fillStyle='rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(o.x,o.y+22,8,4,0,0,6.29); c.fill(); c.fillStyle='#fff'; c.beginPath(); c.arc(o.x,o.y,9,0,6.29); c.fill(); c.strokeStyle='#b8d4ee'; c.lineWidth=2; c.stroke(); }}));
   L.push({y:P.y+(P.hidden?40:0),f:()=>{ if(P.hidden){ drawImg(IMG.box,P.x,P.y+26,62); c.fillStyle='#fff'; c.beginPath(); c.arc(P.x-7,P.y-10,4,0,6.29); c.arc(P.x+7,P.y-10,4,0,6.29); c.fill(); c.fillStyle='#222'; c.beginPath(); c.arc(P.x-7+Math.sin(t0*2)*1.5,P.y-10,2,0,6.29); c.arc(P.x+7+Math.sin(t0*2)*1.5,P.y-10,2,0,6.29); c.fill(); return; }
-    if(P.inv>0&&Math.floor(P.inv*10)%2) return; const moving=Math.hypot(P.vx,P.vy)>30; if(!(moving&&drawStrip('kz_walk',P.x,P.y+30,72,P.step/6*(K.F?1.5:1),P.face<0))) drawImg(IMG.kaczor,P.x,P.y+30,72,P.face<0); }});
+    if(P.inv>0&&Math.floor(P.inv*10)%2) return; const moving=Math.hypot(P.vx,P.vy)>30; if(!(moving&&drawStrip('kz_walk',P.x,P.y+30,86,P.step/6*(K.F?1.5:1),P.face<0))) drawImg(IMG.kaczor,P.x,P.y+30,86,P.face<0); }});
   L.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
   CAMS.forEach(k=>{ drawImg(IMG.cam,k.x,k.y+18,40,false,k.a); c.fillStyle=Math.sin(t0*8)>0?'#ff3040':'#801020'; c.beginPath(); c.arc(k.x,k.y-6,4,0,6.29); c.fill(); if(k.sus>.05&&alarm<=0) txt(k.sus>.6?'!':'?',k.x,k.y-40,28,k.sus>.6?'#ff5050':'#ffe27a','center'); });
   planes.forEach(p=>drawImg(IMG.plane,p.x,p.y+20,54,false,p.a));
@@ -225,7 +225,7 @@ function draw(){ c.setTransform(1,0,0,1,0,0); c.fillStyle='#000'; c.fillRect(0,0
   GUARDS.forEach(g=>{ c.fillStyle='#ff7070'; c.fillRect(mx+g.x/T*ms-2,my+g.y/T*ms-2,4,4); });
   toasts.forEach((t,i)=>{ c.globalAlpha=Math.min(1,t.ttl*2); txt(t.t,VW/2,VH-60-i*36,26,t.col,'center'); c.globalAlpha=1; }); }
 function drawControls(t){ c.setTransform(1,0,0,1,0,0); c.fillStyle='rgba(10,14,30,.62)'; c.fillRect(0,VH-24,VW,24); c.font='600 15px "Baloo 2",sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillStyle='rgba(255,246,220,.92)'; c.fillText(t,VW/2,VH-11.5); c.textBaseline='alphabetic'; }
-function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now; if(state==='play') update(dt); else t0+=dt; draw(); if(state==='play') drawControls(TOUCH?'Przyciski na ekranie — skradanie się':'Strzałki / WASD — skradanie · Shift — szybciej (ale głośniej) · w kartonie stój bez ruchu, żeby się ukryć · M — dźwięk'); requestAnimationFrame(loop); }
+function loop(now){ if(now-last<14){ requestAnimationFrame(loop); return; } const dt=Math.min(.05,(now-last)/1000); last=now; if(state==='play') update(dt); else t0+=dt; draw(); if(state==='play') drawControls(TOUCH?'Przyciski na ekranie — skradanie się':'Strzałki / WASD — skradanie · Shift — szybciej (ale głośniej) · w kartonie stój bez ruchu, żeby się ukryć · M — dźwięk'); requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
 window.__mag={get P(){return P}, get state(){return state}, get alarm(){return alarm}, get hasKey(){return hasKey}, GUARDS, CAMS, KEYP:()=>KEYP, EXIT:()=>EXIT, start, path};
 </script>

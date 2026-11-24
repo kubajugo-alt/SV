@@ -73,7 +73,7 @@ function say(k,onend,force){ if(voice&&!force) return false; if(voice){ voice.on
   const a=new Audio('audio/'+k+'.mp3'); a.volume=.95; voice=a; bgm.volume=.1; a.onended=()=>{ if(voice===a){ voice=null; bgm.volume=.28; } if(sub) sub.ttl=Math.min(sub.ttl,.6); onend&&onend(); }; a.play().catch(()=>{ voice=null; onend&&onend(); }); return true; }
 function sfx(n,v=.5){ if(muted) return; const a=new Audio('audio/'+n+'.mp3'); a.volume=v; a.play().catch(()=>{}); }
 function beep(f,d=.15,v=.12,type='square'){ if(muted||!AC) return; const o=AC.createOscillator(), g=AC.createGain(); o.type=type; o.frequency.value=f; g.gain.setValueAtTime(v,AC.currentTime); g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime+d); }
-let NB=null; function cheer(v){ if(muted||!AC||!NB) return; const src=AC.createBufferSource(); src.buffer=NB; const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=900+Math.random()*400; f.Q.value=.7; const g=AC.createGain(), t=AC.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.16*v,t+.25); g.gain.exponentialRampToValueAtTime(.001,t+1.8); src.connect(f).connect(g).connect(AC.destination); src.start(); src.stop(t+2); for(let k=0;k<4;k++) beep(500+Math.random()*500,.12,.02*v,'triangle'); }
+let NB=null, crowdT=0, lastCheer=-9; function cheer(v){ if(muted||!AC||!NB) return; const src=AC.createBufferSource(); src.buffer=NB; const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=900+Math.random()*400; f.Q.value=.7; const g=AC.createGain(), t=AC.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.16*v,t+.25); g.gain.exponentialRampToValueAtTime(.001,t+1.8); src.connect(f).connect(g).connect(AC.destination); src.start(); src.stop(t+2); for(let k=0;k<4;k++) beep(500+Math.random()*500,.12,.02*v,'triangle'); }
 function initAudio(){ if(AC) return; try{ AC=new (window.AudioContext||window.webkitAudioContext)(); const n=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate), d=n.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; NB=n;
   const src=AC.createBufferSource(); src.buffer=n; src.loop=true; runF=AC.createBiquadFilter(); runF.type='bandpass'; runF.frequency.value=900; runF.Q.value=.8; runG=AC.createGain(); runG.gain.value=0; src.connect(runF).connect(runG).connect(AC.destination); src.start(); }catch(e){} }
 function setMute(m){ muted=m; try{ localStorage.setItem('pn-mute',m?'1':'0'); }catch(e){} $('mute').textContent=m?'🔇':'🔊'; if(m){ bgm.pause(); if(voice) voice.pause(); if(runG) runG.gain.value=0; } else if(state==='race'||state==='count') bgm.play().catch(()=>{}); }
@@ -150,9 +150,13 @@ const TS=2048, TSC=TS/WORLD; let TEX32=null; const SNOW32=0xfffbf3ee;
 const PROPS=[];
 const put=(s,lat,img,h,o={})=>{ const t=trackAt(s,lat); PROPS.push(Object.assign({x:t.x,y:t.y,img,h},o)); };
 const outside=(s,lat)=>{ const t=trackAt(s,lat), n=nearest(t.x,t.y); return Math.abs(n.lat)>halfAt(n.s)+60; };
+const BLD=['house1','house3','ws1','ws2'], roomFor=(s,lat,d)=>{ const t=trackAt(s,lat); return !PROPS.some(o=>BLD.includes(o.img)&&Math.hypot(o.x-t.x,o.y-t.y)<d); };
+// how sharply the track turns around s (radians over 120 units): spectators gather where the curves and the action are
+const turnDir=s=>{ const a=trackAt(s-60), b=trackAt(s+60); return Math.sign(a.dx*b.dy-a.dy*b.dx)||1; };
+const curv=s=>{ const a=trackAt(s-60), b=trackAt(s+60); return Math.abs(Math.atan2(a.dx*b.dy-a.dy*b.dx,a.dx*b.dx+a.dy*b.dy)); };
 ZONES.forEach(z=>{ const W=s=>halfAt(s);
-  if(z.id==='fab'){ for(let s=z.s+60;s<z.e;s+=150) for(const sd of [-1,1]) put(s,sd*(W(s)+44),'lamp',96);
-    for(let s=z.s+300;s<z.e-100;s+=260){ const sd=(s/260|0)%2?1:-1; if(outside(s,sd*(W(s)+300))) put(s,sd*(W(s)+300),rnd()<.5?'ws1':'ws2',230); }
+  if(z.id==='fab'){ let k=0; for(let s=z.s+60;s<z.e;s+=170+rnd()*60) put(s,((k++)%2?1:-1)*(W(s)+44),'lamp',96);
+    for(let s=z.s+260;s<z.e-100;s+=380+rnd()*320){ const sd=rnd()<.5?1:-1, off=W(s)+260+rnd()*380; if(outside(s,sd*off)&&roomFor(s,sd*off,260)) put(s,sd*off,rnd()<.5?'ws1':'ws2',210+rnd()*40); }
     put(z.s+700,0,'banner',(W(z.s+700)*2+60)*488/640); }
   if(z.id==='las'){ for(let s=z.s;s<z.e;s+=45) for(const sd of [-1,1]){ if(rnd()<.25) continue; const off=W(s)+70+rnd()*380; if(outside(s,sd*off)) put(s,sd*off,'tree',190+rnd()*130); } }
   if(z.id==='cave'){ put(z.s+20,0,'icearch',(W(z.s)*2+120)*347/640,{far:2600});
@@ -160,8 +164,10 @@ ZONES.forEach(z=>{ const W=s=>halfAt(s);
     for(let s=z.s+40;s<z.e;s+=70) for(const sd of [-1,1]) if(rnd()<.6) put(s,sd*(W(s)+40+rnd()*60),'crystals',50+rnd()*50); }
   if(z.id==='lake'){
     for(let s=z.s;s<z.e;s+=160) for(const sd of [-1,1]) if(rnd()<.5){ const off=W(s)+500+rnd()*500; if(outside(s,sd*off)) put(s,sd*off,'tree',200+rnd()*80); } }
-  if(z.id==='vil'){ for(let s=z.s+40;s<z.e;s+=120) for(const sd of [-1,1]) put(s,sd*(W(s)+36),'lamp',96);
-    for(let s=z.s+100;s<z.e-60;s+=170) for(const sd of [-1,1]){ const off=W(s)+170+rnd()*90; if(outside(s,sd*off)) put(s,sd*off,['house1','house3','ws1','ws2'][(rnd()*4)|0],180+rnd()*40); } }
+  if(z.id==='vil'){ let k=0; for(let s=z.s+40;s<z.e;s+=150+rnd()*80) put(s,((k++)%2?1:-1)*(W(s)+36),'lamp',96);
+    // a real village: houses in loose clusters with gardens between them, some close to the run, some further back
+    for(let s=z.s+90;s<z.e-60;s+=150+rnd()*260) for(const sd of [-1,1]){ if(rnd()<.35) continue; const off=W(s)+170+rnd()*520; if(outside(s,sd*off)&&roomFor(s,sd*off,230)) put(s,sd*off,['house1','house3','ws1','ws2'][(rnd()*4)|0],170+rnd()*60); }
+    for(let s=z.s+60;s<z.e;s+=90+rnd()*120) for(const sd of [-1,1]){ if(rnd()<.55) continue; const off=W(s)+120+rnd()*700; if(outside(s,sd*off)&&roomFor(s,sd*off,120)) put(s,sd*off,rnd()<.7?'tree':'tree_b',150+rnd()*90); } }
   if(z.id==='jump'){ RAMPS.forEach(r=>put(r-30,0,'banner',(W(r)*2+60)*488/640));
     for(let s=z.s;s<z.e;s+=110) for(const sd of [-1,1]){ if(rnd()<.4) continue; const off=W(s)+90+rnd()*420; if(outside(s,sd*off)) put(s,sd*off,rnd()<.8?'tree':'pole',rnd()<.8?170+rnd()*110:120); } } });
 { const t=trackAt(0); PROPS.push({x:t.x,y:t.y,img:'arch',h:(halfAt(0)*2+70)*420/539}); }
@@ -173,9 +179,10 @@ const CROWD=[], STANDS=[];
 function fan(s,lat,k,o={}){ const t=trackAt(s,lat); CROWD.push(Object.assign({x:t.x,y:t.y,k,h:SPH[k]*(1.15+rnd()*.25),ph:rnd()*6.3,tempo:5+rnd()*4,flip:rnd()<.5,lift0:7,zb:0},o)); }
 function stand(s,sd){ const W=halfAt(s), t=trackAt(s,sd*(W+150)); STANDS.push({x:t.x,y:t.y}); const mix=MIX[zoneAt(s).id];
   for(let r=0;r<3;r++) for(let j=-2;j<=2;j++){ if(rnd()<.12) continue; fan(s+j*24+(r%2)*10,sd*(W+140-r*2),mix[(rnd()*mix.length)|0],{lift0:6+r*20,zb:-6+r*3}); } }
-ZONES.forEach(z=>{ const mix=MIX[z.id], gap={fab:210,las:190,cave:420,lake:240,vil:170,jump:180}[z.id];
-  for(let s=z.s+80;s<z.e-60;s+=gap*(.8+rnd()*.4)){ const sd=rnd()<.5?-1:1, n=3+((rnd()*5)|0), W=halfAt(s);
-    for(let j=0;j<n;j++){ fan(s+j*(16+rnd()*8),sd*(W+36+rnd()*16),mix[(rnd()*mix.length)|0]); if(rnd()<.45) fan(s+j*20+9,sd*(W+64+rnd()*12),mix[(rnd()*mix.length)|0],{lift0:16}); } } });
+ZONES.forEach(z=>{ const mix=MIX[z.id], base={fab:420,las:460,cave:0,lake:620,vil:340,jump:360}[z.id]; if(!base) return;
+  for(let s=z.s+120;s<z.e-60;){ const cv=Math.min(1,curv(s)/.5), W=halfAt(s), sd=cv>.3?-turnDir(s)*(rnd()<.8?1:-1):(rnd()<.5?-1:1), n=1+((rnd()*(2+cv*3))|0);
+    let ss=s; for(let j=0;j<n;j++){ ss+=26+rnd()*30; fan(ss,sd*(W+40+rnd()*40),mix[(rnd()*mix.length)|0]); if(rnd()<.25+cv*.3) fan(ss+12,sd*(W+82+rnd()*30),mix[(rnd()*mix.length)|0],{lift0:16}); }
+    s+=base*(1-cv*.55)*(.6+rnd()*.9); } });
 [-170,160].forEach(s=>{ stand(s,-1); stand(s,1); }); RAMPS.forEach(r=>{ stand(r+40,-1); stand(r+40,1); }); stand(ZONES[3].s+700,1); stand(ZONES[0].s+900,-1); stand(ZONES[1].s+800,1);
 // the channel walls: a continuous 3D strip along both edges (padded rail on top), not billboards
 const WALLS=[]; { const N=SEG.length; for(let i=0;i<N;i++){ const g=SEG[i], z=zoneAt(g.s), w=halfAt(g.s)+10, lake=z.id==='lake', cave=z.id==='cave';
@@ -214,7 +221,7 @@ const fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 // ---------- simulation ----------
 function burst(x,y,col,n,sp=160,z=20){ for(let k=0;k<n;k++){ const a=Math.random()*6.28; sparks.push({x,y,z:z+Math.random()*20,vx:Math.cos(a)*sp*Math.random(),vy:Math.sin(a)*sp*Math.random(),vz:80+Math.random()*120,t:.5+Math.random()*.5,col}); } }
 function spin(o,t){ o.spin=Math.max(o.spin,t); }
-function update(dt){ t0+=dt; clock+=dt; hype=Math.max(0,hype-dt); if(sub&&!voice){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } shake=Math.max(0,shake-dt); flash=Math.max(0,flash-dt); if(hint){ hint.ttl-=dt; if(hint.ttl<=0) hint=null; }
+function update(dt){ t0+=dt; clock+=dt; hype=Math.max(0,hype-dt); if(state==='race'){ crowdT-=dt; if(crowdT<=0){ crowdT=.35; const n=CROWD.filter(o=>Math.abs(o.x-P.x)+Math.abs(o.y-P.y)<260).length; if(n>=2&&clock-lastCheer>2.2){ lastCheer=clock; cheer(Math.min(1,.35+n*.08)); } } } if(sub&&!voice){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } shake=Math.max(0,shake-dt); flash=Math.max(0,flash-dt); if(hint){ hint.ttl-=dt; if(hint.ttl<=0) hint=null; }
   // --- our bobsled: ice physics, the channel walls, turbo
   const fx=Math.cos(P.a), fy=Math.sin(P.a); let vf=P.vx*fx+P.vy*fy, vl=-P.vx*fy+P.vy*fx;
   const st=(K.R?1:0)-(K.L?1:0); P.steer+=(st-P.steer)*Math.min(1,dt*7);
@@ -389,7 +396,7 @@ function snowFx(dt){ const sp=Math.hypot(P.vx,P.vy), f=Math.min(1.4,sp/VMAX), [b
 function drawSnow(){ SN.forEach(p=>{ const a=1-p.t/p.life; c.globalAlpha=(p.puff?.35:.95)*a; c.fillStyle=p.puff?'#ffffff':(p.r>4?'#f4fbff':'#e6f4ff'); c.beginPath(); c.arc(p.x,p.y,p.r,0,6.29); c.fill(); }); c.globalAlpha=1; }
 function drawFlakes(){ c.fillStyle='rgba(255,255,255,.8)'; FLAKES.forEach(q=>{ c.beginPath(); c.arc(q.x,q.y,q.s,0,6.29); c.fill(); }); }
 function drawControls(t){ c.setTransform(1,0,0,1,0,0); c.fillStyle='rgba(10,14,30,.62)'; c.fillRect(0,VH-24,VW,24); c.font='600 15px "Baloo 2",sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillStyle='rgba(255,246,220,.92)'; c.fillText(t,VW/2,VH-11.5); c.textBaseline='alphabetic'; }
-function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now; if(P&&state!=='intro'&&dt>0) snowFx(dt);
+function loop(now){ if(now-last<14){ requestAnimationFrame(loop); return; } const dt=Math.min(.05,(now-last)/1000); last=now; if(P&&state!=='intro'&&dt>0) snowFx(dt);
   if(state==='race') update(dt);
   else if(state==='count'){ const before=Math.ceil(count-.6); count-=dt; t0+=dt; if(sub&&!voice){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } const after=Math.ceil(count-.6); if(after!==before) beep(after>0?440:880,.2,.12); if(count<=.6) state='race'; }
   else if(state==='won'){ t0+=dt; P.vx*=Math.pow(.4,dt); P.vy*=Math.pow(.4,dt); P.x+=P.vx*dt; P.y+=P.vy*dt; INEZ.s+=INEZ.v*.15*dt; INEZ.v*=Math.pow(.2,dt); const it=trackAt(INEZ.s,HALF*.8); INEZ.x=it.x; INEZ.y=it.y; sparks.forEach(p=>{ p.t-=dt; p.z+=p.vz*dt; p.vz-=380*dt; }); if(sub&&!voice){ sub.ttl-=dt; if(sub.ttl<=0) sub=null; } if(runG) runG.gain.value=0; }
