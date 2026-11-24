@@ -56,7 +56,7 @@ const stage=document.getElementById('stage'), cv=document.getElementById('cv'), 
 function fit(){ const s=Math.min(innerWidth/VW,innerHeight/VH); stage.style.transform=`translate(-50%,-50%) scale(${s})`; }
 addEventListener('resize',fit); fit();
 const TOUCH=matchMedia('(pointer:coarse)').matches;
-const IMG={}; ['bob_rear','bob_turn','inez_rear','inez_turn','icearch','crystals','drift','lamp','banner','penguins','ws1','ws2','house1','house3','wall','crate','arch','snowman','sky','tree','pole','gift','heart','snowball','elf_happy','kiss'].forEach(n=>{ const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; });
+const IMG={}; ['bob_rear','bob_turn','inez_rear','inez_turn','icearch','crystals','drift','lamp','banner','penguins','ws1','ws2','house1','house3','bob_side','inez_side','tree_b','crate','arch','snowman','sky','tree','pole','gift','heart','snowball','elf_happy','kiss'].forEach(n=>{ const i=new Image(); i.src='art/'+n+'.webp'; IMG[n]=i; });
 const ok=i=>i&&i.complete&&i.naturalWidth;
 const rnd=(()=>{ let s=12345; return ()=>{ s=(s*16807)%2147483647; return s/2147483647; }; })();
 
@@ -149,7 +149,6 @@ const TS=2048, TSC=TS/WORLD; let TEX32=null; const SNOW32=0xfffbf3ee;
 const PROPS=[];
 const put=(s,lat,img,h,o={})=>{ const t=trackAt(s,lat); PROPS.push(Object.assign({x:t.x,y:t.y,img,h},o)); };
 const outside=(s,lat)=>{ const t=trackAt(s,lat), n=nearest(t.x,t.y); return Math.abs(n.lat)>halfAt(n.s)+60; };
-for(let s=0;s<LAP;s+=64){ const z=zoneAt(s); for(const side of [-1,1]){ if(z.id==='lake') put(s,side*(halfAt(s)+22),'drift',26,{wall:1}); else put(s,side*(halfAt(s)+16),'wall',34,{wall:1}); } }
 ZONES.forEach(z=>{ const W=s=>halfAt(s);
   if(z.id==='fab'){ for(let s=z.s+60;s<z.e;s+=150) for(const sd of [-1,1]) put(s,sd*(W(s)+44),'lamp',96);
     for(let s=z.s+300;s<z.e-100;s+=260){ const sd=(s/260|0)%2?1:-1; if(outside(s,sd*(W(s)+300))) put(s,sd*(W(s)+300),rnd()<.5?'ws1':'ws2',230); }
@@ -167,6 +166,10 @@ ZONES.forEach(z=>{ const W=s=>halfAt(s);
     for(let s=z.s;s<z.e;s+=110) for(const sd of [-1,1]){ if(rnd()<.4) continue; const off=W(s)+90+rnd()*420; if(outside(s,sd*off)) put(s,sd*off,rnd()<.8?'tree':'pole',rnd()<.8?170+rnd()*110:120); }
     for(let s=z.s+100;s<z.e;s+=260){ const sd=rnd()<.5?-1:1; for(let k=0;k<3;k++) put(s+k*34,sd*(W(s)+70),rnd()<.5?'penguins':'elf_happy',rnd()<.5?54:54,{fan:1,ph:rnd()*6}); } } });
 { const t=trackAt(0); PROPS.push({x:t.x,y:t.y,img:'arch',h:(halfAt(0)*2+70)*420/539}); }
+PROPS.forEach(o=>{ if(o.img==='tree'&&rnd()<.5){ o.img='tree_b'; o.h*=.85; } });
+// the channel walls: a continuous 3D strip along both edges (padded rail on top), not billboards
+const WALLS=[]; { const N=SEG.length; for(let i=0;i<N;i++){ const g=SEG[i], z=zoneAt(g.s), w=halfAt(g.s)+10, lake=z.id==='lake', cave=z.id==='cave';
+  WALLS.push({i,s:g.s,lx:g.x+g.dy*w,ly:g.y-g.dx*w,rx:g.x-g.dy*w,ry:g.y+g.dx*w,h:lake?13:cave?34:28,face:lake?['#ffffff','#dfeefa']:cave?['#8fb9e6','#4f78b0']:['#eef7ff','#a9cfec'],rail:lake?null:(Math.floor(i/2)%2?'#ffffff':'#d23c3c')}); } }
 
 // ---------- state ----------
 const RW=400, RH=225, HZ=74, FH=RH-HZ, CAMH=44, CAMD=100, FAR=4200, S=VW/RW;
@@ -204,16 +207,17 @@ function update(dt){ t0+=dt; clock+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub
   // --- our bobsled: ice physics, the channel walls, turbo
   const fx=Math.cos(P.a), fy=Math.sin(P.a); let vf=P.vx*fx+P.vy*fy, vl=-P.vx*fy+P.vy*fx;
   const st=(K.R?1:0)-(K.L?1:0); P.steer+=(st-P.steer)*Math.min(1,dt*7);
-  P.boost=Math.max(0,P.boost-dt); P.spin=Math.max(0,P.spin-dt); P.bump=Math.max(0,P.bump-dt);
+  P.boost=Math.max(0,P.boost-dt); P.spin=Math.max(0,P.spin-dt); P.land=Math.max(0,(P.land||0)-dt);
+  if(st!==0&&st===P.turnDir) P.turnT=(P.turnT||0)+dt; else { P.turnT=0; P.turnDir=st; } P.bump=Math.max(0,P.bump-dt);
   const top=VMAX*(P.boost>0?1.35:1)*(K.B?.55:1), slip=zoneMix(P.lastS,'slip'), air=P.z>0;
   if(P.spin>0){ P.a+=dt*8; vf*=Math.pow(.35,dt); }
   else { P.a+=P.steer*dt*(1.65*Math.min(1,Math.max(.25,vf/260)))*(K.B?1.35:1)*(air?.3:1)*(1-.2*slip); if(!air) vf+=(top-vf)*Math.min(1,dt*(vf<top?.75:2.2)); }
-  if(!air) vl*=Math.exp(-dt*(K.B?2.5:4.2)*(1-.72*slip)); // ice: you slide sideways in hard turns, a lot more on the frozen lake // ice: you slide sideways a little in hard turns
+  if(!air) vl*=Math.exp(-dt*(K.B?2.5:4.2)*(1-.72*slip)); P.vl=vl; // ice: you slide sideways in hard turns, a lot more on the frozen lake // ice: you slide sideways a little in hard turns
   P.vx=Math.cos(P.a)*vf-Math.sin(P.a)*vl; P.vy=Math.sin(P.a)*vf+Math.cos(P.a)*vl;
   P.x+=P.vx*dt; P.y+=P.vy*dt;
   // jumping: off a ramp the sled flies, cannot steer much, and lands with a thump and a little turbo
   P.rampCd=Math.max(0,P.rampCd-dt);
-  if(air){ P.z+=P.vz*dt; P.vz-=980*dt; if(P.z<=0){ P.z=0; if(P.vz<-150){ shake=.35; sfx('hurt',.2); burst(P.x,P.y,'#ffffff',22,200,6); P.boost=Math.max(P.boost,.7); hint={t:'Super skok! 🚀',ttl:1.4}; } P.vz=0; } }
+  if(air){ P.z+=P.vz*dt; P.vz-=980*dt; if(P.z<=0){ P.z=0; if(P.vz<-150){ P.land=.25; shake=.35; sfx('hurt',.2); burst(P.x,P.y,'#ffffff',22,200,6); P.boost=Math.max(P.boost,.7); hint={t:'Super skok! 🚀',ttl:1.4}; } P.vz=0; } }
   const n=nearest(P.x,P.y,P.i); P.i=n.i; const lim=halfAt(n.s)-WALLPAD;
   if(Math.abs(n.lat)>lim){ const sg=Math.sign(n.lat), nx=-n.dy*sg, ny=n.dx*sg, over=Math.abs(n.lat)-lim; P.x-=nx*over; P.y-=ny*over; const vn=P.vx*nx+P.vy*ny; if(vn>0){ P.vx-=vn*1.6*nx; P.vy-=vn*1.6*ny; }
     if(P.bump<=0&&vn>60){ P.bump=.35; shake=Math.min(.5,vn/500); sfx('hurt',.25); burst(P.x+nx*30,P.y+ny*30,'#e8f7ff',12,180,10); if(!voice&&saidWall<=0){ saidWall=12; say('b_bump2'); } } P.vx*=.985; P.vy*=.985;
@@ -233,7 +237,7 @@ function update(dt){ t0+=dt; clock+=dt; if(sub){ sub.ttl-=dt; if(sub.ttl<=0) sub
   K.FHit=false;
   // --- Inez: a racing line with rubber band, two phases, gifts on the track and hearts thrown back
   const gap=INEZ.s-P.s; let iv=VMAX*.86; if(gap>1600) iv=VMAX*.7; else if(gap>800) iv=VMAX*.82; else if(gap<300) iv=VMAX*.98; if(gap<120) iv=VMAX*1.06; if(gap<0) iv=VMAX*1.4;
-  if(INEZ.phase===2) iv*=1.05; INEZ.flee=Math.max(0,(INEZ.flee||0)-dt); if(INEZ.flee>0&&INEZ.spin<=0) iv*=1.3; if(INEZ.spin>0){ INEZ.spin-=dt; iv*=.3; if(INEZ.spin<=0) INEZ.flee=2.8; }
+  if(INEZ.phase===2) iv*=1.05; INEZ.flee=Math.max(0,(INEZ.flee||0)-dt); if(INEZ.flee>0&&INEZ.spin<=0) iv*=1.16; if(INEZ.spin>0){ INEZ.spin-=dt; iv*=.3; if(INEZ.spin<=0) INEZ.flee=2.2; }
   INEZ.v+=(iv-INEZ.v)*Math.min(1,dt*(gap<0?4:1.3)); INEZ.s+=INEZ.v*dt;
   INEZ.dodge=Math.max(0,INEZ.dodge-dt); const it0=trackAt(INEZ.s), IH=halfAt(INEZ.s); const want=Math.sin(t0*.55)*IH*.45-it0.curv*IH*260;
   INEZ.lat+=(Math.max(-IH*.7,Math.min(IH*.7,want+(INEZ.dodge>0?INEZ.dsign*IH*.5:0)))-INEZ.lat)*Math.min(1,dt*2.2);
@@ -291,28 +295,43 @@ function project(x,y){ const dx=x-cam.x, dy=y-cam.y, ca=Math.cos(cam.a), sa=Math
 let DL=[];
 function bill(name,x,y,h,o={}){ const p=project(x,y); if(!p||p.z>(o.far||2600)||p.z<(o.near||60)) return; const im=IMG[name]; if(!ok(im)) return; const hh=h*p.k; if(hh<2) return; const w=hh*im.naturalWidth/im.naturalHeight; if(p.sx+w<-80||p.sx-w>VW+80) return;
   DL.push({z:p.z,f:()=>{ c.save(); c.globalAlpha=Math.max(0,Math.min(1,((o.far||2600)-p.z)/500,(p.z-(o.near||60))/70)); c.translate(p.sx,p.sy-(o.lift||0)*p.k); if(o.rot) c.rotate(o.rot); if(o.flip) c.scale(-1,1); c.drawImage(im,-w/2,-hh,w,hh); c.restore(); }}); return p; }
+function camPt(x,y){ const dx=x-cam.x, dy=y-cam.y, ca=Math.cos(cam.a), sa=Math.sin(cam.a); return [dx*ca+dy*sa,-dx*sa+dy*ca]; }
+function drawWalls(){ const N=WALLS.length, NEAR=14, FARW=1700;
+  for(let i=0;i<N;i++){ const A=WALLS[i], B=WALLS[(i+1)%N]; if(Math.abs(A.lx-cam.x)>FARW+300||Math.abs(A.ly-cam.y)>FARW+300) continue;
+    for(const side of [0,1]){ let a=side?camPt(A.rx,A.ry):camPt(A.lx,A.ly), b=side?camPt(B.rx,B.ry):camPt(B.lx,B.ly);
+      if(a[0]<NEAR&&b[0]<NEAR) continue; if(a[0]>FARW&&b[0]>FARW) continue;
+      if(a[0]<NEAR){ const t=(NEAR-a[0])/(b[0]-a[0]); a=[NEAR,a[1]+(b[1]-a[1])*t]; } else if(b[0]<NEAR){ const t=(NEAR-b[0])/(a[0]-b[0]); b=[NEAR,b[1]+(a[1]-b[1])*t]; }
+      const pa=cam.f/a[0]*S, pb=cam.f/b[0]*S, xa=VW/2+a[1]*pa, xb=VW/2+b[1]*pb; if(Math.max(xa,xb)<-100||Math.min(xa,xb)>VW+100) continue;
+      const ga=(HZ+cam.h*cam.f/a[0])*S, gb=(HZ+cam.h*cam.f/b[0])*S, ta=ga-A.h*pa, tb=gb-B.h*pb, zz=(a[0]+b[0])/2, al=Math.min(1,(FARW-zz)/400);
+      DL.push({z:zz+.5,f:()=>{ c.globalAlpha=al; const gr=c.createLinearGradient(0,Math.min(ta,tb),0,Math.max(ga,gb)); gr.addColorStop(0,A.face[0]); gr.addColorStop(1,A.face[1]); c.fillStyle=gr; c.strokeStyle=gr; c.lineWidth=1.2;
+        c.beginPath(); c.moveTo(xa,ga); c.lineTo(xb,gb); c.lineTo(xb,tb); c.lineTo(xa,ta); c.closePath(); c.fill(); c.stroke();
+        if(A.rail){ const ra=Math.max(1.5,7*pa), rb=Math.max(1.5,7*pb); c.fillStyle=A.rail; c.beginPath(); c.moveTo(xa,ta+ra); c.lineTo(xb,tb+rb); c.lineTo(xb,tb-rb*.4); c.lineTo(xa,ta-ra*.4); c.closePath(); c.fill(); }
+        const ea=A.rail?Math.max(1.5,7*pa)*.4:0, eb=A.rail?Math.max(1.5,7*pb)*.4:0; c.fillStyle='rgba(255,255,255,.8)'; c.beginPath(); c.moveTo(xa,ta-ea); c.lineTo(xb,tb-eb); c.lineTo(xb,tb-eb+Math.max(1,2*pb)); c.lineTo(xa,ta-ea+Math.max(1,2*pa)); c.closePath(); c.fill(); c.globalAlpha=1; }}); } } }
 function txt(s,x,y,size,col,al){ c.font=`800 ${size}px "Baloo 2",sans-serif`; c.textAlign=al||'left'; c.textBaseline='middle'; c.lineWidth=Math.max(3,size/5); c.strokeStyle='rgba(10,10,30,.75)'; c.strokeText(s,x,y); c.fillStyle=col; c.fillText(s,x,y); }
 function draw(){ c.setTransform(1,0,0,1,0,0); c.fillStyle='#0b1430'; c.fillRect(0,0,VW,VH);
   c.save(); if(shake>0) c.translate((Math.random()-.5)*22*shake,(Math.random()-.5)*16*shake); c.translate(VW/2,VH*.86); c.rotate(cam.roll); c.translate(-VW/2,-VH*.86);
   drawSky(); drawFloor();
-  DL=[];
+  DL=[]; drawWalls();
   PROPS.forEach(o=>bill(o.img,o.x,o.y,o.h,{lift:o.fan?Math.abs(Math.sin(t0*5+o.ph))*8:0,far:o.far||(o.wall?1500:2600),near:o.wall?40:o.arch?60:70}));
   DRIFTS.forEach(d=>{ if(d.gone>0) return; const t=trackAt(d.s,d.lat); bill('drift',t.x,t.y,44); });
   CRATES.forEach(cr=>{ if(cr.gone>0) return; const t=trackAt(cr.s,cr.lat); bill('crate',t.x,t.y,40,{lift:4+Math.sin(t0*3+cr.s)*4}); });
   obst.forEach(o=>bill(o.img,o.x,o.y,46));
   hearts.forEach(h=>bill('kiss',h.x,h.y,38,{lift:22+Math.sin(t0*8+h.t)*6,rot:Math.sin(t0*6)*.3}));
-  { const rel=Math.atan2(Math.sin(INEZ.a-cam.a),Math.cos(INEZ.a-cam.a)), turn=Math.abs(rel)>.13&&INEZ.spin<=0; const p=bill(turn?'inez_turn':'inez_rear',INEZ.x,INEZ.y,62,{rot:INEZ.spin>0&&state!=='won'?Math.sin(t0*22)*.5:rel*.12,flip:turn&&rel>0,lift:INEZ.z,near:85,far:3600}); if(p&&INEZ.spin>0&&state==='race') DL.push({z:p.z-1,f:()=>txt('❄ PAC!',p.sx,p.sy-80*p.k,30,'#ffffff','center')}); }
+  { const rel=Math.atan2(Math.sin(INEZ.a-cam.a),Math.cos(INEZ.a-cam.a)), turn=Math.abs(rel)>.13&&INEZ.spin<=0, iside=turn&&Math.abs(rel)>.3; const p=bill(iside?'inez_side':turn?'inez_turn':'inez_rear',INEZ.x,INEZ.y,iside?52:62,{rot:INEZ.spin>0&&state!=='won'?Math.sin(t0*22)*.5:rel*.12,flip:turn&&rel>0,lift:INEZ.z,near:85,far:3600}); if(p&&INEZ.spin>0&&state==='race') DL.push({z:p.z-1,f:()=>txt('❄ PAC!',p.sx,p.sy-80*p.k,30,'#ffffff','center')}); }
   shots.forEach(b=>bill('snowball',b.x,b.y,13,{lift:b.z,near:18}));
   sparks.forEach(q=>{ const p=project(q.x,q.y); if(p&&p.z>40) DL.push({z:p.z,f:()=>{ c.globalAlpha=Math.min(1,q.t*2); c.fillStyle=q.col; c.beginPath(); c.arc(p.sx,p.sy-q.z*p.k,Math.min(9,Math.max(1.5,2.5*p.k)),0,6.29); c.fill(); c.globalAlpha=1; }}); });
   DL.sort((a,b)=>b.z-a.z).forEach(d=>d.f());
   // our bobsled with the family
   // default sprite: exactly from behind; a slight-turn frame (mirrored for right) only while steering
-  const turn=Math.abs(P.steer)>.35&&P.spin<=0, im=turn?IMG.bob_turn:IMG.bob_rear, sp=Math.hypot(P.vx,P.vy), lift=P.z*.9;
+  // three frames: straight from behind (default), slight turn, and side-on when steering hard or sliding
+  const sl=Math.abs(P.vl||0), hard=P.spin<=0&&((P.turnT>.3&&Math.abs(P.steer)>.75)||sl>120), turn=P.spin<=0&&(hard||Math.abs(P.steer)>.3), dir=Math.abs(P.steer)>.2?Math.sign(P.steer):Math.sign(P.vl||1),
+    im=hard?IMG.bob_side:turn?IMG.bob_turn:IMG.bob_rear, sp=Math.hypot(P.vx,P.vy), lift=P.z*.9;
   if(lift>0){ c.fillStyle=`rgba(20,30,60,${Math.max(.08,.3-lift/600)})`; c.beginPath(); c.ellipse(VW/2+P.steer*28,VH-12,150-lift*.15,22,0,0,6.29); c.fill(); }
-  if(ok(im)){ const h=250, w=h*im.naturalWidth/im.naturalHeight, bob=Math.sin(t0*16)*2.5*(sp/VMAX)*(lift>0?0:1), lean=P.spin>0?Math.sin(t0*25)*.35:P.steer*.06+(lift>0?-P.vz*.0002:0), fl=turn&&P.steer>0?-1:1;
-    c.save(); c.translate(VW/2+P.steer*28,VH-8+bob-lift); c.rotate(lean); c.scale(fl,1); c.drawImage(im,-w/2,-h,w,h);
+  if(ok(im)){ const h=hard?245:250, w=h*im.naturalWidth/im.naturalHeight, grd=lift>0?0:1, bob=(Math.sin(t0*16)*2.5+(Math.random()-.5)*2.2)*(sp/VMAX)*grd, lean=P.spin>0?Math.sin(t0*25)*.35:P.steer*(hard?.1:.06)+(lift>0?-P.vz*.0002:0), fl=turn&&dir>0?-1:1, sq=P.land>0?1-P.land*.5:1;
+    c.save(); c.translate(VW/2+P.steer*34,VH-8+bob-lift); c.rotate(lean); c.scale(fl*(2-sq),sq); c.drawImage(im,-w/2,-h,w,h);
     if(P.fire>0){ c.globalAlpha=P.fire/.18; c.fillStyle='#ffffff'; c.beginPath(); c.arc(w*.3,-h*.84,24*(1.2-P.fire*2),0,6.29); c.fill(); c.globalAlpha=1; } c.restore(); }
   // snow spray from the runners
+  if(sp>150&&P.z<=0&&Math.abs(P.steer)>.5) for(let k=0;k<5;k++){ const sd=-Math.sign(P.steer); c.fillStyle='rgba(255,255,255,.9)'; c.beginPath(); c.arc(VW/2+P.steer*34+sd*(110+Math.random()*90),VH-20-Math.random()*60,3+Math.random()*9,0,6.29); c.fill(); }
   if(sp>150) for(let k=0;k<(P.boost>0?6:3);k++){ const sd=k%2?1:-1; c.fillStyle='rgba(255,255,255,.85)'; c.beginPath(); if(P.z<=0) c.arc(VW/2+P.steer*28+sd*(95+Math.random()*40)-P.steer*60,VH-14-Math.random()*26,3+Math.random()*7,0,6.29); c.fill(); }
   c.restore();
   if(P.boost>0){ c.strokeStyle='rgba(255,236,150,.55)'; c.lineWidth=3; for(let k=0;k<14;k++){ const a=k/14*6.28+t0*2, r1=260+((t0*900+k*97)%260); c.beginPath(); c.moveTo(VW/2+Math.cos(a)*r1,VH*.55+Math.sin(a)*r1*.55); c.lineTo(VW/2+Math.cos(a)*(r1+80),VH*.55+Math.sin(a)*(r1+80)*.55); c.stroke(); } }
