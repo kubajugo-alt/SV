@@ -517,10 +517,10 @@ function update(dt){
   // jump: coyote time + buffer + variable height; hold in the air while falling = paraglider
   if(K.WHit) swapChar(); if(P.on) P.dj=true;
   P.coyote=P.on?.1:P.coyote-dt; if(K.JHit){ P.buf=.13; } else P.buf-=dt;
-  if(WHO==='kaka'&&K.JHit&&!P.on&&P.coyote<=0&&P.dj&&!P.rope){ P.dj=false; P.buf=0; P.vy=-940; puff(P.x,P.y+P.h,'rgba(255,255,255,.9)',10); grunt('jump',.4); }
+  if(WHO==='kaka'&&K.JHit&&!P.on&&P.coyote<=0&&P.dj&&!P.rope){ P.dj=false; P.buf=0; P.vy=-1040; P.dbl=true; puff(P.x,P.y+P.h,'rgba(255,255,255,.9)',10); grunt('jump',.4); }
   if(P.buf>0&&P.coyote>0){ P.vy=WHO==='mik'?-720:-830; P.on=false; P.coyote=0; P.buf=0; grunt('jump',.75); P.boosted=false; }
   if(P.vy>=0) P.sprung=false;
-  if(!K.J&&P.vy<-300&&!P.sprung) P.vy=-300;
+  if(P.on||P.vy>=0) P.dbl=false; if(!K.J&&P.vy<-300&&!P.sprung&&!P.dbl) P.vy=-300;
   P.vy+=2200*dt;
   const wasGlide=P.glide; P.glide=!P.on&&K.J&&P.vy>0&&WHO==='kz'; if(P.glide&&!wasGlide&&!P.glideSnd){ sfx('glide',.45); P.glideSnd=true; } if(P.glide&&!P.boosted){ P.boosted=true; P.vy=-450; P.glide=false; puff(P.x,P.y-20,'rgba(255,255,255,.8)',6); } if(P.on){ P.glideSnd=false; P.boosted=false; }
   if(P.glide) P.vy=Math.min(P.vy,120);
