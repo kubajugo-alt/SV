@@ -335,7 +335,7 @@ function damageFoe(f,d){ f.hp-=d; f.hit=.12; puff(f.x,f.y,'#ffffff',4); if(f.hp<
 function boosterKind(){ const r=Math.random(), low=P.hp<=2; return low?(r<.55?'cookie':r<.8?'star':'candy'):(r<.38?'candy':r<.68?'cookie':'star'); }
 // a gift balloon drifts in every 9–13 s (also during the boss) carrying a booster; snowballs or touching it pop it
 let balloonT=8;
-function updateBalloons(dt){ if(state!=='play') return; balloonT-=dt; if(balloonT<=0){ balloonT=9+Math.random()*4; items.push({kind:boosterKind(),x:VW+40,y:110+Math.random()*260,vx:-110,t:0,balloon:true}); } }
+function updateBalloons(dt){ if(state!=='play') return; balloonT-=dt; if(balloonT<=0){ balloonT=boss&&!boss.cameo?5+Math.random()*2:9+Math.random()*4; items.push({kind:boosterKind(),x:VW+40,y:110+Math.random()*260,vx:-110,t:0,balloon:true}); } }
 function collect(it){ sfx('pick',.5); if(it.kind==='candy'){ P.triple=10; popups.push({x:P.x,y:P.y-90,txt:'Laska cukrowa: potrójne śnieżki!',t:1.6,col:'#ffd1dc'}); }
   else if(it.kind==='cookie'){ P.hp=Math.min(5,P.hp+1); popups.push({x:P.x,y:P.y-90,txt:'Ciasteczko z mlekiem: +1 ❤',t:1.6,col:'#ffe27a'}); }
   else { P.shield=10; popups.push({x:P.x,y:P.y-90,txt:'Gwiazdka: tarcza!',t:1.6,col:'#fff1a8'}); } }
@@ -352,7 +352,7 @@ function updateCameo(dt){ const b=boss; b.t+=dt; P.inv=.06; // no damage, and sh
   if(b.heart){ const h=b.heart, dx=P.x-h.x, dy=P.y-h.y, d=Math.hypot(dx,dy)||1; h.x+=dx/d*760*dt; h.y+=dy/d*760*dt; if(d<60){ b.heart=null; b.crash=0; shake=.9; sfx('hurt',.7); burst(P.x,P.y,'#ff9ccf',36); dust(P.x,P.y,1.4); say('nz_crash',()=>setTimeout(()=>say('nk_crash'),300),true); } }
   if(b.crash!=null){ b.crash+=dt; P.x+=50*dt; P.y=Math.min(370,P.y+150*dt); P.tilt=.35+Math.sin(b.crash*9)*.08; if(Math.random()<.5) puff(P.x-60,P.y+20,'#9a9aa8',3); if(b.crash>5.5&&state==='play') levelDone(); } }
 let BOSSCP=null;
-function startBoss(){ BOSSCP={lvl,delivered,houseCount,score}; const B=L.boss; boss={x:VW+260,y:240,hp:B.hp,max:B.hp,in:false,mode:'enter',mt:0,t:0,hit:0,dir:1}; bossPhase=1;
+function startBoss(){ BOSSCP={lvl,delivered,houseCount,score}; balloonT=1.5; if(lvl===0){ P.shield=Math.max(P.shield,6); P.hp=Math.max(P.hp,3); } const B=L.boss; boss={x:VW+260,y:240,hp:B.hp,max:B.hp,in:false,mode:'enter',mt:0,t:0,hit:0,dir:1}; bossPhase=1;
   say(B.intro[0],()=>setTimeout(()=>say(B.intro[1]),250),true); }
 function updateBoss(dt){ const b=boss; b.t+=dt; b.mt-=dt; b.hit=Math.max(0,b.hit-dt); if(b.hp<=0){ b.dead=(b.dead||0)+dt; if(b.dead>4&&state==='play') levelDone(); return; }
   const angry=b.hp<b.max/2;
@@ -383,7 +383,7 @@ function drawDuel(b){ if(b.mode!=='duel'||b.dt<1.2) return; const [ax,ay]=noseR(
   const g=c.createRadialGradient(mx,my,2,mx,my,70); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(1,'rgba(255,150,200,0)'); c.fillStyle=g; c.beginPath(); c.arc(mx,my,70+Math.sin(t0*40)*8,0,6.29); c.fill(); c.restore();
   const W=420, x=VW/2-W/2; c.fillStyle='rgba(0,0,0,.5)'; c.fillRect(x,96,W,18); c.fillStyle='#ff4040'; c.fillRect(x,96,W*Math.max(0,Math.min(1,b.duel)),18); c.fillStyle='#ff7ad0'; c.fillRect(x+W*Math.max(0,Math.min(1,b.duel)),96,W*(1-Math.max(0,Math.min(1,b.duel))),18);
   txt('Rudolf',x-10,105,18,'#ff8a8a','right'); txt('Różowy Renifer',x+W+10,105,18,'#ff9ccf','left'); txt(TOUCH?'Stukaj w ekran!':'Wciskaj SPACJĘ!',VW/2,135,24,'#ffe27a','center'); }
-function damageBoss(d){ const b=boss; if(b.hp<=0||b.mode==='duel') return; if(L.boss.duel&&!b.duelDone&&b.hp-d<=0){ startDuel(b); return; } b.hp-=d; b.hit=.1; score+=10; puff(b.x-40+Math.random()*80,b.y-30+Math.random()*60,'#ffffff',3);
+function damageBoss(d){ const b=boss; if(b.hp<=0||b.mode==='duel') return; if(L.boss.duel&&!b.duelDone&&b.hp-d<=0){ startDuel(b); return; } const q0=Math.ceil(b.hp/b.max*4); b.hp-=d; b.hit=.1; if(b.hp>0&&Math.ceil(b.hp/b.max*4)<q0){ items.push({kind:boosterKind(),x:b.x-60,y:b.y,vx:-150,t:0}); popups.push({x:b.x-60,y:b.y-70,txt:'Doładowanie!',t:1.2,col:'#ffe27a'}); } score+=10; puff(b.x-40+Math.random()*80,b.y-30+Math.random()*60,'#ffffff',3);
   if(b.hp<=b.max/2&&bossPhase===1){ bossPhase=2; popups.push({x:b.x,y:Math.max(140,b.y-120),txt:L.boss.angry,t:1.6,col:L.boss.col}); }
   if(b.hp<=0){ b.hp=0; score+=2000; sfx('defeat',.8); dust(b.x,b.y,2.2); burst(b.x,b.y,L.boss.col,30); shake=.6; ebullets=[]; flyers.push({img:L.boss.para,x:b.x,y:b.y-30,vy:-60,t:0,w:L.boss.fall?200:210,fall:L.boss.fall}); say(L.boss.down,null,true); } }
 
