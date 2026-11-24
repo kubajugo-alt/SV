@@ -123,10 +123,10 @@ addEventListener('keyup',e=>{ const k=MAPK[e.code]; if(k) K[k]=false; });
 if(TOUCH) $('pad').classList.remove('hidden');
 [['pU','U'],['pD','D'],['pL','L'],['pR','R']].forEach(([id,k])=>{ const b=$(id); b.addEventListener('pointerdown',e=>{ e.preventDefault(); K[k]=true; }); ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>K[k]=false)); });
 
-function start(){ t0=0; try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); }catch(e){} $('intro').classList.add('hidden'); $('end').classList.add('hidden'); resetRun(); state='play'; if(!muted){ bgm.currentTime=0; bgm.play().catch(()=>{}); } toast('Znajdź złoty klucz 🔑 i dojdź do bramy','#ffe27a'); }
+function start(){ t0=0; try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); }catch(e){} $('intro').classList.add('hidden'); $('end').classList.add('hidden'); resetRun(); state='play'; if(!muted){ bgm.currentTime=0; bgm.play().catch(()=>{}); } toast('Znajdź złoty klucz 🔑 i dojdź do bramy','#ffe27a'); setTimeout(()=>kz('start'),600); }
 $('bGo').onclick=start;
 function finish(win){ state='end'; for(const k in K) K[k]=false; const row=$('eRow'); row.innerHTML=''; bgm.volume=.12;
-  if(win){ $('eH').textContent='Magazyn przejęty! 🔑'; $('eTxt').innerHTML='Brama otwarta — a za nią czeka bobslej z armatką śnieżną. Inez właśnie odpycha się kijkami po lodowym torze!'; sfx('win',.6); if(window.RANK) RANK.award('mag',3000+hearts*600-Math.min(1500,Math.round(t0*6)),hearts,$('eTxt'));
+  if(win){ $('eH').textContent='Magazyn przejęty! 🔑'; $('eTxt').innerHTML='Brama otwarta — a za nią czeka bobslej z armatką śnieżną. Inez właśnie odpycha się kijkami po lodowym torze!'; sfx('win',.6); setTimeout(()=>kz('win'),700); if(window.RANK) RANK.award('mag',3000+hearts*600-Math.min(1500,Math.round(t0*6)),hearts,$('eTxt'));
     const b=document.createElement('button'); b.className='btn'; b.textContent='Do pościgu ➜'; b.onclick=()=>{ location.href='../bobslej/'; }; row.append(b); }
   else { $('eH').textContent='Złapany!'; $('eTxt').innerHTML='Elfy Inez wyprowadziły Kaczora z magazynu. Skradaj się wolniej, chowaj się w kartonach i patrz, dokąd świecą latarki.'; }
   const b2=document.createElement('button'); b2.className='btn'+(win?' alt':''); b2.textContent='Jeszcze raz'; b2.onclick=start; row.append(b2); $('end').classList.remove('hidden'); }
@@ -134,18 +134,22 @@ function finish(win){ state='end'; for(const k in K) K[k]=false; const row=$('eR
 // ---------- simulation ----------
 function moveWithWalls(o,dx,dy,r){ o.x+=dx; if(solidAt(o.x+r*Math.sign(dx||1),o.y-r*.6)||solidAt(o.x+r*Math.sign(dx||1),o.y+r*.6)) o.x-=dx; o.y+=dy; if(solidAt(o.x-r*.6,o.y+r*Math.sign(dy||1))||solidAt(o.x+r*.6,o.y+r*Math.sign(dy||1))) o.y-=dy; }
 function inBox(x,y){ return BOXES.find(b=>Math.abs(b.x-x)<26&&Math.abs(b.y-y)<26); }
-function hurt(why){ if(P.inv>0) return; hearts--; sfx('kz_hurt1',.6); sh=.4; toast(why,'#ffb0b0'); if(hearts<=0){ finish(false); return; } respawn(); }
+function hurt(why){ if(P.inv>0) return; hearts--; sfx('kz_hurt1',.6); sfx('splat',.4); if(hearts>0) setTimeout(()=>kz('caught'),400); sh=.4; toast(why,'#ffb0b0'); if(hearts<=0){ finish(false); return; } respawn(); }
 function sees(w){ if(P.hidden) return 0; const dx=P.x-w.x, dy=P.y-w.y, d=Math.hypot(dx,dy); if(d>w.len) return 0; let da=Math.atan2(dy,dx)-w.a; da=Math.atan2(Math.sin(da),Math.cos(da)); if(Math.abs(da)>w.half) return 0; if(!los(w.x,w.y,P.x,P.y)) return 0; return 1-d/w.len*.6; }
-function say(g,t){ g.say={t,ttl:2.2}; }
+const ELV=['Hm? Kto tam?','Coś się rusza…','Halo?','Słyszałem coś…','Co to za kroki?','Kto tu tupie?','Tam jest!','Mam cię, Kaczorze!','Stój! Alarm!','Gdzie on się podział?','Zniknął!','Szukać go!','Pewnie mi się zdawało.','Wracam na obchód.','Myszy w magazynie…','Aha! W kartonie!'].concat(['Kamera go widzi! Biegnę!']);
+let elfVoiceT=0; const KZT={start:1,key:2,box:3,alarm:4,caught:5,win:6}; let kzVoice=null;
+function voiceAt(src,v){ if(muted) return null; const a=new Audio(src); a.volume=Math.max(0,Math.min(1,v)); a.play().catch(()=>{}); return a; }
+function kz(k){ if(kzVoice&&!kzVoice.ended&&k!=='caught'&&k!=='win') return; kzVoice=voiceAt('audio/mz_'+KZT[k]+'.mp3',.9); }
+function say(g,t){ g.say={t,ttl:2.2}; const i=ELV.indexOf(t); if(i<0||performance.now()<elfVoiceT) return; const d=Math.hypot(g.x-P.x,g.y-P.y); if(d>900) return; elfVoiceT=performance.now()+900; voiceAt('audio/el_'+(i+1)+'.mp3',.95-d/1100); }
 function alert(g,x,y,t){ g.st='chase'; g.lx=x; g.ly=y; g.lost=1.5; g.sus=Math.max(g.sus,.9); g.route=[]; g.bt=0; say(g,t); }
-function raiseAlarm(){ if(alarm<=0){ toast('ALARM! Zabawkowe samoloty! ✈','#ff8a8a'); for(let k=0;k<3;k++){ const a=Math.random()*6.28; planes.push({x:P.x+Math.cos(a)*700,y:P.y+Math.sin(a)*500,a:a+Math.PI,t:0}); } } alarm=9; }
+function raiseAlarm(){ if(alarm<=0){ setTimeout(()=>kz('alarm'),500); sfx('phone',.5); toast('ALARM! Zabawkowe samoloty! ✈','#ff8a8a'); for(let k=0;k<3;k++){ const a=Math.random()*6.28; planes.push({x:P.x+Math.cos(a)*700,y:P.y+Math.sin(a)*500,a:a+Math.PI,t:0}); } } alarm=9; }
 function update(dt){ t0+=dt; sh=Math.max(0,(sh||0)-dt); P.inv=Math.max(0,P.inv-dt); toasts.forEach(t=>t.ttl-=dt); toasts=toasts.filter(t=>t.ttl>0);
   // Kaczor sneaks; Shift is faster but makes noise that guards nearby hear
   const ix=(K.R?1:0)-(K.L?1:0), iy=(K.D?1:0)-(K.U?1:0), n=Math.hypot(ix,iy)||1, sp=K.F?300:190; const mv=ix||iy;
   P.vx+=(ix/n*sp-P.vx)*Math.min(1,dt*12); P.vy+=(iy/n*sp-P.vy)*Math.min(1,dt*12); moveWithWalls(P,P.vx*dt,P.vy*dt,20); if(ix) P.face=ix;
-  P.still=mv?0:P.still+dt; const bx=inBox(P.x,P.y); P.hidden=!!bx&&P.still>.25&&alarm<=0; if(bx&&!msgSeen.box){ msgSeen.box=1; toast('Karton! Stój bez ruchu, a nikt cię nie zobaczy 📦','#ffe27a'); }
+  P.still=mv?0:P.still+dt; const bx=inBox(P.x,P.y); P.hidden=!!bx&&P.still>.25&&alarm<=0; if(bx&&P.hidden&&!P.wasHidden) sfx('spring',.25); P.wasHidden=P.hidden; if(bx&&!msgSeen.box){ msgSeen.box=1; setTimeout(()=>kz('box'),1200); toast('Karton! Stój bez ruchu, a nikt cię nie zobaczy 📦','#ffe27a'); }
   if(mv){ P.step+=dt*(K.F?9:6); if(Math.floor(P.step)!==Math.floor(P.step-dt*(K.F?9:6))&&K.F) sfx('step_wood',.15); }
-  if(KEYP&&!hasKey&&Math.hypot(P.x-KEYP.x,P.y-KEYP.y)<40){ hasKey=true; cp={x:KEYP.x,y:KEYP.y}; sfx('pick',.6); toast('Złoty klucz! Teraz do bramy 🔑','#ffe27a'); }
+  if(KEYP&&!hasKey&&Math.hypot(P.x-KEYP.x,P.y-KEYP.y)<40){ hasKey=true; cp={x:KEYP.x,y:KEYP.y}; sfx('pick',.6); sfx('cp',.5); kz('key'); toast('Złoty klucz! Teraz do bramy 🔑','#ffe27a'); }
   if(Math.hypot(P.x-EXIT.x,P.y-EXIT.y)<56){ if(hasKey){ finish(true); return; } else if(!msgSeen.lock){ msgSeen.lock=1; toast('Zamknięte na kłódkę — potrzebny złoty klucz 🔒','#ffe27a'); } } else msgSeen.lock=0;
   // first meetings: a short explanation the first time a camera or an elf guard is close
   if(!msgSeen.cam&&CAMS.some(k=>Math.hypot(k.x-P.x,k.y-P.y)<420)){ msgSeen.cam=1; toast('📷 Różowy stożek to pole widzenia kamery — nie wchodź w niego!','#ffd1ec'); }
@@ -177,7 +181,7 @@ function update(dt){ t0+=dt; sh=Math.max(0,(sh||0)-dt); P.inv=Math.max(0,P.inv-d
     if(d<38&&!P.hidden) hurt('Elf-strażnik cię złapał! 🧝'); });
   // snowballs thrown by the elves
   balls.forEach(o=>{ o.t-=dt; o.x+=o.vx*dt; o.y+=o.vy*dt; if(solidAt(o.x,o.y)) o.t=0; else if(!P.hidden&&Math.hypot(P.x-o.x,P.y-o.y)<26){ o.t=0; hurt('Śnieżka od elfa! ❄'); } }); balls=balls.filter(o=>o.t>0);
-  GUARDS.forEach(g=>{ if(g.say){ g.say.ttl-=dt; if(g.say.ttl<=0) g.say=null; } });
+  GUARDS.forEach(g=>{ if(g.say){ g.say.ttl-=dt; if(g.say.ttl<=0) g.say=null; } if(g.mv){ g.stepT=(g.stepT||0)-dt; if(g.stepT<=0){ g.stepT=g.st==='chase'?.26:.42; const d=Math.hypot(g.x-P.x,g.y-P.y); if(d<520) sfx('step_wood',.22*(1-d/520)); } } });
   // alarm: siren, toy planes homing in
   if(alarm>0){ alarm-=dt; if(Math.floor(alarm*2)!==Math.floor((alarm+dt)*2)) beep(alarm*2%2<1?880:660,.4,.05,'sawtooth'); if(alarm<=0){ planes=[]; GUARDS.forEach(g=>{ if(g.st==='chase'){ g.st='search'; g.wait=2; } g.route=[]; }); CAMS.forEach(k=>k.sus=0); toast('Cisza… alarm ucichł','#cfe6ff'); } }
   planes.forEach(p=>{ p.t+=dt; const ta=Math.atan2(P.y-p.y,P.x-p.x); let da=Math.atan2(Math.sin(ta-p.a),Math.cos(ta-p.a)); p.a+=Math.max(-2.2*dt,Math.min(2.2*dt,da)); p.x+=Math.cos(p.a)*260*dt; p.y+=Math.sin(p.a)*260*dt; if(Math.hypot(P.x-p.x,P.y-p.y)<34){ p.hit=1; hurt('Trafił cię zabawkowy samolot! ✈'); } });
