@@ -608,7 +608,7 @@ function update(dt){
     if(e.k==='boss'){ bossUpdate(e,dt,punching,hx0,hx1,hy0,hy1); return; }
     if(e.k==='ladle'&&e.fall){ e.vy+=900*dt; e.x+=e.vx*dt; e.y+=e.vy*dt; const g=groundY(e.x); if(g!=null&&e.vy>0&&e.y>g-24){ e.y=g-24; e.vy=0; e.vx=0; e.fall=false; puff(e.x,g-6,'#fff2c8',6); } if(e.y>VH+80) e.alive=false; }
     if(e.k==='vihta'||e.k==='ladle'){ if(Math.abs(e.x-P.x)<34&&e.y>P.y-10&&e.y<P.y+P.h+10){ e.alive=false;
-      if(e.k==='vihta'){ vihta++; lvlV++; pickChime(); puff(e.x,e.y,'#7fbf5a',5); if(vihta%25===0&&hearts<5){ hearts++; sfx('ladle'); toast('25 lasek cukrowych: +1 ❤','#ffd1dc'); } }
+      if(e.k==='vihta'){ vihta++; lvlV++; pickChime(); puff(e.x,e.y,'#e0262f',4); puff(e.x,e.y,'#ffffff',4); if(vihta%25===0&&hearts<5){ hearts++; sfx('ladle'); toast('25 lasek cukrowych: +1 ❤','#ffd1dc'); } }
       else { if(hearts<Math.max(5,DF().hearts)) hearts++; sfx('ladle'); toast('Gorące kakao: +1 ❤','#ffd1dc'); } } return; }
     if(e.k==='spring'){ e.sq=Math.max(0,(e.sq||0)-dt); if(P.on&&Math.abs(P.x-e.x)<34&&Math.abs(P.y+P.h-e.y)<6){ P.vy=-1180; P.sprung=true; P.on=false; P.coyote=0; e.sq=.25; sfx('spring'); puff(e.x,e.y,'#fff',6); } return; }
     if(e.k==='icicle'){ if(!e.st){ if(e.x-P.x<170&&e.x-P.x>-30) e.st='shake', e.tt=.4; }
